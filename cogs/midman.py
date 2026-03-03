@@ -2,10 +2,11 @@ import discord
 from discord.ext import commands
 import asyncio
 import datetime
-import io
-import json
 import os
 from dotenv import load_dotenv
+from utils.fee import hitung_fee, format_nominal
+from utils.tickets import save_tickets, load_tickets
+from utils.transcript import generate as generate_transcript
 
 load_dotenv()
 
@@ -14,73 +15,6 @@ MIDMAN_CHANNEL_ID = int(os.getenv("MIDMAN_CHANNEL_ID"))
 TICKET_CATEGORY_ID = int(os.getenv("TICKET_CATEGORY_ID"))
 ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID"))
 TRANSCRIPT_CHANNEL_ID = int(os.getenv("TRANSCRIPT_CHANNEL_ID"))
-
-TICKETS_FILE = "tickets.json"
-
-
-def hitung_fee(nominal):
-    if nominal < 1000:
-        return None
-    elif nominal <= 9000:
-        return 1500
-    elif nominal <= 49000:
-        return 2500
-    elif nominal <= 99000:
-        return 4500
-    elif nominal <= 199000:
-        return 6500
-    elif nominal <= 499000:
-        return 10000
-    elif nominal <= 1000000:
-        return 15000
-    else:
-        return 20000
-
-
-def save_tickets(active_tickets):
-    data = {}
-    for ch_id, t in active_tickets.items():
-        data[str(ch_id)] = {
-            "pihak1_id": t["pihak1"].id if t["pihak1"] else None,
-            "pihak2_id": t["pihak2"].id if t["pihak2"] else None,
-            "item_p1": t["item_p1"],
-            "item_p2": t["item_p2"],
-            "fee": t["fee"],
-            "link_server": t["link_server"],
-            "admin_id": t["admin"].id if t["admin"] else None,
-            "nominal": t["nominal"],
-            "embed_message_id": t.get("embed_message_id"),
-            "opened_at": t["opened_at"].isoformat() if t["opened_at"] else None,
-        }
-    with open(TICKETS_FILE, "w") as f:
-        json.dump(data, f)
-
-
-async def load_tickets(guild, active_tickets):
-    if not os.path.exists(TICKETS_FILE):
-        return
-    with open(TICKETS_FILE, "r") as f:
-        data = json.load(f)
-    for ch_id_str, t in data.items():
-        ch_id = int(ch_id_str)
-        try:
-            p1 = await guild.fetch_member(t["pihak1_id"]) if t["pihak1_id"] else None
-            p2 = await guild.fetch_member(t["pihak2_id"]) if t["pihak2_id"] else None
-            adm = await guild.fetch_member(t["admin_id"]) if t["admin_id"] else None
-        except:
-            continue
-        active_tickets[ch_id] = {
-            "pihak1": p1,
-            "pihak2": p2,
-            "item_p1": t["item_p1"],
-            "item_p2": t["item_p2"],
-            "fee": t["fee"],
-            "link_server": t["link_server"],
-            "admin": adm,
-            "nominal": t["nominal"],
-            "embed_message_id": t.get("embed_message_id"),
-            "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t["opened_at"] else None,
-        }
 
 
 class MidmanMainView(discord.ui.View):
@@ -211,7 +145,7 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
             return
 
         fee_result = hitung_fee(nominal_int)
-        fee_str = f"Rp {fee_result:,}".replace(",", ".") if fee_result else "-"
+        fee_str = format_nominal(fee_result) if fee_result else "-"
 
         ticket["pihak2"] = user2
         ticket["nominal"] = nominal_int
@@ -219,14 +153,12 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
 
         await interaction.channel.set_permissions(user2, view_channel=True, send_messages=True)
 
-        # Hapus embed pertama
         try:
             orig_msg = await interaction.channel.fetch_message(ticket["embed_message_id"])
             await orig_msg.delete()
         except Exception as e:
             print(f"Gagal hapus embed: {e}")
 
-        # Kirim embed baru tanpa tombol setup, dengan tombol trade selesai
         embed = discord.Embed(
             title="OPEN TIKET MIDMAN TRADE",
             color=0x5865F2,
@@ -282,16 +214,9 @@ class TradeFinishView(discord.ui.View):
         ticket["closed_at"] = datetime.datetime.now(datetime.timezone.utc)
 
         nominal_int = ticket.get("nominal", 0)
-        nominal_str = f"Rp {nominal_int:,}".replace(",", ".") if nominal_int else "-"
+        nominal_str = format_nominal(nominal_int) if nominal_int else "-"
 
-        lines = [f"TRANSCRIPT — {interaction.channel.name}\n"]
-        async for msg in interaction.channel.history(limit=200, oldest_first=True):
-            ts = msg.created_at.strftime("%d/%m/%Y %H:%M:%S")
-            lines.append(f"[{ts}] {msg.author}: {msg.content}")
-        transcript_file = discord.File(
-            fp=io.StringIO("\n".join(lines)),
-            filename=f"transcript-{interaction.channel.name}.txt"
-        )
+        transcript_file = await generate_transcript(interaction.channel)
 
         p1 = ticket["pihak1"]
         p2 = ticket["pihak2"]
@@ -368,9 +293,9 @@ class Midman(commands.Cog):
             return
 
         embed = discord.Embed(title="Kalkulator Fee Midman", color=0x5865F2)
-        embed.add_field(name="Nominal", value=f"Rp {angka:,}".replace(",", "."), inline=True)
-        embed.add_field(name="Fee", value=f"Rp {result:,}".replace(",", "."), inline=True)
-        embed.add_field(name="Total Bayar", value=f"Rp {angka + result:,}".replace(",", "."), inline=True)
+        embed.add_field(name="Nominal", value=format_nominal(angka), inline=True)
+        embed.add_field(name="Fee", value=format_nominal(result), inline=True)
+        embed.add_field(name="Total Bayar", value=format_nominal(angka + result), inline=True)
         embed.set_footer(text="Cellyn Store Midman")
         await ctx.send(embed=embed)
 
