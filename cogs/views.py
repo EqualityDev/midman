@@ -6,7 +6,7 @@ from utils.tickets import save_tickets
 def build_embed_awal(store_name, p1_mention, item_p1, item_p2):
     embed = discord.Embed(
         title=f"MIDMAN TRADE — {store_name}",
-        color=0x5865F2,
+        color=0xFFD700,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     embed.add_field(
