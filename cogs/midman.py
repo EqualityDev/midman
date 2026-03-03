@@ -124,7 +124,7 @@ class AdminSetupView(discord.ui.View):
 
 class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
     pihak2_id = discord.ui.TextInput(label="ID Pihak 2", placeholder="Paste user ID pihak 2")
-    nominal = discord.ui.TextInput(label="Nominal (Rp)", placeholder="contoh: 50000")
+    fee_input = discord.ui.TextInput(label="Fee (Rp)", placeholder="contoh: 2500")
 
     async def on_submit(self, interaction):
         cog = interaction.client.cogs.get("Midman")
@@ -137,18 +137,17 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
             await interaction.response.send_message("User tidak ditemukan. Pastikan ID benar. Tekan Setup Trade lagi.", ephemeral=True)
             return
 
-        nominal_raw = self.nominal.value.replace(".", "").replace(",", "").replace("k", "000").replace("K", "000")
+        fee_raw = self.fee_input.value.replace(".", "").replace(",", "").replace("k", "000").replace("K", "000")
         try:
-            nominal_int = int(nominal_raw)
+            fee_int = int(fee_raw)
         except ValueError:
-            await interaction.response.send_message("Format nominal salah. Tekan Setup Trade lagi.", ephemeral=True)
+            await interaction.response.send_message("Format fee salah. Tekan Setup Trade lagi.", ephemeral=True)
             return
 
-        fee_result = hitung_fee(nominal_int)
-        fee_str = format_nominal(fee_result) if fee_result else "-"
+        fee_str = format_nominal(fee_int)
 
         ticket["pihak2"] = user2
-        ticket["nominal"] = nominal_int
+        ticket["fee_final"] = fee_int
         save_tickets(cog.active_tickets)
 
         await interaction.channel.set_permissions(user2, view_channel=True, send_messages=True)
@@ -213,8 +212,8 @@ class TradeFinishView(discord.ui.View):
 
         ticket["closed_at"] = datetime.datetime.now(datetime.timezone.utc)
 
-        nominal_int = ticket.get("nominal", 0)
-        nominal_str = format_nominal(nominal_int) if nominal_int else "-"
+        fee_int = ticket.get("fee_final", 0)
+        fee_str_log = format_nominal(fee_int) if fee_int else "-"
 
         transcript_file = await generate_transcript(interaction.channel)
 
@@ -228,7 +227,7 @@ class TradeFinishView(discord.ui.View):
             f"| Midman: {adm.mention}\n"
             f"| Pihak 1: {p1.mention} | {p1.id} ({ticket['item_p1']})\n"
             f"| Pihak 2: {p2.mention if p2 else chr(45)} | {p2.id if p2 else chr(45)} ({ticket['item_p2']})\n"
-            f"| Nominal: {nominal_str}\n"
+            f"| Fee: {fee_str_log}\n"
             f"\u200b\n"
             f"<a:verify:1453822153257652315> Transaksi telah selesai dan aman! Terima kasih telah menggunakan jasa midman kami."
         )

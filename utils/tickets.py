@@ -16,7 +16,7 @@ def save_tickets(active_tickets):
             "fee": t["fee"],
             "link_server": t["link_server"],
             "admin_id": t["admin"].id if t["admin"] else None,
-            "nominal": t["nominal"],
+            "fee_final": t.get("fee_final"),
             "embed_message_id": t.get("embed_message_id"),
             "opened_at": t["opened_at"].isoformat() if t["opened_at"] else None,
         }
@@ -45,7 +45,7 @@ async def load_tickets(guild, active_tickets):
             "fee": t["fee"],
             "link_server": t["link_server"],
             "admin": adm,
-            "nominal": t["nominal"],
+            "fee_final": t.get("fee_final"),
             "embed_message_id": t.get("embed_message_id"),
             "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t["opened_at"] else None,
         }
