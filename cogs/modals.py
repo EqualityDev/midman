@@ -71,11 +71,6 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         )
         cog.active_tickets[channel.id]["embed_message_id"] = msg.id
         save_tickets(cog.active_tickets)
-        await channel.send(
-            f"Selamat datang {interaction.user.mention}!\n\n"
-            f"Tiket midman trade kamu berhasil dibuat.\n"
-            f"Mohon tunggu admin kami bergabung untuk memulai proses trade."
-        )
 
 class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
     pihak2_id = discord.ui.TextInput(label="ID Pihak 2", placeholder="Paste user ID pihak 2")
