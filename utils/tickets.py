@@ -1,23 +1,8 @@
 import json
 import os
 import datetime
-import json as _json
-
-COUNTER_FILE = "ticket_counter.json"
-
-def next_ticket_number():
-    try:
-        with open(COUNTER_FILE, "r") as f:
-            data = _json.load(f)
-        data["count"] += 1
-        with open(COUNTER_FILE, "w") as f:
-            _json.dump(data, f)
-        return data["count"]
-    except:
-        return 0
 
 TICKETS_FILE = "tickets.json"
-
 
 def save_tickets(active_tickets):
     data = {}
@@ -27,16 +12,17 @@ def save_tickets(active_tickets):
             "pihak2_id": t["pihak2"].id if t["pihak2"] else None,
             "item_p1": t["item_p1"],
             "item_p2": t["item_p2"],
-            "fee": t["fee"],
-            "link_server": t["link_server"],
-            "admin_id": t["admin"].id if t["admin"] else None,
+            "fee": t.get("fee"),
             "fee_final": t.get("fee_final"),
+            "fee_paid": t.get("fee_paid", False),
+            "link_server": t.get("link_server"),
+            "admin_id": t["admin"].id if t["admin"] else None,
             "embed_message_id": t.get("embed_message_id"),
-            "opened_at": t["opened_at"].isoformat() if t["opened_at"] else None,
+            "ticket_number": t.get("ticket_number", 0),
+            "opened_at": t["opened_at"].isoformat() if t.get("opened_at") else None,
         }
     with open(TICKETS_FILE, "w") as f:
         json.dump(data, f)
-
 
 async def load_tickets(guild, active_tickets):
     if not os.path.exists(TICKETS_FILE):
@@ -56,10 +42,12 @@ async def load_tickets(guild, active_tickets):
             "pihak2": p2,
             "item_p1": t["item_p1"],
             "item_p2": t["item_p2"],
-            "fee": t["fee"],
-            "link_server": t["link_server"],
-            "admin": adm,
+            "fee": t.get("fee"),
             "fee_final": t.get("fee_final"),
+            "fee_paid": t.get("fee_paid", False),
+            "link_server": t.get("link_server"),
+            "admin": adm,
             "embed_message_id": t.get("embed_message_id"),
-            "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t["opened_at"] else None,
+            "ticket_number": t.get("ticket_number", 0),
+            "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t.get("opened_at") else None,
         }
