@@ -49,6 +49,7 @@ class Midman(commands.Cog):
             ),
             color=0x5865F2
         )
+        embed.set_thumbnail(url="https://i.imgur.com/z4nrBHl.png")
         embed.set_footer(text=STORE_NAME)
         await ch.send(embed=embed, view=MidmanMainView())
         await ctx.send(f"Embed dikirim ke {ch.mention}", delete_after=5)
