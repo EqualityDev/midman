@@ -13,8 +13,33 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
     async def on_submit(self, interaction):
         cog = interaction.client.cogs.get("Midman")
         guild = interaction.guild
+
+        # Cek apakah user sudah punya tiket aktif
+        for ch_id, t in cog.active_tickets.items():
+            if t["pihak1"] and t["pihak1"].id == interaction.user.id:
+                ch = guild.get_channel(ch_id)
+                if ch:
+                    await interaction.response.send_message(
+                        f"Kamu masih memiliki tiket aktif: {ch.mention}\nSelesaikan tiket tersebut sebelum membuka yang baru.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "Kamu masih memiliki tiket aktif. Selesaikan tiket tersebut sebelum membuka yang baru.",
+                        ephemeral=True
+                    )
+                return
+
         category = guild.get_channel(TICKET_CATEGORY_ID)
         admin_role = guild.get_role(ADMIN_ROLE_ID)
+
+        if category is None:
+            await interaction.response.send_message("Konfigurasi kategori tiket tidak ditemukan. Hubungi admin.", ephemeral=True)
+            return
+        if admin_role is None:
+            await interaction.response.send_message("Konfigurasi role admin tidak ditemukan. Hubungi admin.", ephemeral=True)
+            return
+
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
