@@ -29,6 +29,10 @@ class Midman(commands.Cog):
     @commands.command(name="open")
     @commands.has_role(ADMIN_ROLE_ID)
     async def open_cmd(self, ctx):
+        try:
+            await ctx.message.delete()
+        except:
+            pass
         ch = ctx.guild.get_channel(MIDMAN_CHANNEL_ID)
         embed = discord.Embed(
             title=f"MIDMAN TRADE — {STORE_NAME}",
@@ -61,11 +65,14 @@ class Midman(commands.Cog):
         except:
             pass
         ticket["closed_at"] = datetime.datetime.now(datetime.timezone.utc)
+        p1 = ticket.get("pihak1")
+        p2 = ticket.get("pihak2")
+        adm = ticket.get("admin")
+        if not p2 or not adm:
+            await ctx.send("Tiket belum di-setup penuh oleh admin. Tidak bisa dikonfirmasi.", ephemeral=False)
+            return
         fee_int = ticket.get("fee_final", 0)
         fee_str_log = format_nominal(fee_int) if fee_int else "-"
-        p1 = ticket["pihak1"]
-        p2 = ticket["pihak2"]
-        adm = ticket["admin"]
         ticket_num = str(ticket.get("ticket_number", 0)).zfill(4)
         opened_at = ticket.get("opened_at")
         closed_at = ticket.get("closed_at")
@@ -120,6 +127,7 @@ class Midman(commands.Cog):
         ticket = self.active_tickets.get(ctx.channel.id)
         if not ticket:
             await ctx.message.delete()
+            await ctx.send("Channel ini bukan tiket aktif.", delete_after=5)
             return
         try:
             await ctx.message.delete()
@@ -134,6 +142,10 @@ class Midman(commands.Cog):
 
     @commands.command(name="fee")
     async def fee(self, ctx, nominal: str):
+        try:
+            await ctx.message.delete()
+        except:
+            pass
         try:
             angka = int(nominal.replace(".", "").replace(",", "").replace("k", "000").replace("K", "000"))
         except ValueError:

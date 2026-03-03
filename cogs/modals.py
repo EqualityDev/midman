@@ -55,7 +55,6 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
             "pihak2": None,
             "item_p1": self.item_p1.value,
             "item_p2": self.item_p2.value,
-            "fee": None,
             "fee_final": None,
             "fee_paid": False,
             "link_server": None,
