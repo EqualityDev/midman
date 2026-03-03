@@ -126,6 +126,15 @@ class TradeFinishView(discord.ui.View):
         ticket["fee_paid"] = True
         save_tickets(cog.active_tickets)
         button.disabled = True
+
+        # Hapus embed peringatan fee
+        warning_id = ticket.get("fee_warning_id")
+        if warning_id:
+            try:
+                warning_msg = await interaction.channel.fetch_message(warning_id)
+                await warning_msg.delete()
+            except:
+                pass
         embed = build_embed_berlangsung(STORE_NAME, ticket, interaction.user.mention)
         await interaction.message.edit(embed=embed, view=self)
         await interaction.response.send_message(

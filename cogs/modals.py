@@ -14,7 +14,6 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         cog = interaction.client.cogs.get("Midman")
         guild = interaction.guild
 
-        # Cek apakah user sudah punya tiket aktif
         for ch_id, t in cog.active_tickets.items():
             if t["pihak1"] and t["pihak1"].id == interaction.user.id:
                 ch = guild.get_channel(ch_id)
@@ -72,6 +71,11 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         )
         cog.active_tickets[channel.id]["embed_message_id"] = msg.id
         save_tickets(cog.active_tickets)
+        await channel.send(
+            f"Selamat datang {interaction.user.mention}!\n\n"
+            f"Tiket midman trade kamu berhasil dibuat.\n"
+            f"Mohon tunggu admin kami bergabung untuk memulai proses trade."
+        )
 
 class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
     pihak2_id = discord.ui.TextInput(label="ID Pihak 2", placeholder="Paste user ID pihak 2")
@@ -110,3 +114,15 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
             embed=embed,
             view=TradeFinishView()
         )
+        fee_warning = discord.Embed(
+            title="⚠️ PERHATIAN",
+            description=(
+                f"Harap segera bayar fee sebesar **{fee_str}** ke {ticket['admin'].mention}\n"
+                f"sebelum trade dapat dimulai.\n\n"
+                f"Admin tidak akan memproses trade sebelum fee diterima."
+            ),
+            color=0xFF0000
+        )
+        warning_msg = await interaction.channel.send(embed=fee_warning)
+        ticket["fee_warning_id"] = warning_msg.id
+        save_tickets(cog.active_tickets)
