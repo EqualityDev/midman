@@ -1,4 +1,4 @@
-import discord
+code = """import discord
 from discord.ext import commands
 import asyncio
 import datetime
@@ -65,16 +65,16 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         await interaction.response.send_message(f"Tiket dibuat: {channel.mention}", ephemeral=True)
 
         embed = discord.Embed(
-            title=f"MIDMAN TRADE — {STORE_NAME}",
+            title=f"MIDMAN TRADE \u2014 {STORE_NAME}",
             color=0x5865F2,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         embed.add_field(
-            name="​",
+            name="\u200b",
             value=(
-                f"Pihak 1 : {interaction.user.mention}  (item : {self.item_p1.value})\n"
-                f"Pihak 2 : -      (item : {self.item_p2.value})\n"
-                f"Admin   : -\n\n"
+                f"Pihak 1 : {interaction.user.mention}  (item : {self.item_p1.value})\\n"
+                f"Pihak 2 : -      (item : {self.item_p2.value})\\n"
+                f"Admin   : -\\n\\n"
                 f"Status  : Menunggu konfirmasi admin"
             ),
             inline=False
@@ -82,7 +82,7 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         embed.set_footer(text=STORE_NAME)
 
         msg = await channel.send(
-            content=f"{admin_role.mention} — Tiket midman trade baru dari {interaction.user.mention}.",
+            content=f"{admin_role.mention} \u2014 Tiket midman trade baru dari {interaction.user.mention}.",
             embed=embed,
             view=AdminSetupView()
         )
@@ -149,21 +149,21 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
             print(f"Gagal hapus embed: {e}")
 
         embed = discord.Embed(
-            title=f"MIDMAN TRADE — {STORE_NAME}",
+            title=f"MIDMAN TRADE \u2014 {STORE_NAME}",
             color=0xFFA500,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         embed.add_field(
-            name="​",
+            name="\u200b",
             value=(
-                f"Pihak 1 : {ticket['pihak1'].mention}  (item : {ticket['item_p1']})\n"
-                f"Pihak 2 : {user2.mention}  (item : {ticket['item_p2']})\n"
-                f"Admin   : {ticket['admin'].mention}\n"
-                f"Fee     : {fee_str}\n"
-                f"Link    : {ticket['link_server']}\n\n"
-                f"Status  : Menunggu pembayaran fee\n"
-                f"──────────────────────────────\n"
-                f"Silakan bayar fee ke admin sebelum memulai trade\n"
+                f"Pihak 1 : {ticket['pihak1'].mention}  (item : {ticket['item_p1']})\\n"
+                f"Pihak 2 : {user2.mention}  (item : {ticket['item_p2']})\\n"
+                f"Admin   : {ticket['admin'].mention}\\n"
+                f"Fee     : {fee_str}\\n"
+                f"Link    : {ticket['link_server']}\\n\\n"
+                f"Status  : Menunggu pembayaran fee\\n"
+                f"\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\\n"
+                f"Silakan bayar fee ke admin sebelum memulai trade\\n"
                 f"Setelah fee diterima, admin akan mengkonfirmasi dan trade dimulai"
             ),
             inline=False
@@ -171,7 +171,7 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
         embed.set_footer(text=STORE_NAME)
 
         await interaction.response.send_message(
-            content=f"{user2.mention} — kamu ditambahkan ke tiket ini sebagai Pihak 2.",
+            content=f"{user2.mention} \u2014 kamu ditambahkan ke tiket ini sebagai Pihak 2.",
             embed=embed,
             view=TradeFinishView()
         )
@@ -203,23 +203,23 @@ class TradeFinishView(discord.ui.View):
         fee_str = format_nominal(ticket["fee_final"]) if ticket.get("fee_final") else "-"
 
         embed = discord.Embed(
-            title=f"MIDMAN TRADE — {STORE_NAME}",
+            title=f"MIDMAN TRADE \u2014 {STORE_NAME}",
             color=0x57F287,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         embed.add_field(
-            name="​",
+            name="\u200b",
             value=(
-                f"Pihak 1 : {p1.mention}  (item : {ticket['item_p1']})\n"
-                f"Pihak 2 : {p2.mention if p2 else '-'}  (item : {ticket['item_p2']})\n"
-                f"Admin   : {ticket['admin'].mention}\n"
-                f"Fee     : {fee_str}\n"
-                f"Link    : {ticket['link_server']}\n\n"
-                f"Status  : Transaksi berlangsung\n"
-                f"Notif   : Pembayaran dikonfirmasi oleh {interaction.user.mention}\n"
-                f"──────────────────────────────\n"
-                f"Pihak 1 — berikan item kamu ke admin di private server\n"
-                f"Pihak 2 — berikan item kamu ke pihak 1\n"
+                f"Pihak 1 : {p1.mention}  (item : {ticket['item_p1']})\\n"
+                f"Pihak 2 : {p2.mention if p2 else '-'}  (item : {ticket['item_p2']})\\n"
+                f"Admin   : {ticket['admin'].mention}\\n"
+                f"Fee     : {fee_str}\\n"
+                f"Link    : {ticket['link_server']}\\n\\n"
+                f"Status  : Transaksi berlangsung\\n"
+                f"Notif   : Pembayaran dikonfirmasi oleh {interaction.user.mention}\\n"
+                f"\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\\n"
+                f"Pihak 1 \u2014 berikan item kamu ke admin di private server\\n"
+                f"Pihak 2 \u2014 berikan item kamu ke pihak 1\\n"
                 f"Setelah semua selesai, admin ketik !acc untuk menutup tiket"
             ),
             inline=False
@@ -251,16 +251,16 @@ class Midman(commands.Cog):
     async def open_cmd(self, ctx):
         ch = ctx.guild.get_channel(MIDMAN_CHANNEL_ID)
         embed = discord.Embed(
-            title=f"MIDMAN TRADE — {STORE_NAME}",
+            title=f"MIDMAN TRADE \u2014 {STORE_NAME}",
             description=(
-                "Gunakan layanan middleman kami untuk memastikan\n"
-                "transaksi item game kamu berjalan aman dan terpercaya.\n\n"
-                "**Cara pakai:**\n"
-                "1. Klik tombol di bawah untuk membuka tiket\n"
-                "2. Isi form — item kamu dan item yang kamu minta\n"
-                "3. Tunggu admin bergabung dan menambahkan pihak 2\n"
-                "4. Fee dibayar oleh pihak yang disepakati — admin akan konfirmasi di dalam tiket\n"
-                "5. Ikuti instruksi admin di dalam tiket\n\n"
+                "Gunakan layanan middleman kami untuk memastikan\\n"
+                "transaksi item game kamu berjalan aman dan terpercaya.\\n\\n"
+                "**Cara pakai:**\\n"
+                "1. Klik tombol di bawah untuk membuka tiket\\n"
+                "2. Isi form \u2014 item kamu dan item yang kamu minta\\n"
+                "3. Tunggu admin bergabung dan menambahkan pihak 2\\n"
+                "4. Fee dibayar oleh pihak yang disepakati \u2014 admin akan konfirmasi di dalam tiket\\n"
+                "5. Ikuti instruksi admin di dalam tiket\\n\\n"
                 "Klik tombol di bawah untuk memulai."
             ),
             color=0x5865F2
@@ -313,17 +313,17 @@ class Midman(commands.Cog):
         ditutup_str = closed_at.strftime("%d %b %Y, %H:%M UTC") if closed_at else "-"
 
         log_text = (
-            f"<a:bell:1456430498757873797> **MIDMAN TRADE SUKSES — #{ticket_num}**\n"
-            f"\u200b\n"
-            f"| Midman  : {adm.mention}\n"
-            f"| Pihak 1 : {p1.mention} | {p1.id} ({ticket['item_p1']})\n"
-            f"| Pihak 2 : {p2.mention if p2 else '-'} | {p2.id if p2 else '-'} ({ticket['item_p2']})\n"
-            f"| Fee     : {fee_str_log}\n"
-            f"\u200b\n"
-            f"| Dibuka  : {dibuka_str}\n"
-            f"| Ditutup : {ditutup_str}\n"
-            f"| Durasi  : {durasi}\n"
-            f"\u200b\n"
+            f"<a:bell:1456430498757873797> **MIDMAN TRADE SUKSES \u2014 #{ticket_num}**\\n"
+            f"\\u200b\\n"
+            f"| Midman  : {adm.mention}\\n"
+            f"| Pihak 1 : {p1.mention} | {p1.id} ({ticket['item_p1']})\\n"
+            f"| Pihak 2 : {p2.mention if p2 else '-'} | {p2.id if p2 else '-'} ({ticket['item_p2']})\\n"
+            f"| Fee     : {fee_str_log}\\n"
+            f"\\u200b\\n"
+            f"| Dibuka  : {dibuka_str}\\n"
+            f"| Ditutup : {ditutup_str}\\n"
+            f"| Durasi  : {durasi}\\n"
+            f"\\u200b\\n"
             f"Transaksi telah selesai dan aman. Terima kasih telah menggunakan jasa midman {STORE_NAME}."
         )
 
@@ -339,7 +339,7 @@ class Midman(commands.Cog):
         transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
         if transcript_ch:
             await transcript_ch.send(
-                content=f"Transcript #{ticket_num} — {ctx.channel.name}",
+                content=f"Transcript #{ticket_num} \u2014 {ctx.channel.name}",
                 file=transcript_file
             )
 
@@ -360,7 +360,7 @@ class Midman(commands.Cog):
         except:
             pass
 
-        await ctx.send("Transaksi dibatalkan oleh admin — tiket akan ditutup dalam 5 detik.")
+        await ctx.send("Transaksi dibatalkan oleh admin \u2014 tiket akan ditutup dalam 5 detik.")
         await asyncio.sleep(5)
 
         if ctx.channel.id in self.active_tickets:
@@ -391,3 +391,9 @@ class Midman(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Midman(bot))
+"""
+
+with open("/data/data/com.termux/files/home/midman_bot/cogs/midman.py", "w") as f:
+    f.write(code)
+
+print("Berhasil.")

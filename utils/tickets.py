@@ -1,6 +1,20 @@
 import json
 import os
 import datetime
+import json as _json
+
+COUNTER_FILE = "ticket_counter.json"
+
+def next_ticket_number():
+    try:
+        with open(COUNTER_FILE, "r") as f:
+            data = _json.load(f)
+        data["count"] += 1
+        with open(COUNTER_FILE, "w") as f:
+            _json.dump(data, f)
+        return data["count"]
+    except:
+        return 0
 
 TICKETS_FILE = "tickets.json"
 
