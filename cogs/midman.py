@@ -115,10 +115,13 @@ class Midman(commands.Cog):
                 ts = float(data[1])
                 elapsed = datetime.datetime.now().timestamp() - ts
                 if elapsed <= 120:
-                    await asyncio.sleep(2)
+                    await self.bot.wait_until_ready()
+                    await asyncio.sleep(3)
                     ch = self.bot.get_channel(ch_id)
                     if ch:
                         await ch.send("Bot berhasil restart dan online kembali!")
+                    else:
+                        print(f"[WARNING] Channel {ch_id} tidak ditemukan setelah restart")
 
     @commands.command(name="open")
     async def open_cmd(self, ctx):
