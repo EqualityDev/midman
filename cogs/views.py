@@ -134,7 +134,8 @@ class TradeFinishView(discord.ui.View):
             try:
                 warning_msg = await interaction.channel.fetch_message(warning_id)
                 await warning_msg.delete()
-            except:
+            except Exception as e:
+                print(f"[WARNING] cogs/views.py: {e}")
                 pass
         embed = build_embed_berlangsung(STORE_NAME, ticket, interaction.user.mention)
         await interaction.message.edit(embed=embed, view=self)

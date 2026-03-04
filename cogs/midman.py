@@ -80,7 +80,8 @@ class Midman(commands.Cog):
     async def open_cmd(self, ctx):
         try:
             await ctx.message.delete()
-        except:
+        except Exception as e:
+            print(f"[WARNING] cogs/midman.py: {e}")
             pass
         ch = ctx.guild.get_channel(MIDMAN_CHANNEL_ID)
 
@@ -89,7 +90,8 @@ class Midman(commands.Cog):
             if msg.author == self.bot.user:
                 try:
                     await msg.delete()
-                except:
+                except Exception as e:
+                    print(f"[WARNING] cogs/midman.py: {e}")
                     pass
 
         embed = discord.Embed(
@@ -121,7 +123,8 @@ class Midman(commands.Cog):
             return
         try:
             await ctx.message.delete()
-        except:
+        except Exception as e:
+            print(f"[WARNING] cogs/midman.py: {e}")
             pass
         ticket["closed_at"] = datetime.datetime.now(datetime.timezone.utc)
         p1 = ticket.get("pihak1")
@@ -191,7 +194,8 @@ class Midman(commands.Cog):
             return
         try:
             await ctx.message.delete()
-        except:
+        except Exception as e:
+            print(f"[WARNING] cogs/midman.py: {e}")
             pass
         embed = discord.Embed(
             title="❌ TRANSAKSI DIBATALKAN",
@@ -218,7 +222,8 @@ class Midman(commands.Cog):
     async def fee(self, ctx, nominal: str):
         try:
             await ctx.message.delete()
-        except:
+        except Exception as e:
+            print(f"[WARNING] cogs/midman.py: {e}")
             pass
         try:
             angka = int(nominal.replace(".", "").replace(",", "").replace("k", "000").replace("K", "000"))
