@@ -84,7 +84,7 @@ class MidmanMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Buka Tiket Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
+    @discord.ui.button(label="Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
     async def open_ticket(self, interaction, button):
         from cogs.modals import MidmanTradeModal
         await interaction.response.send_modal(MidmanTradeModal())
