@@ -32,6 +32,7 @@ Bot Discord untuk layanan middleman trade item game secara aman dan terpercaya.
 - Restore otomatis saat bot start apabila file database hilang
 - Maksimal 1 tiket aktif per user, redirect otomatis jika mencoba buka tiket baru
 - Data tersimpan di SQLite untuk keamanan dan ketahanan data
+- Update bot dari Discord via !update tanpa perlu akses ke Redfinger
 
 ---
 
@@ -131,6 +132,7 @@ Isi file .env dengan format berikut:
     LOG_CHANNEL_ID=id_channel_log_transaksi
     BACKUP_CHANNEL_ID=id_channel_backup_midman
     STORE_NAME=Nama Store Kamu
+    ERROR_LOG_CHANNEL_ID=id_channel_error_log
 
 Penjelasan variabel:
 
@@ -143,6 +145,7 @@ Penjelasan variabel:
     LOG_CHANNEL_ID         Channel untuk log transaksi sukses dan error notification
     BACKUP_CHANNEL_ID      Channel untuk backup otomatis database
     STORE_NAME             Nama store yang tampil di semua embed bot
+    ERROR_LOG_CHANNEL_ID   Channel untuk error log bot (pisah dari log transaksi)
 
 Cara mendapatkan ID di Discord:
 1. Buka Pengaturan Discord
@@ -158,14 +161,15 @@ Command Admin (butuh role admin):
 
     !open               Kirim ulang embed Midman Trade, embed lama dihapus otomatis
     !acc                Konfirmasi trade selesai, kirim transcript dan log, tutup tiket
-    !cancel             Batalkan tiket tanpa alasan
-    !cancel [alasan]    Batalkan tiket dengan alasan tertentu
+    !batal              Batalkan tiket tanpa alasan
+    !batal [alasan]     Batalkan tiket dengan alasan tertentu
+    !update             Update bot dari GitHub dan restart otomatis
     !fee [nominal]      Hitung fee middleman dari nominal yang diberikan
     !ping               Cek apakah bot aktif dan lihat latency koneksi
 
 Contoh penggunaan:
 
-    !cancel Pihak 1 tidak responsif lebih dari 24 jam
+    !batal Pihak 1 tidak responsif lebih dari 24 jam
     !fee 50000
     !fee 50k
     !ping
@@ -222,8 +226,7 @@ Install screen:
 Buat sesi screen baru dan jalankan bot:
 
     screen -S midmanbot
-    source venv/bin/activate
-    python main.py
+    bash start.sh
 
 Untuk keluar dari screen tanpa mematikan bot, tekan Ctrl+A lalu D.
 
@@ -233,13 +236,13 @@ Untuk kembali ke sesi bot:
 
 Langkah 7 - Update bot dari GitHub
 
-    cd ~/midman_bot
-    git pull origin main
+Cara termudah adalah ketik !update di Discord — bot akan otomatis git pull dan restart.
 
-Kemudian restart bot:
+Atau jika perlu update manual di Redfinger:
 
     screen -r midmanbot
-    python main.py
+    # tekan Ctrl+C untuk hentikan bot
+    bash start.sh
 
 ---
 
