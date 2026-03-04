@@ -2,8 +2,7 @@ import discord
 import os
 import datetime
 
-TICKETS_FILE = "tickets.json"
-COUNTER_FILE = "ticket_counter.json"
+DB_FILE = "midman.db"
 BACKUP_LABEL = "MIDMAN-BACKUP"
 
 async def do_backup(bot, channel_id):
@@ -11,38 +10,29 @@ async def do_backup(bot, channel_id):
     if not channel:
         print("[BACKUP] Channel tidak ditemukan.")
         return
-    files = []
-    for f in [TICKETS_FILE, COUNTER_FILE]:
-        if os.path.exists(f):
-            files.append(discord.File(f))
-    if not files:
-        print("[BACKUP] Tidak ada file untuk di-backup.")
+    if not os.path.exists(DB_FILE):
+        print("[BACKUP] File database tidak ditemukan.")
         return
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
     await channel.send(
-        content=f"🗄️ **{BACKUP_LABEL}**\n🗓️ {now}\n📁 `{TICKETS_FILE}` & `{COUNTER_FILE}`",
-        files=files
+        content=f"MIDMAN-BACKUP\n{now}\n{DB_FILE}",
+        files=[discord.File(DB_FILE)]
     )
     print(f"[BACKUP] Backup berhasil dikirim ke channel {channel_id}.")
 
 async def do_restore(bot, channel_id):
-    restored = []
-    for filename in [TICKETS_FILE, COUNTER_FILE]:
-        if os.path.exists(filename):
+    if os.path.exists(DB_FILE):
+        return
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        print("[RESTORE] Channel tidak ditemukan.")
+        return
+    async for msg in channel.history(limit=100):
+        if BACKUP_LABEL not in (msg.content or ""):
             continue
-        channel = bot.get_channel(channel_id)
-        if not channel:
-            print("[RESTORE] Channel tidak ditemukan.")
-            return
-        async for msg in channel.history(limit=50):
-            if BACKUP_LABEL not in (msg.content or ""):
-                continue
-            for attachment in msg.attachments:
-                if attachment.filename == filename:
-                    await attachment.save(filename)
-                    print(f"[RESTORE] {filename} berhasil di-restore dari backup.")
-                    restored.append(filename)
-                    break
-            if filename in restored:
-                break
-    return restored
+        for attachment in msg.attachments:
+            if attachment.filename == DB_FILE:
+                await attachment.save(DB_FILE)
+                print(f"[RESTORE] {DB_FILE} berhasil di-restore dari backup.")
+                return
+    print("[RESTORE] Tidak ada backup ditemukan.")

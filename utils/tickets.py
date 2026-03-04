@@ -1,55 +1,63 @@
-import json
-import os
 import datetime
-
-TICKETS_FILE = "tickets.json"
+from utils.db import get_conn
 
 def save_tickets(active_tickets):
-    data = {}
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM tickets')
     for ch_id, t in active_tickets.items():
-        data[str(ch_id)] = {
-            "pihak1_id": t["pihak1"].id if t["pihak1"] else None,
-            "pihak2_id": t["pihak2"].id if t["pihak2"] else None,
-            "item_p1": t["item_p1"],
-            "item_p2": t["item_p2"],
-            "fee_final": t.get("fee_final"),
-            "fee_paid": t.get("fee_paid", False),
-            "link_server": t.get("link_server"),
-            "admin_id": t["admin"].id if t["admin"] else None,
-            "embed_message_id": t.get("embed_message_id"),
-            "ticket_number": t.get("ticket_number", 0),
-            "opened_at": t["opened_at"].isoformat() if t.get("opened_at") else None,
-            "fee_warning_id": t.get("fee_warning_id"),
-            "verified_by_id": t["verified_by"].id if t.get("verified_by") else None,
-        }
-    with open(TICKETS_FILE, "w") as f:
-        json.dump(data, f)
+        c.execute('''
+            INSERT INTO tickets (
+                channel_id, pihak1_id, pihak2_id, item_p1, item_p2,
+                fee_final, fee_paid, link_server, admin_id, embed_message_id,
+                ticket_number, opened_at, fee_warning_id, verified_by_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            ch_id,
+            t["pihak1"].id if t.get("pihak1") else None,
+            t["pihak2"].id if t.get("pihak2") else None,
+            t.get("item_p1"),
+            t.get("item_p2"),
+            t.get("fee_final"),
+            1 if t.get("fee_paid") else 0,
+            t.get("link_server"),
+            t["admin"].id if t.get("admin") else None,
+            t.get("embed_message_id"),
+            t.get("ticket_number", 0),
+            t["opened_at"].isoformat() if t.get("opened_at") else None,
+            t.get("fee_warning_id"),
+            t["verified_by"].id if t.get("verified_by") else None,
+        ))
+    conn.commit()
+    conn.close()
 
 async def load_tickets(guild, active_tickets):
-    if not os.path.exists(TICKETS_FILE):
-        return
-    with open(TICKETS_FILE, "r") as f:
-        data = json.load(f)
-    for ch_id_str, t in data.items():
-        ch_id = int(ch_id_str)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM tickets')
+    rows = c.fetchall()
+    conn.close()
+    for row in rows:
         try:
-            p1 = await guild.fetch_member(t["pihak1_id"]) if t["pihak1_id"] else None
-            p2 = await guild.fetch_member(t["pihak2_id"]) if t["pihak2_id"] else None
-            adm = await guild.fetch_member(t["admin_id"]) if t["admin_id"] else None
-        except Exception:
+            p1 = await guild.fetch_member(row["pihak1_id"]) if row["pihak1_id"] else None
+            p2 = await guild.fetch_member(row["pihak2_id"]) if row["pihak2_id"] else None
+            adm = await guild.fetch_member(row["admin_id"]) if row["admin_id"] else None
+            verified_by = await guild.fetch_member(row["verified_by_id"]) if row["verified_by_id"] else None
+        except Exception as e:
+            print(f"[WARNING] Gagal load tiket {row['channel_id']}: {e}")
             continue
-        active_tickets[ch_id] = {
+        active_tickets[row["channel_id"]] = {
             "pihak1": p1,
             "pihak2": p2,
-            "item_p1": t["item_p1"],
-            "item_p2": t["item_p2"],
-            "fee_final": t.get("fee_final"),
-            "fee_paid": t.get("fee_paid", False),
-            "link_server": t.get("link_server"),
+            "item_p1": row["item_p1"],
+            "item_p2": row["item_p2"],
+            "fee_final": row["fee_final"],
+            "fee_paid": bool(row["fee_paid"]),
+            "link_server": row["link_server"],
             "admin": adm,
-            "embed_message_id": t.get("embed_message_id"),
-            "ticket_number": t.get("ticket_number", 0),
-            "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t.get("opened_at") else None,
-            "fee_warning_id": t.get("fee_warning_id"),
-            "verified_by": await guild.fetch_member(t["verified_by_id"]) if t.get("verified_by_id") else None,
+            "embed_message_id": row["embed_message_id"],
+            "ticket_number": row["ticket_number"],
+            "opened_at": datetime.datetime.fromisoformat(row["opened_at"]) if row["opened_at"] else None,
+            "fee_warning_id": row["fee_warning_id"],
+            "verified_by": verified_by,
         }

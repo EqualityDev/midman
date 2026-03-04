@@ -7,6 +7,9 @@ import os
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
+from utils.db import init_db
+init_db()
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
