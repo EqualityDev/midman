@@ -277,7 +277,7 @@ class Midman(commands.Cog):
         await ctx.send(f"```\n{output[:1900]}\n```")
         if proc.returncode == 0:
             log_proc = await asyncio.create_subprocess_shell(
-                "git log ORIG_HEAD..HEAD --oneline --no-merges",
+                "git log HEAD~5..HEAD --oneline --no-merges",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
