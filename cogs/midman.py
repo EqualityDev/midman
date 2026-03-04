@@ -104,6 +104,7 @@ class Midman(commands.Cog):
         self.bot.add_view(MidmanMainView())
         self.bot.add_view(AdminSetupView())
         self.bot.add_view(TradeFinishView())
+        self.bot.start_time = datetime.datetime.now(datetime.timezone.utc)
         print("Cog Midman siap.")
         import os
         if os.path.exists(".update_channel"):
@@ -303,6 +304,25 @@ class Midman(commands.Cog):
             await self.bot.close()
         else:
             await ctx.send("Update gagal! Cek log di atas.")
+
+    @commands.command(name="info")
+    async def info(self, ctx):
+        await ctx.message.delete()
+        proc = await asyncio.create_subprocess_shell(
+            "git rev-parse --short HEAD",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        out, _ = await proc.communicate()
+        version = out.decode().strip()
+        uptime = datetime.datetime.now(datetime.timezone.utc) - self.bot.start_time
+        hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        await ctx.send(
+            f"**Versi:** `{version}`
+"
+            f"**Uptime:** {hours} jam {minutes} menit {seconds} detik"
+        )
 
     @commands.command(name="ping")
     async def ping(self, ctx):
