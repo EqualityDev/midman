@@ -7,21 +7,10 @@ import os
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
-from utils.db import init_db
-init_db()
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-@bot.event
-async def on_ready():
-    from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
-    bot.add_view(MidmanMainView())
-    bot.add_view(AdminSetupView())
-    bot.add_view(TradeFinishView())
-    print(f"Online sebagai {bot.user}")
 
 async def main():
     async with bot:
