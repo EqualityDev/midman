@@ -234,6 +234,11 @@ class Midman(commands.Cog):
             save_tickets(self.active_tickets)
         await ctx.channel.delete()
 
+    @commands.command(name="ping")
+    async def ping(self, ctx):
+        latency = round(self.bot.latency * 1000)
+        await ctx.send(f"Pong! Latency: {latency}ms")
+
     @commands.command(name="fee")
     async def fee(self, ctx, nominal: str):
         try:
