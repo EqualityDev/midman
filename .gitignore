@@ -4,3 +4,4 @@ __pycache__/
 tickets.json
 venv/
 tickets.json
+midman.db
