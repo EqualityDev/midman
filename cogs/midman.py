@@ -182,7 +182,7 @@ class Midman(commands.Cog):
 
     @commands.command(name="cancel")
     @commands.has_role(ADMIN_ROLE_ID)
-    async def cancel(self, ctx):
+    async def cancel(self, ctx, *, alasan: str = "Tidak ada alasan diberikan."):
         ticket = self.active_tickets.get(ctx.channel.id)
         if not ticket:
             await ctx.message.delete()
@@ -192,7 +192,21 @@ class Midman(commands.Cog):
             await ctx.message.delete()
         except:
             pass
-        await ctx.send("Transaksi dibatalkan oleh admin — tiket akan ditutup dalam 5 detik.")
+        embed = discord.Embed(
+            title="❌ TRANSAKSI DIBATALKAN",
+            color=0xFF0000
+        )
+        embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Alasan", value=alasan, inline=False)
+        embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
+        embed.set_footer(text=STORE_NAME)
+        p1 = ticket.get("pihak1")
+        p2 = ticket.get("pihak2")
+        mentions = " ".join(filter(None, [
+            p1.mention if p1 else None,
+            p2.mention if p2 else None
+        ]))
+        await ctx.send(content=mentions if mentions else None, embed=embed)
         await asyncio.sleep(5)
         if ctx.channel.id in self.active_tickets:
             del self.active_tickets[ctx.channel.id]
