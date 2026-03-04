@@ -70,8 +70,7 @@ def build_embed_berlangsung(store_name, ticket, confirmed_by):
             f"Status  : Transaksi berlangsung\n"
             f"Notif   : Pembayaran dikonfirmasi oleh {confirmed_by}\n"
             f"{sep}\n"
-            f"Pihak 1 — berikan item kamu ke admin di private server\n"
-            f"Pihak 2 — berikan item kamu ke pihak 1\n"
+            f"Ikuti instruksi admin untuk proses trade\n"
             f"Setelah semua selesai, admin ketik !acc untuk menutup tiket"
         ),
         inline=False

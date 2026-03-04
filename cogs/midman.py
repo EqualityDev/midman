@@ -248,6 +248,7 @@ class Midman(commands.Cog):
         embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         embed.add_field(name="Alasan", value=alasan, inline=False)
         embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
+        embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
         p1 = ticket.get("pihak1")
         p2 = ticket.get("pihak2")
