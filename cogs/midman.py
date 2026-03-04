@@ -7,7 +7,7 @@ from utils.tickets import save_tickets, load_tickets
 from utils.transcript import generate as generate_transcript
 from utils.config import (
     GUILD_ID, MIDMAN_CHANNEL_ID, ADMIN_ROLE_ID,
-    TRANSCRIPT_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, BACKUP_CHANNEL_ID
+    TRANSCRIPT_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, BACKUP_CHANNEL_ID, ERROR_LOG_CHANNEL_ID
 )
 from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
 from utils.backup import do_backup, do_restore
@@ -79,9 +79,11 @@ class Midman(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingRole):
             return
-        log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
-        if log_ch:
-            await log_ch.send(
+        if isinstance(error, commands.CommandNotFound):
+            return
+        err_ch = ctx.guild.get_channel(ERROR_LOG_CHANNEL_ID)
+        if err_ch:
+            await err_ch.send(
                 f"ERROR LOG\n"
                 f"Error pada command `{ctx.command}` oleh {ctx.author.mention}:\n"
                 f"`{error}`"
