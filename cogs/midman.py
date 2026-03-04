@@ -106,33 +106,20 @@ class Midman(commands.Cog):
         self.bot.add_view(TradeFinishView())
         print("Cog Midman siap.")
         import os
-        print("[UPDATE] Cek file .update_channel...")
         if os.path.exists(".update_channel"):
-            print("[UPDATE] File ditemukan!")
             with open(".update_channel") as f:
                 data = f.read().strip().split("|")
-            print(f"[UPDATE] Data: {data}")
             os.remove(".update_channel")
-            if len(data) == 2:
-                ch_id = int(data[0])
-                ts = float(data[1])
-                elapsed = datetime.datetime.now().timestamp() - ts
-                print(f"[UPDATE] Elapsed: {elapsed} detik")
-                if elapsed <= 120:
-                    await self.bot.wait_until_ready()
-                    await asyncio.sleep(3)
-                    ch = self.bot.get_channel(ch_id)
-                    print(f"[UPDATE] Channel: {ch}")
-                    if ch:
-                        await ch.send("Bot berhasil restart dan online kembali!")
-                    else:
-                        print(f"[WARNING] Channel {ch_id} tidak ditemukan")
-                else:
-                    print(f"[UPDATE] Elapsed terlalu lama: {elapsed} detik")
-        else:
-            print("[UPDATE] File tidak ditemukan")
-
-    @commands.command(name="open")
+            ch_id = int(data[0])
+            ts = float(data[1]) if len(data) == 2 else datetime.datetime.now().timestamp()
+            elapsed = datetime.datetime.now().timestamp() - ts
+            if elapsed <= 120:
+                await self.bot.wait_until_ready()
+                await asyncio.sleep(3)
+                ch = self.bot.get_channel(ch_id)
+                if ch:
+                    await ch.send("Bot berhasil restart dan online kembali!")
+@commands.command(name="open")
     async def open_cmd(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
