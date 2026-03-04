@@ -119,7 +119,8 @@ class Midman(commands.Cog):
                 ch = self.bot.get_channel(ch_id)
                 if ch:
                     await ch.send("Bot berhasil restart dan online kembali!")
-@commands.command(name="open")
+
+    @commands.command(name="open")
     async def open_cmd(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
