@@ -107,8 +107,9 @@ class Midman(commands.Cog):
         print("Cog Midman siap.")
 
     @commands.command(name="open")
-    @commands.has_role(ADMIN_ROLE_ID)
     async def open_cmd(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
         try:
             await ctx.message.delete()
         except Exception as e:
@@ -146,8 +147,9 @@ class Midman(commands.Cog):
         await ctx.send(f"Embed dikirim ke {ch.mention}", delete_after=5)
 
     @commands.command(name="acc")
-    @commands.has_role(ADMIN_ROLE_ID)
     async def acc(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
         ticket = self.active_tickets.get(ctx.channel.id)
         if not ticket:
             await ctx.message.delete()
@@ -216,8 +218,9 @@ class Midman(commands.Cog):
         await ctx.channel.delete()
 
     @commands.command(name="batal")
-    @commands.has_role(ADMIN_ROLE_ID)
     async def cancel(self, ctx, *, alasan: str = "Tidak ada alasan diberikan."):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
         ticket = self.active_tickets.get(ctx.channel.id)
         if not ticket:
             await ctx.message.delete()
@@ -250,24 +253,13 @@ class Midman(commands.Cog):
         await ctx.channel.delete()
 
     @commands.command(name="update")
-    @commands.has_role(ADMIN_ROLE_ID)
     async def update(self, ctx):
-        await ctx.send("Mengunduh update dari GitHub...")
-        proc = await asyncio.create_subprocess_shell(
-            "git pull origin main",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
-        output = stdout.decode() or stderr.decode()
-        await ctx.send(f"```\n{output[:1900]}\n```")
-        if proc.returncode == 0:
-            await ctx.send("Update selesai! Bot akan restart dalam 3 detik...")
-            await asyncio.sleep(3)
-            import os, sys
-            os.execv(sys.executable, [sys.executable] + sys.argv)
-        else:
-            await ctx.send("Update gagal! Cek log di atas.")
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.send("Bot akan restart dan mengunduh update terbaru dari GitHub...")
+        await asyncio.sleep(2)
+        import sys
+        sys.exit(0)
 
     @commands.command(name="ping")
     async def ping(self, ctx):
