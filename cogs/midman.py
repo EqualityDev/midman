@@ -7,8 +7,7 @@ from utils.tickets import save_tickets, load_tickets
 from utils.transcript import generate as generate_transcript
 from utils.config import (
     GUILD_ID, MIDMAN_CHANNEL_ID, ADMIN_ROLE_ID,
-    TRANSCRIPT_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME
-
+    TRANSCRIPT_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, BACKUP_CHANNEL_ID
 )
 from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
 from utils.backup import do_backup, do_restore
@@ -25,7 +24,7 @@ class Midman(commands.Cog):
 
     @tasks.loop(hours=6)
     async def auto_backup(self):
-        await do_backup(self.bot, TRANSCRIPT_CHANNEL_ID)
+        await do_backup(self.bot, BACKUP_CHANNEL_ID)
 
     @auto_backup.before_loop
     async def before_auto_backup(self):
@@ -83,7 +82,7 @@ class Midman(commands.Cog):
         self.bot.add_view(MidmanMainView())
         self.bot.add_view(AdminSetupView())
         self.bot.add_view(TradeFinishView())
-        await do_restore(self.bot, TRANSCRIPT_CHANNEL_ID)
+        await do_restore(self.bot, BACKUP_CHANNEL_ID)
         self.ticket_timeout_check.start()
         self.auto_backup.start()
         print("Cog Midman siap.")
