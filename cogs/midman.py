@@ -264,6 +264,7 @@ class Midman(commands.Cog):
     async def update(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
+        await ctx.message.delete()
         await ctx.send("Mengunduh update dari GitHub...")
         proc = await asyncio.create_subprocess_shell(
             "git pull origin main",
@@ -285,6 +286,7 @@ class Midman(commands.Cog):
 
     @commands.command(name="ping")
     async def ping(self, ctx):
+        await ctx.message.delete()
         latency = round(self.bot.latency * 1000)
         await ctx.send(f"Pong! Latency: {latency}ms")
 
