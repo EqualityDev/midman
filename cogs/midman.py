@@ -261,6 +261,7 @@ class Midman(commands.Cog):
         await ctx.channel.delete()
 
     @commands.command(name="update")
+    @commands.cooldown(1, 10, commands.BucketType.guild)
     async def update(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
@@ -275,6 +276,15 @@ class Midman(commands.Cog):
         output = stdout.decode() or stderr.decode()
         await ctx.send(f"```\n{output[:1900]}\n```")
         if proc.returncode == 0:
+            log_proc = await asyncio.create_subprocess_shell(
+                "git log ORIG_HEAD..HEAD --oneline --no-merges",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            log_out, _ = await log_proc.communicate()
+            changelog = log_out.decode().strip()
+            if changelog:
+                await ctx.send(f"**Changelog:**\n```\n{changelog[:1500]}\n```")
             await ctx.send("Update selesai! Bot akan restart dalam 3 detik...")
             with open(".update_channel", "w") as f:
                 f.write(str(ctx.channel.id))
