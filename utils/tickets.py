@@ -19,6 +19,8 @@ def save_tickets(active_tickets):
             "embed_message_id": t.get("embed_message_id"),
             "ticket_number": t.get("ticket_number", 0),
             "opened_at": t["opened_at"].isoformat() if t.get("opened_at") else None,
+            "fee_warning_id": t.get("fee_warning_id"),
+            "verified_by_id": t["verified_by"].id if t.get("verified_by") else None,
         }
     with open(TICKETS_FILE, "w") as f:
         json.dump(data, f)
@@ -48,4 +50,6 @@ async def load_tickets(guild, active_tickets):
             "embed_message_id": t.get("embed_message_id"),
             "ticket_number": t.get("ticket_number", 0),
             "opened_at": datetime.datetime.fromisoformat(t["opened_at"]) if t.get("opened_at") else None,
+            "fee_warning_id": t.get("fee_warning_id"),
+            "verified_by": await guild.fetch_member(t["verified_by_id"]) if t.get("verified_by_id") else None,
         }
