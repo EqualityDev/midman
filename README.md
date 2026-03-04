@@ -27,9 +27,11 @@ Bot Discord untuk layanan middleman trade item game secara aman dan terpercaya.
 - Nomor tiket tampil di nama channel, contoh: trade-0001-username
 - Transcript HTML otomatis dikirim saat tiket ditutup
 - Log transaksi lengkap ke channel log
-- Backup otomatis tickets.json dan ticket_counter.json setiap 6 jam ke channel Discord
-- Restore otomatis saat bot start apabila file lokal hilang
+- Error notification otomatis ke channel log jika terjadi error pada command
+- Backup otomatis midman.db setiap 6 jam ke channel Discord
+- Restore otomatis saat bot start apabila file database hilang
 - Maksimal 1 tiket aktif per user, redirect otomatis jika mencoba buka tiket baru
+- Data tersimpan di SQLite untuk keamanan dan ketahanan data
 
 ---
 
@@ -37,9 +39,8 @@ Bot Discord untuk layanan middleman trade item game secara aman dan terpercaya.
 
 midman_bot/
 ├── main.py                  # Entry point bot
-├── .env                     # Konfigurasi token dan ID channel
-├── tickets.json             # Data tiket aktif (dibuat otomatis)
-├── ticket_counter.json      # Nomor tiket terakhir (dibuat otomatis)
+├── .env                     # Konfigurasi token dan ID channel (jangan di-push ke GitHub)
+├── midman.db                # Database SQLite (dibuat otomatis, jangan dihapus)
 ├── requirements.txt         # Daftar library Python yang dibutuhkan
 ├── cogs/
 │   ├── midman.py            # Cog utama, berisi semua command dan logic bot
@@ -47,10 +48,11 @@ midman_bot/
 │   └── views.py             # Tombol interaktif dan fungsi builder embed
 └── utils/
     ├── config.py            # Membaca konfigurasi dari file .env
-    ├── backup.py            # Fungsi backup dan restore file data
+    ├── backup.py            # Fungsi backup dan restore database
     ├── counter.py           # Penomoran tiket otomatis
+    ├── db.py                # Inisialisasi dan koneksi database SQLite
     ├── fee.py               # Kalkulasi dan format nominal fee
-    ├── tickets.py           # Simpan dan muat data tiket dari file
+    ├── tickets.py           # Simpan dan muat data tiket dari database
     └── transcript.py        # Generate file transcript HTML
 
 ---
@@ -66,12 +68,12 @@ midman_bot/
 
 ## Cara Install dan Setup
 
-Langkah 1 — Clone repository
+Langkah 1 - Clone repository
 
     git clone https://github.com/EqualityDev/midman.git
     cd midman_bot
 
-Langkah 2 — Buat virtual environment
+Langkah 2 - Buat virtual environment
 
     python3 -m venv venv
     source venv/bin/activate
@@ -80,27 +82,33 @@ Setiap kali membuka terminal baru, aktifkan dulu sebelum jalankan bot:
 
     source venv/bin/activate
 
-Langkah 3 — Install library
+Langkah 3 - Install library
 
     pip install -r requirements.txt
 
-Langkah 4 — Buat file .env
+Langkah 4 - Buat file .env
 
     nano .env
 
 Isi konfigurasi yang sesuai, simpan dengan Ctrl+X lalu Y lalu Enter.
 
-Langkah 5 — Jalankan bot
+Langkah 5 - Jalankan bot
 
     python main.py
 
 Jika berhasil, terminal menampilkan:
 
-    Online sebagai NamaBot#0000
+    [RESTORE] midman.db berhasil di-restore dari backup.
+    [DB] Database diinisialisasi.
+    Cog Midman siap.
+
+Atau jika pertama kali dijalankan dan belum ada backup:
+
+    [DB] Database diinisialisasi.
     Cog Midman siap.
     [BACKUP] Backup berhasil dikirim ke channel ...
 
-Langkah 6 — Kirim embed ke channel Midman Trade
+Langkah 6 - Kirim embed ke channel Midman Trade
 
 Ketik perintah berikut di Discord (butuh role admin):
 
@@ -124,15 +132,15 @@ Isi file .env dengan format berikut:
 
 Penjelasan variabel:
 
-    TOKEN               Token bot dari Discord Developer Portal
-    GUILD_ID            ID server Discord tempat bot digunakan
-    MIDMAN_CHANNEL_ID   Channel tempat embed tombol Midman Trade dikirim
-    TICKET_CATEGORY_ID  Kategori channel tempat tiket baru dibuat otomatis
-    ADMIN_ROLE_ID       Role yang bisa menggunakan command admin
+    TOKEN                  Token bot dari Discord Developer Portal
+    GUILD_ID               ID server Discord tempat bot digunakan
+    MIDMAN_CHANNEL_ID      Channel tempat embed tombol Midman Trade dikirim
+    TICKET_CATEGORY_ID     Kategori channel tempat tiket baru dibuat otomatis
+    ADMIN_ROLE_ID          Role yang bisa menggunakan command admin
     TRANSCRIPT_CHANNEL_ID  Channel untuk file transcript tiket selesai
-    LOG_CHANNEL_ID      Channel untuk log transaksi sukses
-    BACKUP_CHANNEL_ID   Channel untuk backup otomatis file data
-    STORE_NAME          Nama store yang tampil di semua embed bot
+    LOG_CHANNEL_ID         Channel untuk log transaksi sukses dan error notification
+    BACKUP_CHANNEL_ID      Channel untuk backup otomatis database
+    STORE_NAME             Nama store yang tampil di semua embed bot
 
 Cara mendapatkan ID di Discord:
 1. Buka Pengaturan Discord
@@ -151,13 +159,14 @@ Command Admin (butuh role admin):
     !cancel             Batalkan tiket tanpa alasan
     !cancel [alasan]    Batalkan tiket dengan alasan tertentu
     !fee [nominal]      Hitung fee middleman dari nominal yang diberikan
+    !ping               Cek apakah bot aktif dan lihat latency koneksi
 
 Contoh penggunaan:
 
     !cancel Pihak 1 tidak responsif lebih dari 24 jam
     !fee 50000
     !fee 50k
-    !fee 1.500.000
+    !ping
 
 Tombol interaktif di Discord:
 
@@ -172,21 +181,21 @@ Tombol interaktif di Discord:
 Redfinger adalah layanan cloud phone yang digunakan sebagai server production agar bot
 dapat berjalan 24 jam penuh tanpa perlu menyalakan perangkat pribadi.
 
-Langkah 1 — Akses Redfinger
+Langkah 1 - Akses Redfinger
 
 Buka aplikasi Redfinger dan masuk ke cloud phone yang sudah disiapkan.
 
-Langkah 2 — Install Termux
+Langkah 2 - Install Termux
 
 Download Termux dari browser di dalam Redfinger. Disarankan download dari F-Droid
 bukan Play Store karena versi Play Store sudah tidak diupdate.
 
-Langkah 3 — Setup awal Termux
+Langkah 3 - Setup awal Termux
 
     pkg update && pkg upgrade
     pkg install python git
 
-Langkah 4 — Clone dan setup bot
+Langkah 4 - Clone dan setup bot
 
     git clone https://github.com/EqualityDev/midman.git
     cd midman_bot
@@ -194,13 +203,13 @@ Langkah 4 — Clone dan setup bot
     source venv/bin/activate
     pip install -r requirements.txt
 
-Langkah 5 — Buat file .env
+Langkah 5 - Buat file .env
 
     nano .env
 
 Isi konfigurasi yang sesuai, simpan dengan Ctrl+X lalu Y lalu Enter.
 
-Langkah 6 — Jalankan bot dengan screen
+Langkah 6 - Jalankan bot dengan screen
 
 Screen memungkinkan bot tetap berjalan meskipun Termux ditutup atau layar Redfinger mati.
 
@@ -220,7 +229,7 @@ Untuk kembali ke sesi bot:
 
     screen -r midmanbot
 
-Langkah 7 — Update bot dari GitHub
+Langkah 7 - Update bot dari GitHub
 
     cd ~/midman_bot
     git pull origin main
@@ -228,7 +237,6 @@ Langkah 7 — Update bot dari GitHub
 Kemudian restart bot:
 
     screen -r midmanbot
-    # tekan Ctrl+C untuk hentikan bot
     python main.py
 
 ---
@@ -238,13 +246,14 @@ Kemudian restart bot:
 - Jangan membagikan atau mengupload file .env ke siapapun. File ini berisi token bot
   yang bersifat rahasia dan dapat disalahgunakan.
 
-- File tickets.json dan ticket_counter.json tidak perlu di-push ke GitHub karena sudah
-  masuk .gitignore. Bot akan backup dan restore file ini secara otomatis lewat Discord.
+- File midman.db tidak perlu di-push ke GitHub karena sudah masuk .gitignore.
+  Bot akan backup dan restore file ini secara otomatis lewat channel Discord.
 
 - Pastikan bot memiliki permission yang cukup di semua channel yang dikonfigurasi,
   minimal: Send Messages, Read Message History, Manage Channels, dan Attach Files.
 
-- Jika bot tidak merespons setelah update, cek log error di terminal Termux.
+- Jika bot tidak merespons setelah update, cek log error di terminal Termux atau
+  pantau channel log di Discord untuk error notification otomatis.
 
-- File tickets.json dan ticket_counter.json yang hilang akan di-restore otomatis dari
-  backup terakhir di channel Discord saat bot dinyalakan kembali.
+- Database midman.db yang hilang akan di-restore otomatis dari backup terakhir
+  di channel Discord saat bot dinyalakan kembali.
