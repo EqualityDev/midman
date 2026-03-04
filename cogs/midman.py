@@ -17,6 +17,7 @@ class Midman(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_tickets = {}
+        self.restored = False
 
     def cog_unload(self):
         self.ticket_timeout_check.cancel()
@@ -82,7 +83,9 @@ class Midman(commands.Cog):
         self.bot.add_view(MidmanMainView())
         self.bot.add_view(AdminSetupView())
         self.bot.add_view(TradeFinishView())
-        await do_restore(self.bot, BACKUP_CHANNEL_ID)
+        if not self.restored:
+            await do_restore(self.bot, BACKUP_CHANNEL_ID)
+            self.restored = True
         self.ticket_timeout_check.start()
         self.auto_backup.start()
         print("Cog Midman siap.")
