@@ -10,11 +10,59 @@ from utils.config import (
     TRANSCRIPT_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME
 )
 from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
+from discord.ext import tasks
 
 class Midman(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_tickets = {}
+
+    def cog_unload(self):
+        self.ticket_timeout_check.cancel()
+
+    @tasks.loop(hours=6)
+    async def ticket_timeout_check(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        for ch_id, ticket in list(self.active_tickets.items()):
+            guild = self.bot.get_guild(GUILD_ID)
+            if not guild:
+                continue
+            channel = guild.get_channel(ch_id)
+            if not channel:
+                continue
+            last_msg_time = None
+            async for msg in channel.history(limit=1):
+                last_msg_time = msg.created_at
+            check_time = last_msg_time or ticket.get("opened_at")
+            if not check_time:
+                continue
+            if check_time.tzinfo is None:
+                check_time = check_time.replace(tzinfo=datetime.timezone.utc)
+            delta = (now - check_time).total_seconds() / 3600
+            if delta >= 6:
+                embed = discord.Embed(
+                    title="⏰ PENGINGAT TIKET",
+                    description=(
+                        f"Tiket ini tidak ada aktivitas selama **{int(delta)} jam**.\n\n"
+                        f"Segera selesaikan proses trade atau hubungi admin.\n"
+                        f"Tiket akan terus mendapat pengingat setiap 6 jam."
+                    ),
+                    color=0xFFA500
+                )
+                embed.set_footer(text=STORE_NAME)
+                adm = ticket.get("admin")
+                p1 = ticket.get("pihak1")
+                p2 = ticket.get("pihak2")
+                mentions = " ".join(filter(None, [
+                    adm.mention if adm else None,
+                    p1.mention if p1 else None,
+                    p2.mention if p2 else None
+                ]))
+                await channel.send(content=mentions, embed=embed)
+
+    @ticket_timeout_check.before_loop
+    async def before_timeout_check(self):
+        await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -24,6 +72,7 @@ class Midman(commands.Cog):
         self.bot.add_view(MidmanMainView())
         self.bot.add_view(AdminSetupView())
         self.bot.add_view(TradeFinishView())
+        self.ticket_timeout_check.start()
         print("Cog Midman siap.")
 
     @commands.command(name="open")
