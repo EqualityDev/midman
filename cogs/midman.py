@@ -115,6 +115,7 @@ class Midman(commands.Cog):
                 ts = float(data[1])
                 elapsed = datetime.datetime.now().timestamp() - ts
                 if elapsed <= 120:
+                    await asyncio.sleep(2)
                     ch = self.bot.get_channel(ch_id)
                     if ch:
                         await ch.send("Bot berhasil restart dan online kembali!")
