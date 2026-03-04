@@ -300,8 +300,8 @@ class Midman(commands.Cog):
             with open(".update_channel", "w") as f:
                 f.write(str(ctx.channel.id))
             await asyncio.sleep(3)
-            import sys
-            sys.exit(0)
+            import os
+            os._exit(0)
         else:
             await ctx.send("Update gagal! Cek log di atas.")
 
