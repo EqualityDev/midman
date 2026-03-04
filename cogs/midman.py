@@ -274,6 +274,7 @@ class Midman(commands.Cog):
         embed.add_field(name="Nominal", value=format_nominal(angka), inline=True)
         embed.add_field(name="Fee", value=format_nominal(result), inline=True)
         embed.add_field(name="Total Bayar", value=format_nominal(angka + result), inline=True)
+        embed.set_thumbnail(url="https://i.imgur.com/z4nrBHl.png")
         embed.set_footer(text=STORE_NAME)
         await ctx.send(embed=embed)
 
