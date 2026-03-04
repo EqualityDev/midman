@@ -44,8 +44,9 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
             admin_role: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
+        ticket_num = next_ticket_number()
         channel = await guild.create_text_channel(
-            f"trade-{interaction.user.name[:15]}",
+            f"trade-{str(ticket_num).zfill(4)}-{interaction.user.name[:10]}",
             category=category,
             overwrites=overwrites
         )
@@ -59,7 +60,7 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
             "link_server": None,
             "admin": None,
             "embed_message_id": None,
-            "ticket_number": next_ticket_number(),
+            "ticket_number": ticket_num,
             "opened_at": datetime.datetime.now(datetime.timezone.utc),
         }
         await interaction.response.send_message(f"Tiket dibuat: {channel.mention}", ephemeral=True)
