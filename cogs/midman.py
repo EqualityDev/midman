@@ -229,16 +229,11 @@ class Midman(commands.Cog):
     async def cancel(self, ctx, *, alasan: str = "Tidak ada alasan diberikan."):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
+        await ctx.message.delete()
         ticket = self.active_tickets.get(ctx.channel.id)
         if not ticket:
-            await ctx.message.delete()
             await ctx.send("Channel ini bukan tiket aktif.", delete_after=5)
             return
-        try:
-            await ctx.message.delete()
-        except Exception as e:
-            print(f"[WARNING] cogs/midman.py: {e}")
-            pass
         embed = discord.Embed(
             title="❌ TRANSAKSI DIBATALKAN",
             color=0xFF0000
