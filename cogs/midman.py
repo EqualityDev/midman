@@ -267,6 +267,14 @@ class Midman(commands.Cog):
             return
         await ctx.message.delete()
         await ctx.send("Mengunduh update dari GitHub...")
+        # Simpan commit hash sebelum pull
+        hash_proc = await asyncio.create_subprocess_shell(
+            "git rev-parse HEAD",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        hash_out, _ = await hash_proc.communicate()
+        old_hash = hash_out.decode().strip()
         proc = await asyncio.create_subprocess_shell(
             "git pull origin main",
             stdout=asyncio.subprocess.PIPE,
@@ -277,7 +285,7 @@ class Midman(commands.Cog):
         await ctx.send(f"```\n{output[:1900]}\n```")
         if proc.returncode == 0:
             log_proc = await asyncio.create_subprocess_shell(
-                "git log HEAD~5..HEAD --oneline --no-merges",
+                f"git log {old_hash}..HEAD --oneline --no-merges",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -285,6 +293,8 @@ class Midman(commands.Cog):
             changelog = log_out.decode().strip()
             if changelog:
                 await ctx.send(f"**Changelog:**\n```\n{changelog[:1500]}\n```")
+            else:
+                await ctx.send("Tidak ada commit baru.")
             await ctx.send("Update selesai! Bot akan restart dalam 3 detik...")
             with open(".update_channel", "w") as f:
                 f.write(str(ctx.channel.id))
