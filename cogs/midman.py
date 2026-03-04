@@ -264,12 +264,24 @@ class Midman(commands.Cog):
     async def update(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
-        await ctx.send("Bot akan restart dan mengunduh update terbaru dari GitHub...")
-        with open(".update_channel", "w") as f:
-            f.write(str(ctx.channel.id))
-        await asyncio.sleep(2)
-        import sys
-        sys.exit(0)
+        await ctx.send("Mengunduh update dari GitHub...")
+        proc = await asyncio.create_subprocess_shell(
+            "git pull origin main",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        output = stdout.decode() or stderr.decode()
+        await ctx.send(f"```\n{output[:1900]}\n```")
+        if proc.returncode == 0:
+            await ctx.send("Update selesai! Bot akan restart dalam 3 detik...")
+            with open(".update_channel", "w") as f:
+                f.write(str(ctx.channel.id))
+            await asyncio.sleep(3)
+            import sys
+            sys.exit(0)
+        else:
+            await ctx.send("Update gagal! Cek log di atas.")
 
     @commands.command(name="ping")
     async def ping(self, ctx):
