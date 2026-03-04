@@ -124,6 +124,7 @@ class TradeFinishView(discord.ui.View):
             await interaction.response.send_message("Data tiket tidak ditemukan.", ephemeral=True)
             return
         ticket["fee_paid"] = True
+        ticket["verified_by"] = interaction.user
         save_tickets(cog.active_tickets)
         button.disabled = True
 

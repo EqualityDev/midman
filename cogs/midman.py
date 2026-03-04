@@ -154,6 +154,7 @@ class Midman(commands.Cog):
             f"<a:bell:1456430498757873797> **MIDMAN TRADE SUKSES — #{ticket_num}**\n"
             f"\u200b\n"
             f"| Midman  : {adm.mention}\n"
+            f"| Diverifikasi oleh : {ticket.get('verified_by').mention if ticket.get('verified_by') else adm.mention}\n"
             f"| Pihak 1 : {p1.mention} | {p1.id} ({ticket['item_p1']})\n"
             f"| Pihak 2 : {p2.mention if p2 else '-'} | {p2.id if p2 else '-'} ({ticket['item_p2']})\n"
             f"| Fee     : {fee_str_log}\n"
