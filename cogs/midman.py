@@ -318,11 +318,8 @@ class Midman(commands.Cog):
         uptime = datetime.datetime.now(datetime.timezone.utc) - self.bot.start_time
         hours, remainder = divmod(int(uptime.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
-        await ctx.send(
-            f"**Versi:** `{version}`
-"
-            f"**Uptime:** {hours} jam {minutes} menit {seconds} detik"
-        )
+        msg = f"**Versi:** `{version}`\n**Uptime:** {hours} jam {minutes} menit {seconds} detik"
+        await ctx.send(msg)
 
     @commands.command(name="ping")
     async def ping(self, ctx):
