@@ -76,6 +76,19 @@ class Midman(commands.Cog):
         await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.MissingRole):
+            return
+        log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
+        if log_ch:
+            await log_ch.send(
+                f"ERROR LOG\n"
+                f"Error pada command `{ctx.command}` oleh {ctx.author.mention}:\n"
+                f"`{error}`"
+            )
+        print(f"[ERROR] {ctx.command}: {error}")
+
+    @commands.Cog.listener()
     async def on_ready(self):
         if not self.restored:
             await do_restore(self.bot, BACKUP_CHANNEL_ID)
