@@ -108,11 +108,16 @@ class Midman(commands.Cog):
         import os
         if os.path.exists(".update_channel"):
             with open(".update_channel") as f:
-                ch_id = int(f.read().strip())
+                data = f.read().strip().split("|")
             os.remove(".update_channel")
-            ch = self.bot.get_channel(ch_id)
-            if ch:
-                await ch.send("Bot berhasil restart dan online kembali!")
+            if len(data) == 2:
+                ch_id = int(data[0])
+                ts = float(data[1])
+                elapsed = datetime.datetime.now().timestamp() - ts
+                if elapsed <= 120:
+                    ch = self.bot.get_channel(ch_id)
+                    if ch:
+                        await ch.send("Bot berhasil restart dan online kembali!")
 
     @commands.command(name="open")
     async def open_cmd(self, ctx):
