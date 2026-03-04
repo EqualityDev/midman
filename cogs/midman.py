@@ -105,6 +105,14 @@ class Midman(commands.Cog):
         self.bot.add_view(AdminSetupView())
         self.bot.add_view(TradeFinishView())
         print("Cog Midman siap.")
+        import os
+        if os.path.exists(".update_channel"):
+            with open(".update_channel") as f:
+                ch_id = int(f.read().strip())
+            os.remove(".update_channel")
+            ch = self.bot.get_channel(ch_id)
+            if ch:
+                await ch.send("Bot berhasil restart dan online kembali!")
 
     @commands.command(name="open")
     async def open_cmd(self, ctx):
@@ -257,6 +265,8 @@ class Midman(commands.Cog):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
         await ctx.send("Bot akan restart dan mengunduh update terbaru dari GitHub...")
+        with open(".update_channel", "w") as f:
+            f.write(str(ctx.channel.id))
         await asyncio.sleep(2)
         import sys
         sys.exit(0)
