@@ -34,6 +34,15 @@ class Midman(commands.Cog):
         except:
             pass
         ch = ctx.guild.get_channel(MIDMAN_CHANNEL_ID)
+
+        # Hapus semua pesan bot lama di channel
+        async for msg in ch.history(limit=50):
+            if msg.author == self.bot.user:
+                try:
+                    await msg.delete()
+                except:
+                    pass
+
         embed = discord.Embed(
             title=f"MIDMAN TRADE — {STORE_NAME}",
             description=(
