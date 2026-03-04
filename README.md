@@ -37,6 +37,7 @@ Bot Discord untuk layanan middleman trade item game secara aman dan terpercaya.
 
 ## Struktur Folder
 
+```
 midman_bot/
 ├── main.py                  # Entry point bot
 ├── .env                     # Konfigurasi token dan ID channel (jangan di-push ke GitHub)
@@ -54,6 +55,7 @@ midman_bot/
     ├── fee.py               # Kalkulasi dan format nominal fee
     ├── tickets.py           # Simpan dan muat data tiket dari database
     └── transcript.py        # Generate file transcript HTML
+```
 
 ---
 
