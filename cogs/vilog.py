@@ -82,11 +82,15 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
             color=0x5865F2,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
+        usn = self.username.value
+        pwd = self.password.value
         embed.add_field(name="\u200b", value=(
-            f"Member  : {user.mention}\n"
-            f"Item    : {boost['nama']} ({boost['robux']} Robux)\n"
-            f"Metode  : {metode_val}\n\n"
-            f"Status  : Menunggu admin"
+            f"Member          : {user.mention}\n"
+            f"Username Roblox : ||{usn}||\n"
+            f"Password        : ||{pwd}||\n"
+            f"Item            : {boost['nama']} ({boost['robux']} Robux)\n"
+            f"Metode          : {metode_val}\n\n"
+            f"Status          : Menunggu admin"
         ), inline=False)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
@@ -231,6 +235,30 @@ class Vilog(commands.Cog):
         save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
 
+
+    @commands.command(name="batalin")
+    async def batalin(self, ctx, *, alasan: str = "Tidak ada alasan diberikan."):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        ticket = self.active_vilog.get(ctx.channel.id)
+        if not ticket:
+            await ctx.send("Channel ini bukan tiket vilog aktif.", delete_after=5)
+            return
+        guild = ctx.guild
+        member = guild.get_member(ticket["user_id"])
+        embed = discord.Embed(title="BOOST DIBATALKAN", color=0xFF0000)
+        embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Alasan", value=alasan, inline=False)
+        embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=STORE_NAME)
+        mentions = member.mention if member else ""
+        await ctx.send(content=mentions if mentions else None, embed=embed)
+        await asyncio.sleep(5)
+        del self.active_vilog[ctx.channel.id]
+        save_vilog_tickets(self.active_vilog)
+        await ctx.channel.delete()
 
 async def setup(bot):
     await bot.add_cog(Vilog(bot))
