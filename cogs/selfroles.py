@@ -74,7 +74,7 @@ class SelfRoles(commands.Cog):
                 "🍀 **INFO PT PT** — PT PT PING!\n"
                 "🎉 **Giveaway** — Notifikasi Giveaway"
             ),
-            color=0x5865F2
+            color=0x9B59B6
         )
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)

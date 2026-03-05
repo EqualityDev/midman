@@ -154,7 +154,7 @@ class Midman(commands.Cog):
                 "5. Ikuti instruksi admin di dalam tiket\n\n"
                 "Klik tombol di bawah untuk memulai."
             ),
-            color=0x5865F2
+            color=0x2ECC71
         )
         embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
@@ -344,7 +344,7 @@ class Midman(commands.Cog):
         if result is None:
             await ctx.send("Nominal terlalu kecil. Minimal Rp 1.000.")
             return
-        embed = discord.Embed(title="Kalkulator Fee Midman", color=0x5865F2)
+        embed = discord.Embed(title="Kalkulator Fee Midman", color=0x2ECC71)
         embed.add_field(name="Nominal", value=format_nominal(angka), inline=True)
         embed.add_field(name="Fee", value=format_nominal(result), inline=True)
         embed.add_field(name="Total Bayar", value=format_nominal(angka + result), inline=True)

@@ -81,7 +81,7 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
 
         embed = discord.Embed(
             title=f"BOOST VIA LOGIN — {STORE_NAME}",
-            color=0x5865F2,
+            color=0xE67E22,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         usn = self.username.value
@@ -165,7 +165,7 @@ class Vilog(commands.Cog):
                 "──────────────────────────────\n"
                 "!vilog untuk refresh."
             ),
-            color=0x5865F2
+            color=0xE67E22
         )
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
@@ -252,7 +252,7 @@ class Vilog(commands.Cog):
         guild = ctx.guild
         member = guild.get_member(ticket["user_id"])
 
-        embed = discord.Embed(title="BOOST GAGAL", color=0xFF0000)
+        embed = discord.Embed(title="BOOST GAGAL", color=0xE67E22)
         embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         embed.add_field(name="Alasan", value=alasan, inline=False)
         embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
@@ -290,7 +290,7 @@ class Vilog(commands.Cog):
             return
         guild = ctx.guild
         member = guild.get_member(ticket["user_id"])
-        embed = discord.Embed(title="BOOST DIBATALKAN", color=0xFF0000)
+        embed = discord.Embed(title="BOOST DIBATALKAN", color=0xE67E22)
         embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         embed.add_field(name="Alasan", value=alasan, inline=False)
         embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
