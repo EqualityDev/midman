@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 GUILD_ID = int(os.getenv("GUILD_ID"))
 MIDMAN_CHANNEL_ID = int(os.getenv("MIDMAN_CHANNEL_ID"))
 TICKET_CATEGORY_ID = int(os.getenv("TICKET_CATEGORY_ID"))
