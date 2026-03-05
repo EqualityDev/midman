@@ -7,6 +7,8 @@ from utils.config import (
     TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
 )
 from utils.vilog_tickets import load_vilog_tickets, save_vilog_tickets
+from utils.transcript import generate as generate_transcript
+from utils.config import TRANSCRIPT_CHANNEL_ID
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -222,6 +224,17 @@ class Vilog(commands.Cog):
         if log_ch:
             await log_ch.send(content=log_text)
 
+        transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
+        if transcript_ch:
+            try:
+                transcript_file = await generate_transcript(ctx.channel, STORE_NAME)
+                await transcript_ch.send(
+                    content=f"📄 Transcript Vilog — {ctx.channel.name}",
+                    file=transcript_file
+                )
+            except Exception as e:
+                print(f"[WARNING] Gagal kirim transcript vilog: {e}")
+
         del self.active_vilog[ctx.channel.id]
         save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
@@ -250,6 +263,17 @@ class Vilog(commands.Cog):
         await ctx.send(content=mentions if mentions else None, embed=embed)
         await asyncio.sleep(5)
 
+        transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
+        if transcript_ch:
+            try:
+                transcript_file = await generate_transcript(ctx.channel, STORE_NAME)
+                await transcript_ch.send(
+                    content=f"📄 Transcript Vilog — {ctx.channel.name}",
+                    file=transcript_file
+                )
+            except Exception as e:
+                print(f"[WARNING] Gagal kirim transcript vilog: {e}")
+
         del self.active_vilog[ctx.channel.id]
         save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
@@ -275,6 +299,17 @@ class Vilog(commands.Cog):
         mentions = member.mention if member else ""
         await ctx.send(content=mentions if mentions else None, embed=embed)
         await asyncio.sleep(5)
+        transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
+        if transcript_ch:
+            try:
+                transcript_file = await generate_transcript(ctx.channel, STORE_NAME)
+                await transcript_ch.send(
+                    content=f"📄 Transcript Vilog — {ctx.channel.name}",
+                    file=transcript_file
+                )
+            except Exception as e:
+                print(f"[WARNING] Gagal kirim transcript vilog: {e}")
+
         del self.active_vilog[ctx.channel.id]
         save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
