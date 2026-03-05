@@ -35,6 +35,20 @@ def init_db():
         )
     ''')
     c.execute('INSERT OR IGNORE INTO counter (id, count) VALUES (1, 0)')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vilog_tickets (
+            channel_id      INTEGER PRIMARY KEY,
+            user_id         INTEGER,
+            username_roblox TEXT,
+            password        TEXT,
+            boost_nama      TEXT,
+            boost_robux     INTEGER,
+            metode          TEXT,
+            nominal         INTEGER,
+            admin_id        INTEGER,
+            opened_at       TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")

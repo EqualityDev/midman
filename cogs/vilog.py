@@ -6,7 +6,7 @@ from utils.config import (
     ADMIN_ROLE_ID, VILOG_CHANNEL_ID, LOG_CHANNEL_ID,
     TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
 )
-from utils.vilog_tickets import load_vilog_tickets, save_vilog_tickets
+from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
 from utils.transcript import generate as generate_transcript
 from utils.config import TRANSCRIPT_CHANNEL_ID
 
@@ -77,7 +77,7 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
 
         cog = interaction.client.cogs.get("Vilog")
         cog.active_vilog[channel.id] = ticket
-        save_vilog_tickets(cog.active_vilog)
+        save_vilog_ticket(ticket)
 
         embed = discord.Embed(
             title=f"BOOST VIA LOGIN — {STORE_NAME}",
@@ -193,7 +193,7 @@ class Vilog(commands.Cog):
 
         ticket["nominal"] = nominal_int
         ticket["admin_id"] = ctx.author.id
-        save_vilog_tickets(self.active_vilog)
+        save_vilog_ticket(ticket)
 
         guild = ctx.guild
         member = guild.get_member(ticket["user_id"])
@@ -235,8 +235,8 @@ class Vilog(commands.Cog):
             except Exception as e:
                 print(f"[WARNING] Gagal kirim transcript vilog: {e}")
 
+        delete_vilog_ticket(ctx.channel.id)
         del self.active_vilog[ctx.channel.id]
-        save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
 
     @commands.command(name="gagal")
@@ -274,8 +274,8 @@ class Vilog(commands.Cog):
             except Exception as e:
                 print(f"[WARNING] Gagal kirim transcript vilog: {e}")
 
+        delete_vilog_ticket(ctx.channel.id)
         del self.active_vilog[ctx.channel.id]
-        save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
 
 
@@ -310,8 +310,8 @@ class Vilog(commands.Cog):
             except Exception as e:
                 print(f"[WARNING] Gagal kirim transcript vilog: {e}")
 
+        delete_vilog_ticket(ctx.channel.id)
         del self.active_vilog[ctx.channel.id]
-        save_vilog_tickets(self.active_vilog)
         await ctx.channel.delete()
 
 async def setup(bot):
