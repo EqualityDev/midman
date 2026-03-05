@@ -1,4 +1,4 @@
-# Official Midman Bot — Cellyn Store
+# Official Midman Bot
 
 Bot Discord untuk layanan middleman trade item game dan boost via login secara aman dan terpercaya.
 
@@ -71,10 +71,3 @@ Bot Discord untuk layanan middleman trade item game dan boost via login secara a
     bash start.sh
 
 ---
-
-## Catatan Penting
-
-- Jangan membagikan file .env ke siapapun.
-- File midman.db tidak perlu di-push ke GitHub, bot backup otomatis via Discord.
-- Pastikan bot punya permission: Send Messages, Read Message History, Manage Channels, Attach Files.
-- Data sensitif member hanya tampil di channel tiket yang bersifat private.
