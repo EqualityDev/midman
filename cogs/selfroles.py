@@ -1,0 +1,86 @@
+import discord
+from discord.ext import commands
+from utils.config import ADMIN_ROLE_ID, SELFROLES_CHANNEL_ID, STORE_NAME
+
+THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
+
+ROLES = [
+    {"emoji": "🐟", "label": "Fish It",          "role_id": 1478902226616582144},
+    {"emoji": "🔫", "label": "Violens District",  "role_id": 1478902150586302495},
+    {"emoji": "🎮", "label": "Mobile Legends",    "role_id": 1478902297147867317},
+    {"emoji": "🍀", "label": "PT PT",             "role_id": 1478607256437260388},
+    {"emoji": "🎉", "label": "Giveaway",          "role_id": 1479146345620181043},
+]
+
+class SelfRolesView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        for r in ROLES:
+            self.add_item(SelfRoleButton(r["emoji"], r["label"], r["role_id"]))
+
+class SelfRoleButton(discord.ui.Button):
+    def __init__(self, emoji, label, role_id):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label=label,
+            emoji=emoji,
+            custom_id=f"selfrole_{role_id}"
+        )
+        self.role_id = role_id
+
+    async def callback(self, interaction: discord.Interaction):
+        role = interaction.guild.get_role(self.role_id)
+        if not role:
+            await interaction.response.send_message("Role tidak ditemukan!", ephemeral=True)
+            return
+
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message(f"Role **{role.name}** berhasil dilepas.", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message(f"Role **{role.name}** berhasil ditambahkan!", ephemeral=True)
+
+class SelfRoles(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="selfroles")
+    async def selfroles_cmd(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+
+        ch = ctx.guild.get_channel(SELFROLES_CHANNEL_ID)
+        if not ch:
+            await ctx.send("Channel self roles tidak ditemukan!", delete_after=5)
+            return
+
+        async for msg in ch.history(limit=50):
+            if msg.author == self.bot.user:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+
+        embed = discord.Embed(
+            title="PILIH ROLE KAMU",
+            description=(
+                "Pilih role sesuai game atau minat kamu.\n"
+                "Klik tombol untuk menambah atau melepas role.\n\n"
+                "🐟 **Fish It** — Main FishIt\n"
+                "🔫 **Violens District** — Main Violens District\n"
+                "🎮 **Mobile Legends** — Main Mobile Legends\n"
+                "🍀 **PT PT** — PT PT\n"
+                "🎉 **Giveaway** — Notifikasi Giveaway"
+            ),
+            color=0x5865F2
+        )
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=STORE_NAME)
+        await ch.send(embed=embed, view=SelfRolesView())
+        await ctx.send(f"Embed self roles dikirim ke {ch.mention}", delete_after=5)
+
+async def setup(bot):
+    await bot.add_cog(SelfRoles(bot))
+    print("Cog SelfRoles siap.")
