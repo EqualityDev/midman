@@ -40,8 +40,8 @@ def build_embed_setup(store_name, ticket, user2, fee_str):
             f"Link    : {ticket['link_server']}\n\n"
             f"Status  : Menunggu pembayaran fee\n"
             f"{sep}\n"
-            f"Silakan bayar fee ke admin sebelum memulai trade\n"
-            f"Setelah fee diterima, admin akan mengkonfirmasi dan trade dimulai"
+            f"Bayar fee terlebih dahulu untuk memulai sesi trade.\n"
+            f"Konfirmasi dari admin akan muncul setelah fee diterima."
         ),
         inline=False
     )
@@ -70,8 +70,8 @@ def build_embed_berlangsung(store_name, ticket, confirmed_by):
             f"Status  : Transaksi berlangsung\n"
             f"Notif   : Pembayaran dikonfirmasi oleh {confirmed_by}\n"
             f"{sep}\n"
-            f"Ikuti instruksi admin untuk proses trade\n"
-            f"Setelah semua selesai, admin ketik !acc untuk menutup tiket"
+            f"Ikuti instruksi admin untuk proses trade.\n"
+            f"Jangan tukar item sebelum admin memberi tanda aman!"
         ),
         inline=False
     )
