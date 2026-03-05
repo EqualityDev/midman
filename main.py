@@ -15,6 +15,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def main():
     async with bot:
         await bot.load_extension("cogs.midman")
+        await bot.load_extension("cogs.vilog")
         await bot.start(TOKEN)
 
 asyncio.run(main())
