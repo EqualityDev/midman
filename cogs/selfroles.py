@@ -8,7 +8,7 @@ ROLES = [
     {"emoji": "<a:fish_dance:1478904201202634855>", "label": "Fish It",          "role_id": 1478902226616582144},
     {"emoji": "<:vd:1478903981895057579>",          "label": "Violens District",  "role_id": 1478902150586302495},
     {"emoji": "<:ml1:1478904312779247870>",         "label": "Mobile Legends",    "role_id": 1478902297147867317},
-    {"emoji": "🍀",                                 "label": "PT PT",             "role_id": 1478607256437260388},
+    {"emoji": "🍀",                                 "label": "INFO PT PT",             "role_id": 1478607256437260388},
     {"emoji": "🎉",                                 "label": "Giveaway",          "role_id": 1479146345620181043},
 ]
 
@@ -66,12 +66,12 @@ class SelfRoles(commands.Cog):
         embed = discord.Embed(
             title="PILIH ROLE KAMU",
             description=(
-                "Pilih role sesuai game atau minat kamu.\n"
-                "Klik tombol untuk menambah atau melepas role.\n\n"
+                "Ambil role game kamu, biar gampang cari teman mabar!\n"
+                "Bisa ambil lebih dari satu. Klik tombol untuk toggle role.\n\n"
                 "<a:fish_dance:1478904201202634855> **Fish It** — Main FishIt\n"
                 "<:vd:1478903981895057579> **Violens District** — Main Violens District\n"
                 "<:ml1:1478904312779247870> **Mobile Legends** — Main Mobile Legends\n"
-                "🍀 **PT PT** — PT PT\n"
+                "🍀 **INFO PT PT** — PT PT PING!\n"
                 "🎉 **Giveaway** — Notifikasi Giveaway"
             ),
             color=0x5865F2
