@@ -85,12 +85,19 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
         usn = self.username.value
         pwd = self.password.value
         embed.add_field(name="\u200b", value=(
-            f"Member          : {user.mention}\n"
-            f"Username Roblox : ||{usn}||\n"
-            f"Password        : ||{pwd}||\n"
-            f"Item            : {boost['nama']} ({boost['robux']} Robux)\n"
-            f"Metode          : {metode_val}\n\n"
-            f"Status          : Menunggu admin"
+            f"Hallo, Selamat datang\n"
+            f"Member   : {user.mention}\n"
+            f"Username : ||{usn}||\n"
+            f"Password : ||{pwd}||\n"
+            f"Item     : {boost['nama']} ({boost['robux']} Robux)\n"
+            f"Metode   : {metode_val}\n"
+            f"Status   : Sesi berlangsung\n"
+            f"──────────────────────────────\n"
+            f"Admin harap konfirmasi dan tagih harga kepada member berdasarkan jumlah Robux × rate pasar yang berlaku saat transaksi dilakukan.\n"
+            f"Contoh : 1200 (Robux) X 90 (Rate) = Total\n"
+            f"──────────────────────────────\n"
+            f"**!batalin** untuk cancel tiket.\n"
+            f"**!selesai** (**masukan angka total pembayaran**) di akhir sesi jika **transaksi sudah selesai**."
         ), inline=False)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
@@ -107,7 +114,7 @@ class VilogMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Boost Via Login", style=discord.ButtonStyle.primary, custom_id="open_vilog")
+    @discord.ui.button(label="BELI", style=discord.ButtonStyle.primary, custom_id="open_vilog")
     async def open_vilog(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(VilogFormModal())
 
@@ -135,14 +142,26 @@ class Vilog(commands.Cog):
                     pass
 
         embed = discord.Embed(
-            title=f"BOOST VIA LOGIN — {STORE_NAME}",
+            title=f"Boost Server Via Login — {STORE_NAME}",
             description=(
-                "Aktifkan boost di server Roblox kamu dengan mudah dan aman.\n\n"
                 "**Pilihan Boost:**\n"
                 "1. X8 6 JAM — 1300 Robux\n"
                 "2. X8 12 JAM — 1890 Robux\n"
                 "3. X8 24 JAM — 3100 Robux\n\n"
-                "Klik tombol di bawah untuk memulai."
+                "**Cara pakai:**\n"
+                "1. Klik tombol BELI\n"
+                "2. Isi form dengan data akun dan pilihan boost\n"
+                "3. Tunggu admin menghubungi kamu di tiket\n"
+                "4. Ikuti instruksi Admin didalam tiket\n\n"
+                "**Note :**\n"
+                "• Admin login ke akun anda untuk proses Boost.\n"
+                "• Pastikan email & password benar agar proses cepat\n"
+                "• Harga dapat berubah sewaktu-waktu\n"
+                "• Semua pembayaran diterima (QRIS/DANA/BCA)\n"
+                "• cek harga dengan cara: Jumlah robux X rate = Total\n"
+                "Contoh : 2500 (robux)X (rate) 90= Total.\n"
+                "──────────────────────────────\n"
+                "!vilog untuk refresh."
             ),
             color=0x5865F2
         )
