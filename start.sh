@@ -17,7 +17,11 @@ MANUAL_STOP=0
 
 # Load .env
 if [ -f "$BOT_DIR/.env" ]; then
-    export $(grep -v '^#' "$BOT_DIR/.env" | xargs 2>/dev/null)
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+        value=$(echo "$value" | tr -d '"' | tr -d "'")
+        export "$key=$value"
+    done < "$BOT_DIR/.env"
 fi
 
 STORE_NAME_ENV=$(grep -E "^STORE_NAME=" "$BOT_DIR/.env" 2>/dev/null | cut -d '=' -f2- | tr -d '"' | tr -d "'")
