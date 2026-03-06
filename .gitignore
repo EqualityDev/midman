@@ -6,3 +6,5 @@ venv/
 tickets.json
 midman.db
 .update_channel
+__pycache__/
+*.pyc
