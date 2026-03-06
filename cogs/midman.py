@@ -278,7 +278,7 @@ class Midman(commands.Cog):
         hash_out, _ = await hash_proc.communicate()
         old_hash = hash_out.decode().strip()
         proc = await asyncio.create_subprocess_shell(
-            "git pull origin main",
+            "git stash && git pull origin main",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
