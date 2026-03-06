@@ -100,6 +100,7 @@ while true; do
     source "$BOT_DIR/venv/bin/activate"
     log INFO "Menjalankan bot... (percobaan ke-$((retries+1)))"
 
+    python3 -c "from utils.db import init_db; init_db()"
     python main.py
     EXIT_CODE=$?
 
