@@ -49,6 +49,13 @@ def init_db():
             opened_at       TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS robux_rate (
+            id    INTEGER PRIMARY KEY DEFAULT 1,
+            rate  INTEGER DEFAULT 0
+        )
+    ''')
+    c.execute('INSERT OR IGNORE INTO robux_rate (id, rate) VALUES (1, 0)')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")
