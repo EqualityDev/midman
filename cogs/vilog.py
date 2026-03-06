@@ -125,31 +125,29 @@ class Vilog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_vilog = load_vilog_tickets()
+        self.embed_message_id = None
 
-    @commands.command(name="vilog")
-    async def vilog_cmd(self, ctx):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        await ctx.message.delete()
-        ch = ctx.guild.get_channel(VILOG_CHANNEL_ID)
+    async def refresh_embed(self, guild):
+        ch = guild.get_channel(VILOG_CHANNEL_ID)
         if not ch:
-            await ctx.send("Channel vilog tidak ditemukan!", delete_after=5)
             return
+        from cogs.robux import get_rate
+        rate = get_rate()
+        rate_str = f"Rp {rate:,}/Robux" if rate > 0 else "Belum diset"
 
-        async for msg in ch.history(limit=50):
-            if msg.author == self.bot.user:
-                try:
-                    await msg.delete()
-                except Exception:
-                    pass
+        def harga_boost(robux):
+            if rate == 0:
+                return "Belum diset"
+            return f"Rp {robux * rate:,}"
 
         embed = discord.Embed(
             title=f"Boost Server Via Login — {STORE_NAME}",
             description=(
-                "**Pilihan Boost:**\n"
-                "1. X8 6 JAM — 1300 Robux\n"
-                "2. X8 12 JAM — 1890 Robux\n"
-                "3. X8 24 JAM — 3100 Robux\n\n"
+                f"**Pilihan Boost:**\n"
+                f"1. X8 6 JAM — 1300 Robux — **{harga_boost(1300)}**\n"
+                f"2. X8 12 JAM — 1890 Robux — **{harga_boost(1890)}**\n"
+                f"3. X8 24 JAM — 3100 Robux — **{harga_boost(3100)}**\n\n"
+                f"Rate saat ini: **{rate_str}**\n\n"
                 "**Cara pakai:**\n"
                 "1. Klik tombol BELI\n"
                 "2. Isi form dengan data akun dan pilihan boost\n"
@@ -160,8 +158,6 @@ class Vilog(commands.Cog):
                 "• Pastikan email & password benar agar proses cepat\n"
                 "• Harga dapat berubah sewaktu-waktu\n"
                 "• Semua pembayaran diterima (QRIS/DANA/BCA)\n"
-                "• cek harga dengan cara: Jumlah robux X rate = Total\n"
-                "Contoh : 2500 (robux)X (rate) 90= Total.\n"
                 "──────────────────────────────\n"
                 "!vilog untuk refresh."
             ),
@@ -169,7 +165,34 @@ class Vilog(commands.Cog):
         )
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
-        await ch.send(embed=embed, view=VilogMainView())
+
+        if self.embed_message_id:
+            try:
+                msg = await ch.fetch_message(self.embed_message_id)
+                await msg.edit(embed=embed)
+                return
+            except Exception:
+                pass
+        async for msg in ch.history(limit=20):
+            if msg.author == guild.me:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+        sent = await ch.send(embed=embed, view=VilogMainView())
+        self.embed_message_id = sent.id
+
+    @commands.command(name="vilog")
+    async def vilog_cmd(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        ch = ctx.guild.get_channel(VILOG_CHANNEL_ID)
+        if not ch:
+            await ctx.send("Channel vilog tidak ditemukan!", delete_after=5)
+            return
+        self.embed_message_id = None
+        await self.refresh_embed(ctx.guild)
         await ctx.send(f"Embed vilog dikirim ke {ch.mention}", delete_after=5)
 
     @commands.command(name="selesai")

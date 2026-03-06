@@ -344,6 +344,10 @@ class RobuxStore(commands.Cog):
         await self.refresh_catalog()
         guild = ctx.guild
         await self.refresh_active_tickets(guild, rate)
+        # Refresh embed vilog
+        vilog_cog = self.bot.cogs.get("Vilog")
+        if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+            await vilog_cog.refresh_embed(guild)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
