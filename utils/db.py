@@ -56,6 +56,28 @@ def init_db():
         )
     ''')
     c.execute('INSERT OR IGNORE INTO robux_rate (id, rate) VALUES (1, 0)')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS robux_tickets (
+            channel_id  INTEGER PRIMARY KEY,
+            user_id     INTEGER,
+            item_id     INTEGER,
+            item_name   TEXT,
+            robux       INTEGER,
+            rate        INTEGER,
+            total       INTEGER,
+            payment_method TEXT,
+            payment_embed_msg_id INTEGER,
+            paid        INTEGER DEFAULT 0,
+            admin_id    INTEGER,
+            opened_at   TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS bot_state (
+            key   TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")
