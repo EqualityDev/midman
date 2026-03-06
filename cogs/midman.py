@@ -351,5 +351,56 @@ class Midman(commands.Cog):
         embed.set_footer(text=STORE_NAME)
         await ctx.send(embed=embed)
 
+    @commands.command(name="cmd")
+    async def cmd(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        embed = discord.Embed(
+            title=f"PREFIX GUIDE — {STORE_NAME}",
+            color=0x2ECC71
+        )
+        embed.add_field(
+            name="MIDMAN TRADE",
+            value=(
+                "`!open` — kirim embed catalog\n"
+                "`!acc` — konfirmasi trade selesai\n"
+                "`!batal` — batalkan tiket\n"
+                "`!fee <nominal>` — hitung fee midman"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="BOOST VIA LOGIN",
+            value=(
+                "`!vilog` — kirim embed pricelist boost\n"
+                "`!selesai <nominal>` — tutup tiket vilog\n"
+                "`!batalin` — batalkan tiket vilog"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="ROBUX STORE",
+            value=(
+                "`!catalog` — kirim embed catalog robux\n"
+                "`!rate <angka>` — set rate Robux\n"
+                "`!gift` — konfirmasi gift item selesai\n"
+                "`!tolak [alasan]` — batalkan tiket robux"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="LAINNYA",
+            value=(
+                "`!selfroles` — kirim embed self roles\n"
+                "`!update` — update bot dari GitHub\n"
+                "`!info` — info bot\n"
+                "`!ping` — cek latency"
+            ),
+            inline=False
+        )
+        embed.set_footer(text=f"{STORE_NAME} • Pesan ini akan hilang dalam 10 detik")
+        await ctx.send(embed=embed, delete_after=10)
+
 async def setup(bot):
     await bot.add_cog(Midman(bot))

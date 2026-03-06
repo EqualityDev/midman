@@ -1,7 +1,7 @@
 import asyncio
 import discord
 import datetime
-from discord.ext import commands
+from discord.ext import commands, tasks
 from utils.config import ADMIN_ROLE_ID, ROBUX_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID
 from utils.db import get_conn
 from utils.robux_db import load_robux_tickets, save_robux_ticket, delete_robux_ticket
@@ -191,6 +191,7 @@ class ItemSelect(discord.ui.Select):
             "channel_id": channel.id,
             "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
+        ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         cog.active_tickets[channel.id] = ticket
         save_robux_ticket(ticket)
 
@@ -214,6 +215,11 @@ class ItemSelect(discord.ui.Select):
             value="Setelah pembayaran dikonfirmasi, admin dan member masuk game untuk proses gift item.",
             inline=False
         )
+        embed.add_field(
+            name="Peringatan",
+            value="Tiket yang tidak aktif selama 2 jam akan otomatis ditutup dan transaksi dianggap batal. Jangan biarkan tiket menggantung.",
+            inline=False
+        )
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
 
@@ -228,6 +234,46 @@ class RobuxStore(commands.Cog):
         self.bot = bot
         self.catalog_message_id = None
         self.active_tickets = load_robux_tickets()
+        self.auto_close_task.start()
+
+    def cog_unload(self):
+        self.auto_close_task.cancel()
+
+    @tasks.loop(minutes=10)
+    async def auto_close_task(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        for ch_id, ticket in list(self.active_tickets.items()):
+            if ticket.get("paid"):
+                continue
+            last = ticket.get("last_activity") or ticket.get("opened_at")
+            if not last:
+                continue
+            last_dt = datetime.datetime.fromisoformat(last)
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
+            elapsed = (now - last_dt).total_seconds()
+            if elapsed >= 7200:
+                guild = self.bot.guilds[0] if self.bot.guilds else None
+                if not guild:
+                    continue
+                channel = guild.get_channel(ch_id)
+                if channel:
+                    try:
+                        await channel.send(
+                            "Tiket ini otomatis ditutup karena tidak ada aktivitas selama 2 jam. "
+                            "Transaksi dianggap batal. Channel akan dihapus dalam 10 detik."
+                        )
+                        import asyncio
+                        await asyncio.sleep(10)
+                        await channel.delete()
+                    except Exception:
+                        pass
+                delete_robux_ticket(ch_id)
+                self.active_tickets.pop(ch_id, None)
+
+    @auto_close_task.before_loop
+    async def before_auto_close(self):
+        await self.bot.wait_until_ready()
 
     async def refresh_catalog(self):
         guild = self.bot.guilds[0] if self.bot.guilds else None
@@ -259,6 +305,8 @@ class RobuxStore(commands.Cog):
             channel = guild.get_channel(ch_id)
             if not channel:
                 self.active_tickets.pop(ch_id, None)
+                continue
+            if ticket.get("paid"):
                 continue
             ticket["rate"] = rate
             ticket["total"] = ticket["robux"] * rate
@@ -367,6 +415,8 @@ class RobuxStore(commands.Cog):
             return
         if ticket.get("payment_method"):
             return
+
+        ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         if message.content.strip() not in ["1", "2", "3"]:
             return
