@@ -201,7 +201,7 @@ class Midman(commands.Cog):
         dibuka_str = opened_at.strftime("%d %b %Y, %H:%M UTC") if opened_at else "-"
         ditutup_str = closed_at.strftime("%d %b %Y, %H:%M UTC") if closed_at else "-"
         log_text = (
-            f"<a:bell:1456430498757873797> **MIDMAN TRADE SUKSES — #{ticket_num}**\n"
+            f"<a:hanyaCheer:1479455597773717565> **MIDMAN TRADE SUKSES — #{ticket_num}**\n"
             f"\u200b\n"
             f"| Midman  : {adm.mention}\n"
             f"| Diverifikasi oleh : {ticket.get('verified_by').mention if ticket.get('verified_by') else adm.mention}\n"
