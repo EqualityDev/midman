@@ -73,7 +73,8 @@ class SelfRoles(commands.Cog):
                 "<:vd:1478903981895057579> **Violens District** — Main Violens District\n"
                 "<:ml1:1478904312779247870> **Mobile Legends** — Main Mobile Legends\n"
                 "🍀 **INFO PT PT** — PT PT PING!\n"
-                "🎉 **Giveaway** — Notifikasi Giveaway"
+                "🎉 **Giveaway** — Notifikasi Giveaway\n"
+                "<:RobloxVerifiedBadge:1479498873641762837> **Roblox** — Role Roblox Player"
             ),
             color=0x9B59B6
         )
