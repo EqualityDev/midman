@@ -10,6 +10,7 @@ ROLES = [
     {"emoji": "<:ml1:1478904312779247870>",         "label": "Mobile Legends",    "role_id": 1478902297147867317},
     {"emoji": "🍀",                                 "label": "INFO PT PT",             "role_id": 1478607256437260388},
     {"emoji": "🎉",                                 "label": "Giveaway",          "role_id": 1479146345620181043},
+    {"emoji": "<:RobloxVerifiedBadge:1479498873641762837>", "label": "Roblox", "role_id": 1479455170520682530},
 ]
 
 class SelfRolesView(discord.ui.View):
