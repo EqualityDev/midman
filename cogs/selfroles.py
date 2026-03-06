@@ -85,4 +85,5 @@ class SelfRoles(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(SelfRoles(bot))
+    bot.add_view(SelfRolesView())
     print("Cog SelfRoles siap.")

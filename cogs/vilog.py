@@ -343,4 +343,5 @@ class Vilog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Vilog(bot))
+    bot.add_view(VilogMainView())
     print("Cog Vilog siap.")

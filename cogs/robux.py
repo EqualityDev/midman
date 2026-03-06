@@ -665,4 +665,5 @@ class RobuxStore(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(RobuxStore(bot))
+    bot.add_view(CategoryView())
     print("Cog RobuxStore siap.")
