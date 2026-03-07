@@ -78,6 +78,17 @@ def init_db():
             value TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ml_tickets (
+            channel_id  INTEGER PRIMARY KEY,
+            user_id     INTEGER,
+            id_ml       TEXT,
+            server_id   TEXT,
+            dm          INTEGER,
+            harga       INTEGER,
+            opened_at   TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")
