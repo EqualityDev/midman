@@ -65,6 +65,9 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
             overwrites=overwrites
         )
 
+        from cogs.robux import get_rate as _get_rate
+        _rate = _get_rate()
+
         ticket = {
             "channel_id": channel.id,
             "user_id": user.id,
@@ -72,6 +75,8 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
             "password": self.password.value,
             "boost": boost,
             "metode": metode_val,
+            "payment_method": metode_val,
+            "rate": _rate,
             "nominal": None,
             "admin_id": None,
             "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -88,8 +93,6 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
         )
         usn = self.username.value
         pwd = self.password.value
-        from cogs.robux import get_rate as _get_rate
-        _rate = _get_rate()
         _total = boost['robux'] * _rate if _rate else 0
         _total_str = f"Rp {_total:,}" if _rate else "Rate belum diset"
         _rate_str = f"Rp {_rate:,}/Robux" if _rate else "Belum diset"
@@ -236,8 +239,8 @@ class Vilog(commands.Cog):
         tanggal = closed_at.strftime("%d %b %Y, %H:%M UTC")
 
         nomor_vilog = next_ticket_number()
-        rate_vilog = ticket.get("rate", "-")
-        metode_vilog = ticket.get("payment_method", "-")
+        rate_vilog = ticket.get("rate") or ticket.get("rate_vilog")
+        metode_vilog = ticket.get("payment_method") or ticket.get("metode", "-")
         log_embed = discord.Embed(
             title=f"BOOST VILOG SUKSES — #{nomor_vilog:04d}",
             description="Boost berhasil diaktifkan. Segera ganti password akun setelah sesi selesai.",
