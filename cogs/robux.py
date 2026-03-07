@@ -607,20 +607,23 @@ class RobuxStore(commands.Cog):
         # Log transaksi
         log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
         if log_ch:
-            log_text = (
-                f"<a:hanyaCheer:1479455597773717565> **PEMBELIAN ITEM SUKSES — #{nomor:04d}**\n"
-                f"\u200b\n"
-                f"| Admin   : {ctx.author.mention} | {ctx.author.id}\n"
-                f"| Buyer   : {member.mention if member else ticket['user_id']} | {ticket['user_id']}\n"
-                f"| Item    : {ticket['item_name']} ({ticket['robux']} Robux)\n"
-                f"| Rate    : Rp {ticket['rate']:,}/Robux\n"
-                f"| Total   : Rp {ticket['total']:,}\n"
-                f"| Tanggal : {tanggal}\n"
-                f"| Durasi  : {durasi_str}\n"
-                f"\u200b\n"
-                f"Transaksi selesai dan telah diverifikasi oleh admin. Terima kasih telah berbelanja di {STORE_NAME}."
+            log_embed = discord.Embed(
+                title=f"ROBUX STORE SUKSES — #{nomor:04d}",
+                color=0xE91E63,
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
-            await log_ch.send(log_text)
+            log_embed.add_field(name="Admin", value=ctx.author.mention, inline=True)
+            log_embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
+            log_embed.add_field(name="​", value="​", inline=False)
+            log_embed.add_field(name="Item", value=f"{ticket['item_name']} ({ticket['robux']} Robux)", inline=True)
+            log_embed.add_field(name="Rate", value=f"Rp {ticket['rate']:,}/Robux", inline=True)
+            log_embed.add_field(name="Total", value=f"Rp {ticket['total']:,}", inline=True)
+            log_embed.add_field(name="​", value="​", inline=False)
+            log_embed.add_field(name="Durasi", value=durasi_str, inline=True)
+            log_embed.add_field(name="Tanggal", value=tanggal, inline=True)
+            log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
+            log_embed.set_footer(text=f"Transaksi selesai — {STORE_NAME}")
+            await log_ch.send(embed=log_embed)
 
         await ctx.channel.send(
             f"Item berhasil diberikan. Terima kasih telah berbelanja di {STORE_NAME}!\n"

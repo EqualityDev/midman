@@ -200,27 +200,31 @@ class Midman(commands.Cog):
                 durasi = f"{detik} detik"
         dibuka_str = opened_at.strftime("%d %b %Y, %H:%M UTC") if opened_at else "-"
         ditutup_str = closed_at.strftime("%d %b %Y, %H:%M UTC") if closed_at else "-"
-        log_text = (
-            f"<a:hanyaCheer:1479455597773717565> **MIDMAN TRADE SUKSES — #{ticket_num}**\n"
-            f"\u200b\n"
-            f"| Midman  : {adm.mention}\n"
-            f"| Diverifikasi oleh : {ticket.get('verified_by').mention if ticket.get('verified_by') else adm.mention}\n"
-            f"| Pihak 1 : {p1.mention} | {p1.id} ({ticket['item_p1']})\n"
-            f"| Pihak 2 : {p2.mention if p2 else '-'} | {p2.id if p2 else '-'} ({ticket['item_p2']})\n"
-            f"| Fee     : {fee_str_log}\n"
-            f"\u200b\n"
-            f"| Dibuka  : {dibuka_str}\n"
-            f"| Ditutup : {ditutup_str}\n"
-            f"| Durasi  : {durasi}\n"
-            f"\u200b\n"
-            f"Transaksi telah selesai dan aman. Terima kasih telah menggunakan jasa midman {STORE_NAME}."
+        verified_by = ticket.get("verified_by")
+        log_embed = discord.Embed(
+            title=f"MIDMAN TRADE SUKSES — #{ticket_num}",
+            color=0x2ECC71,
+            timestamp=closed_at
         )
+        log_embed.add_field(name="Midman", value=adm.mention, inline=True)
+        log_embed.add_field(name="Diverifikasi oleh", value=verified_by.mention if verified_by else adm.mention, inline=True)
+        log_embed.add_field(name="​", value="​", inline=False)
+        log_embed.add_field(name="Pihak 1", value=f"{p1.mention}\n`{p1.id}`", inline=True)
+        log_embed.add_field(name="Pihak 2", value=f"{p2.mention if p2 else '-'}\n`{p2.id if p2 else '-'}`", inline=True)
+        log_embed.add_field(name="​", value="​", inline=False)
+        log_embed.add_field(name="Fee", value=fee_str_log, inline=True)
+        log_embed.add_field(name="Durasi", value=durasi, inline=True)
+        log_embed.add_field(name="​", value="​", inline=False)
+        log_embed.add_field(name="Dibuka", value=dibuka_str, inline=True)
+        log_embed.add_field(name="Ditutup", value=ditutup_str, inline=True)
+        log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
+        log_embed.set_footer(text=f"Transaksi selesai dan aman — {STORE_NAME}")
         await ctx.send("Admin telah mengkonfirmasi bahwa trade selesai dan kedua pihak telah menerima item masing-masing. Tiket ditutup dalam 5 detik.")
         await asyncio.sleep(5)
         transcript_file = await generate_transcript(ctx.channel, STORE_NAME)
         log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
         if log_ch:
-            await log_ch.send(content=log_text)
+            await log_ch.send(embed=log_embed)
         transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
         if transcript_ch:
             await transcript_ch.send(

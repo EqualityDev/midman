@@ -7,6 +7,7 @@ from utils.config import (
     TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
 )
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
+from utils.counter import next_ticket_number
 from utils.robux_db import save_bot_state, load_bot_state
 from utils.transcript import generate as generate_transcript
 from utils.config import TRANSCRIPT_CHANNEL_ID
@@ -229,17 +230,35 @@ class Vilog(commands.Cog):
         closed_at = datetime.datetime.now(datetime.timezone.utc)
         tanggal = closed_at.strftime("%d %b %Y, %H:%M UTC")
 
-        log_text = (
-            f"<a:hanyaCheer:1479455597773717565> **PEMBELIAN BOOST VILOG SUKSES**\n"
-            f"\u200b\n"
-            f"| Admin   : {ctx.author.mention} | {ctx.author.id}\n"
-            f"| Member  : {member.mention if member else ticket['user_id']} | {ticket['user_id']}\n"
-            f"| Item    : {boost['nama']} ({boost['robux']} Robux)\n"
-            f"| Nominal : Rp {nominal_int:,}\n"
-            f"| Tanggal : {tanggal}\n"
-            f"\u200b\n"
-            f"Transaksi selesai dan telah diverifikasi oleh admin. Terima kasih telah berbelanja di Cellyn Store."
+        nomor_vilog = next_ticket_number()
+        dibuka_vilog = opened_at.strftime("%d %b %Y, %H:%M UTC")
+        durasi_total = closed_at - opened_at
+        total_detik = int(durasi_total.total_seconds())
+        jam_v = total_detik // 3600
+        menit_v = (total_detik % 3600) // 60
+        detik_v = total_detik % 60
+        if jam_v > 0:
+            durasi_vilog = f"{jam_v} jam {menit_v} menit"
+        elif menit_v > 0:
+            durasi_vilog = f"{menit_v} menit {detik_v} detik"
+        else:
+            durasi_vilog = f"{detik_v} detik"
+        log_embed = discord.Embed(
+            title=f"BOOST VILOG SUKSES — #{nomor_vilog:04d}",
+            color=0xE67E22,
+            timestamp=closed_at
         )
+        log_embed.add_field(name="Admin", value=ctx.author.mention, inline=True)
+        log_embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
+        log_embed.add_field(name="​", value="​", inline=False)
+        log_embed.add_field(name="Item", value=f"{boost['nama']} ({boost['robux']} Robux)", inline=True)
+        log_embed.add_field(name="Nominal", value=f"Rp {nominal_int:,}", inline=True)
+        log_embed.add_field(name="​", value="​", inline=False)
+        log_embed.add_field(name="Durasi", value=durasi_vilog, inline=True)
+        log_embed.add_field(name="Dibuka", value=dibuka_vilog, inline=True)
+        log_embed.add_field(name="Ditutup", value=tanggal, inline=True)
+        log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
+        log_embed.set_footer(text=f"Transaksi selesai — {STORE_NAME}")
 
         await ctx.send(
             "Boost berhasil diaktifkan. Tiket ditutup dalam 5 detik.\n"
@@ -249,7 +268,7 @@ class Vilog(commands.Cog):
 
         log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
         if log_ch:
-            await log_ch.send(content=log_text)
+            await log_ch.send(embed=log_embed)
 
         transcript_ch = ctx.guild.get_channel(TRANSCRIPT_CHANNEL_ID)
         if transcript_ch:
