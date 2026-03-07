@@ -282,6 +282,22 @@ class Midman(commands.Cog):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
         await ctx.message.delete()
+        active_count = len(self.active_tickets)
+        if active_count > 0:
+            confirm_msg = await ctx.send(
+                f"Ada **{active_count} tiket aktif** saat ini. Update sekarang akan interrupt tiket yang sedang berjalan.\n"
+                f"Ketik `!update confirm` untuk tetap update, atau biarkan saja untuk batal."
+            )
+            def check_confirm(m):
+                return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == '!update confirm'
+            try:
+                import asyncio as _asyncio
+                await ctx.bot.wait_for('message', check=check_confirm, timeout=30)
+                await confirm_msg.delete()
+            except _asyncio.TimeoutError:
+                await confirm_msg.edit(content="Update dibatalkan.")
+                return
+
         await ctx.send("Mengunduh update dari GitHub...")
         # Simpan commit hash sebelum pull
         hash_proc = await asyncio.create_subprocess_shell(

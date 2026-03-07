@@ -65,6 +65,7 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
         }
         await interaction.response.send_message(f"Tiket dibuat: {channel.mention}", ephemeral=True)
         embed = build_embed_awal(STORE_NAME, interaction.user.mention, self.item_p1.value, self.item_p2.value)
+        embed.add_field(name="Estimasi Proses", value="Admin akan segera mengatur detail trade. Harap tunggu.", inline=False)
         msg = await channel.send(
             content=f"{admin_role.mention} — Tiket midman trade baru dari {interaction.user.mention}.",
             embed=embed,

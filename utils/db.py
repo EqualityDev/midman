@@ -46,9 +46,14 @@ def init_db():
             metode          TEXT,
             nominal         INTEGER,
             admin_id        INTEGER,
-            opened_at       TEXT
+            opened_at       TEXT,
+            warned          INTEGER DEFAULT 0
         )
     ''')
+    try:
+        c.execute('ALTER TABLE vilog_tickets ADD COLUMN warned INTEGER DEFAULT 0')
+    except Exception:
+        pass
     c.execute('''
         CREATE TABLE IF NOT EXISTS robux_rate (
             id    INTEGER PRIMARY KEY DEFAULT 1,
@@ -69,9 +74,14 @@ def init_db():
             payment_embed_msg_id INTEGER,
             paid        INTEGER DEFAULT 0,
             admin_id    INTEGER,
-            opened_at   TEXT
+            opened_at   TEXT,
+            warned      INTEGER DEFAULT 0
         )
     ''')
+    try:
+        c.execute('ALTER TABLE robux_tickets ADD COLUMN warned INTEGER DEFAULT 0')
+    except Exception:
+        pass
     c.execute('''
         CREATE TABLE IF NOT EXISTS bot_state (
             key   TEXT PRIMARY KEY,
@@ -87,11 +97,16 @@ def init_db():
             dm          INTEGER,
             harga       INTEGER,
             opened_at   TEXT,
-            game        TEXT DEFAULT 'ML'
+            game        TEXT DEFAULT 'ML',
+            warned      INTEGER DEFAULT 0
         )
     ''')
     try:
         c.execute("ALTER TABLE ml_tickets ADD COLUMN game TEXT DEFAULT 'ML'")
+    except Exception:
+        pass
+    try:
+        c.execute('ALTER TABLE ml_tickets ADD COLUMN warned INTEGER DEFAULT 0')
     except Exception:
         pass
     conn.commit()

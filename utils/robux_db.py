@@ -21,6 +21,7 @@ def load_robux_tickets():
             'paid': bool(row['paid']),
             'admin_id': row['admin_id'],
             'opened_at': row['opened_at'],
+            'warned': bool(row['warned']) if row['warned'] is not None else False,
         }
     return tickets
 
@@ -30,8 +31,8 @@ def save_robux_ticket(ticket):
     c.execute('''
         INSERT OR REPLACE INTO robux_tickets
         (channel_id, user_id, item_id, item_name, robux, rate, total,
-         payment_method, payment_embed_msg_id, paid, admin_id, opened_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         payment_method, payment_embed_msg_id, paid, admin_id, opened_at, warned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
@@ -45,6 +46,7 @@ def save_robux_ticket(ticket):
         1 if ticket.get('paid') else 0,
         ticket.get('admin_id'),
         ticket['opened_at'],
+        1 if ticket.get('warned') else 0,
     ))
     conn.commit()
     conn.close()

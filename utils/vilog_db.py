@@ -19,6 +19,7 @@ def load_vilog_tickets():
             'nominal': row['nominal'],
             'admin_id': row['admin_id'],
             'opened_at': row['opened_at'],
+            'warned': bool(row['warned']) if row['warned'] is not None else False,
         }
     return tickets
 
@@ -27,8 +28,8 @@ def save_vilog_ticket(ticket):
     c = conn.cursor()
     c.execute('''
         INSERT OR REPLACE INTO vilog_tickets
-        (channel_id, user_id, username_roblox, password, boost_nama, boost_robux, metode, nominal, admin_id, opened_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (channel_id, user_id, username_roblox, password, boost_nama, boost_robux, metode, nominal, admin_id, opened_at, warned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
@@ -40,6 +41,7 @@ def save_vilog_ticket(ticket):
         ticket.get('nominal'),
         ticket.get('admin_id'),
         ticket['opened_at'],
+        1 if ticket.get('warned') else 0,
     ))
     conn.commit()
     conn.close()
