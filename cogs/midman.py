@@ -31,7 +31,7 @@ class Midman(commands.Cog):
     async def before_auto_backup(self):
         await self.bot.wait_until_ready()
 
-    @tasks.loop(hours=6)
+    @tasks.loop(minutes=10)
     async def ticket_timeout_check(self):
         now = datetime.datetime.now(datetime.timezone.utc)
         for ch_id, ticket in list(self.active_tickets.items()):
@@ -47,29 +47,23 @@ class Midman(commands.Cog):
             check_time = last_msg_time or ticket.get("opened_at")
             if not check_time:
                 continue
+            if isinstance(check_time, str):
+                check_time = datetime.datetime.fromisoformat(check_time)
             if check_time.tzinfo is None:
                 check_time = check_time.replace(tzinfo=datetime.timezone.utc)
-            delta = (now - check_time).total_seconds() / 3600
-            if delta >= 6:
-                embed = discord.Embed(
-                    title="⏰ PENGINGAT TIKET",
-                    description=(
-                        f"Tiket ini tidak ada aktivitas selama **{int(delta)} jam**.\n\n"
-                        f"Segera selesaikan proses trade atau hubungi admin.\n"
-                        f"Tiket akan terus mendapat pengingat setiap 6 jam."
-                    ),
-                    color=0xFFA500
-                )
-                embed.set_footer(text=STORE_NAME)
-                adm = ticket.get("admin")
-                p1 = ticket.get("pihak1")
-                p2 = ticket.get("pihak2")
-                mentions = " ".join(filter(None, [
-                    adm.mention if adm else None,
-                    p1.mention if p1 else None,
-                    p2.mention if p2 else None
-                ]))
-                await channel.send(content=mentions, embed=embed)
+            delta = (now - check_time).total_seconds()
+            if delta >= 7200:
+                try:
+                    await channel.send(
+                        "Tiket ini otomatis ditutup karena tidak ada aktivitas selama 2 jam. "
+                        "Transaksi dianggap batal. Channel akan dihapus dalam 10 detik."
+                    )
+                    await asyncio.sleep(10)
+                    await channel.delete()
+                except Exception:
+                    pass
+                del self.active_tickets[ch_id]
+                save_tickets(self.active_tickets)
 
     @ticket_timeout_check.before_loop
     async def before_timeout_check(self):
