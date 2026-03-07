@@ -43,6 +43,53 @@ ML_PRODUCTS = [
 ]
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
+
+def load_ml_tickets():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM ml_tickets')
+    rows = c.fetchall()
+    conn.close()
+    tickets = {}
+    for row in rows:
+        tickets[row['channel_id']] = {
+            'channel_id': row['channel_id'],
+            'user_id': row['user_id'],
+            'id_ml': row['id_ml'],
+            'server_id': row['server_id'],
+            'dm': row['dm'],
+            'harga': row['harga'],
+            'opened_at': row['opened_at'],
+            'last_activity': row['opened_at'],
+        }
+    return tickets
+
+def save_ml_ticket(ticket):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('''
+        INSERT OR REPLACE INTO ml_tickets
+        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        ticket['channel_id'],
+        ticket['user_id'],
+        ticket['id_ml'],
+        ticket['server_id'],
+        ticket['dm'],
+        ticket['harga'],
+        ticket['opened_at'],
+    ))
+    conn.commit()
+    conn.close()
+
+def delete_ml_ticket(channel_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM ml_tickets WHERE channel_id = ?', (channel_id,))
+    conn.commit()
+    conn.close()
+
 ML_KECIL = [p for p in ML_PRODUCTS if p["dm"] <= 100]
 ML_BESAR = [p for p in ML_PRODUCTS if p["dm"] > 100]
 
