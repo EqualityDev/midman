@@ -609,20 +609,18 @@ class RobuxStore(commands.Cog):
         if log_ch:
             log_embed = discord.Embed(
                 title=f"ROBUX STORE SUKSES — #{nomor:04d}",
+                description=f"Item berhasil diberikan. Terima kasih telah berbelanja di Cellyn Store!",
                 color=0xE91E63,
                 timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
-            log_embed.add_field(name="Admin", value=ctx.author.mention, inline=True)
-            log_embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
-            log_embed.add_field(name="​", value="​", inline=False)
-            log_embed.add_field(name="Item", value=f"{ticket['item_name']} ({ticket['robux']} Robux)", inline=True)
-            log_embed.add_field(name="Rate", value=f"Rp {ticket['rate']:,}/Robux", inline=True)
-            log_embed.add_field(name="Total", value=f"Rp {ticket['total']:,}", inline=True)
-            log_embed.add_field(name="​", value="​", inline=False)
-            log_embed.add_field(name="Durasi", value=durasi_str, inline=True)
-            log_embed.add_field(name="Tanggal", value=tanggal, inline=True)
+            log_embed.add_field(name="Admin", value=f"{ctx.author.mention}\n`{ctx.author.id}`", inline=False)
+            log_embed.add_field(name="Member", value=f"{member.mention if member else ticket['user_id']}\n`{ticket['user_id']}`", inline=False)
+            log_embed.add_field(name="Item", value=f"{ticket['item_name']} ({ticket['robux']} Robux)", inline=False)
+            log_embed.add_field(name="Rate", value=f"Rp {ticket['rate']:,}/Robux", inline=False)
+            log_embed.add_field(name="Total", value=f"Rp {ticket['total']:,}", inline=False)
+            log_embed.add_field(name="Metode Pembayaran", value=ticket.get("payment_method", "-"), inline=False)
             log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
-            log_embed.set_footer(text=f"Transaksi selesai — {STORE_NAME}")
+            log_embed.set_footer(text=f"{STORE_NAME}")
             await log_ch.send(embed=log_embed)
 
         await ctx.channel.send(

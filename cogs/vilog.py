@@ -231,34 +231,22 @@ class Vilog(commands.Cog):
         tanggal = closed_at.strftime("%d %b %Y, %H:%M UTC")
 
         nomor_vilog = next_ticket_number()
-        dibuka_vilog = opened_at.strftime("%d %b %Y, %H:%M UTC")
-        durasi_total = closed_at - opened_at
-        total_detik = int(durasi_total.total_seconds())
-        jam_v = total_detik // 3600
-        menit_v = (total_detik % 3600) // 60
-        detik_v = total_detik % 60
-        if jam_v > 0:
-            durasi_vilog = f"{jam_v} jam {menit_v} menit"
-        elif menit_v > 0:
-            durasi_vilog = f"{menit_v} menit {detik_v} detik"
-        else:
-            durasi_vilog = f"{detik_v} detik"
+        rate_vilog = ticket.get("rate", "-")
+        metode_vilog = ticket.get("payment_method", "-")
         log_embed = discord.Embed(
             title=f"BOOST VILOG SUKSES — #{nomor_vilog:04d}",
+            description="Boost berhasil diaktifkan. Segera ganti password akun setelah sesi selesai.",
             color=0xE67E22,
             timestamp=closed_at
         )
-        log_embed.add_field(name="Admin", value=ctx.author.mention, inline=True)
-        log_embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
-        log_embed.add_field(name="​", value="​", inline=False)
-        log_embed.add_field(name="Item", value=f"{boost['nama']} ({boost['robux']} Robux)", inline=True)
-        log_embed.add_field(name="Nominal", value=f"Rp {nominal_int:,}", inline=True)
-        log_embed.add_field(name="​", value="​", inline=False)
-        log_embed.add_field(name="Durasi", value=durasi_vilog, inline=True)
-        log_embed.add_field(name="Dibuka", value=dibuka_vilog, inline=True)
-        log_embed.add_field(name="Ditutup", value=tanggal, inline=True)
+        log_embed.add_field(name="Admin", value=f"{ctx.author.mention}\n`{ctx.author.id}`", inline=False)
+        log_embed.add_field(name="Member", value=f"{member.mention if member else ticket['user_id']}\n`{ticket['user_id']}`", inline=False)
+        log_embed.add_field(name="Item", value=f"{boost['nama']} ({boost['robux']} Robux)", inline=False)
+        log_embed.add_field(name="Rate", value=f"Rp {rate_vilog:,}/Robux" if isinstance(rate_vilog, int) else str(rate_vilog), inline=False)
+        log_embed.add_field(name="Nominal", value=f"Rp {nominal_int:,}", inline=False)
+        log_embed.add_field(name="Metode Pembayaran", value=metode_vilog, inline=False)
         log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
-        log_embed.set_footer(text=f"Transaksi selesai — {STORE_NAME}")
+        log_embed.set_footer(text=f"{STORE_NAME}")
 
         await ctx.send(
             "Boost berhasil diaktifkan. Tiket ditutup dalam 5 detik.\n"

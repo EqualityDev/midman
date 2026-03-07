@@ -203,22 +203,16 @@ class Midman(commands.Cog):
         verified_by = ticket.get("verified_by")
         log_embed = discord.Embed(
             title=f"MIDMAN TRADE SUKSES — #{ticket_num}",
+            description="Transaksi telah selesai dan aman. Kedua pihak telah menerima item masing-masing.",
             color=0x2ECC71,
             timestamp=closed_at
         )
-        log_embed.add_field(name="Midman", value=adm.mention, inline=True)
-        log_embed.add_field(name="Diverifikasi oleh", value=verified_by.mention if verified_by else adm.mention, inline=True)
-        log_embed.add_field(name="​", value="​", inline=False)
-        log_embed.add_field(name="Pihak 1", value=f"{p1.mention}\n`{p1.id}`", inline=True)
-        log_embed.add_field(name="Pihak 2", value=f"{p2.mention if p2 else '-'}\n`{p2.id if p2 else '-'}`", inline=True)
-        log_embed.add_field(name="​", value="​", inline=False)
-        log_embed.add_field(name="Fee", value=fee_str_log, inline=True)
-        log_embed.add_field(name="Durasi", value=durasi, inline=True)
-        log_embed.add_field(name="​", value="​", inline=False)
-        log_embed.add_field(name="Dibuka", value=dibuka_str, inline=True)
-        log_embed.add_field(name="Ditutup", value=ditutup_str, inline=True)
+        log_embed.add_field(name="Midman", value=f"{adm.mention}\n`{adm.id}`", inline=False)
+        log_embed.add_field(name="Pihak 1", value=f"{p1.mention}\n`{p1.id}`", inline=False)
+        log_embed.add_field(name="Pihak 2", value=f"{p2.mention if p2 else '-'}\n`{p2.id if p2 else '-'}`", inline=False)
+        log_embed.add_field(name="Fee", value=fee_str_log, inline=False)
         log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
-        log_embed.set_footer(text=f"Transaksi selesai dan aman — {STORE_NAME}")
+        log_embed.set_footer(text=f"{STORE_NAME}")
         await ctx.send("Admin telah mengkonfirmasi bahwa trade selesai dan kedua pihak telah menerima item masing-masing. Tiket ditutup dalam 5 detik.")
         await asyncio.sleep(5)
         transcript_file = await generate_transcript(ctx.channel, STORE_NAME)
