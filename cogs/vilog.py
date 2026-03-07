@@ -1,7 +1,7 @@
 import discord
 import datetime
 import asyncio
-from discord.ext import commands
+from discord.ext import commands, tasks
 from utils.config import (
     ADMIN_ROLE_ID, VILOG_CHANNEL_ID, LOG_CHANNEL_ID,
     TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
@@ -48,6 +48,19 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
 
         guild = interaction.guild
         user = interaction.user
+
+        # Cek tiket aktif
+        cog = interaction.client.cogs.get("Vilog")
+        for ch_id, t in cog.active_vilog.items():
+            if t["user_id"] == user.id:
+                existing = guild.get_channel(ch_id)
+                if existing:
+                    await interaction.followup.send(
+                        f"Kamu masih punya tiket aktif di {existing.mention}!",
+                        ephemeral=True
+                    )
+                    return
+
         category = guild.get_channel(TICKET_CATEGORY_ID)
         staff_role = guild.get_role(ADMIN_ROLE_ID)
 
@@ -80,6 +93,7 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
             "nominal": None,
             "admin_id": None,
             "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "last_activity": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
 
         cog = interaction.client.cogs.get("Vilog")
@@ -109,7 +123,9 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
             f"Status   : Sesi berlangsung\n"
             f"──────────────────────────────\n"
             f"**!batalin** untuk cancel tiket.\n"
-            f"**!selesai** (**masukan angka total pembayaran**) di akhir sesi jika **transaksi sudah selesai**."
+            f"**!selesai** (**masukan angka total pembayaran**) di akhir sesi jika **transaksi sudah selesai**.\n"
+            f"──────────────────────────────\n"
+            f"Tiket yang tidak aktif selama 2 jam akan otomatis ditutup dan transaksi dianggap batal."
         ), inline=False)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
@@ -137,6 +153,43 @@ class Vilog(commands.Cog):
         self.active_vilog = load_vilog_tickets()
         _id = load_bot_state("vilog_embed_message_id")
         self.embed_message_id = int(_id) if _id else None
+        self.auto_close_task.start()
+
+    def cog_unload(self):
+        self.auto_close_task.cancel()
+
+    @tasks.loop(minutes=10)
+    async def auto_close_task(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        for ch_id, ticket in list(self.active_vilog.items()):
+            last = ticket.get("last_activity") or ticket.get("opened_at")
+            if not last:
+                continue
+            last_dt = datetime.datetime.fromisoformat(last)
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
+            if (now - last_dt).total_seconds() >= 7200:
+                guild = self.bot.guilds[0] if self.bot.guilds else None
+                if not guild:
+                    continue
+                channel = guild.get_channel(ch_id)
+                if channel:
+                    try:
+                        await channel.send(
+                            "Tiket ini otomatis ditutup karena tidak ada aktivitas selama 2 jam. "
+                            "Transaksi dianggap batal. Channel akan dihapus dalam 10 detik."
+                        )
+                        import asyncio as _asyncio
+                        await _asyncio.sleep(10)
+                        await channel.delete()
+                    except Exception:
+                        pass
+                delete_vilog_ticket(ch_id)
+                del self.active_vilog[ch_id]
+
+    @auto_close_task.before_loop
+    async def before_auto_close(self):
+        await self.bot.wait_until_ready()
 
     async def refresh_embed(self, guild):
         ch = guild.get_channel(VILOG_CHANNEL_ID)
