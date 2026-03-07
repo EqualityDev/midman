@@ -466,6 +466,22 @@ class MLStore(commands.Cog):
                         pass
                 delete_ml_ticket(ch_id)
                 self.active_tickets.pop(ch_id, None)
+            elif (now - last_dt).total_seconds() >= 3600 and not ticket.get("warned"):
+                try:
+                    warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
+                    warn_embed.add_field(name="\u200b", value=(
+                        "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
+                        "Segera ketik `!mlselesai` jika selesai, atau `!mlbatal` jika dibatalkan.\n\n"
+                        "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                    ), inline=False)
+                    warn_embed.set_footer(text=STORE_NAME)
+                    _user = guild.get_member(ticket["user_id"])
+                    _mn = _user.mention if _user else ""
+                    await channel.send(content=_mn, embed=warn_embed)
+                except Exception:
+                    pass
+                ticket["warned"] = True
+                save_ml_ticket(ticket)
 
     @auto_close_task.before_loop
     async def before_auto_close(self):

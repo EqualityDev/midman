@@ -64,6 +64,28 @@ class Midman(commands.Cog):
                     pass
                 del self.active_tickets[ch_id]
                 save_tickets(self.active_tickets)
+            elif delta >= 3600 and not ticket.get("warned"):
+                try:
+                    warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
+                    warn_embed.add_field(name="\u200b", value=(
+                        "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
+                        "Segera ketik `!acc` jika selesai, atau `!batal` jika dibatalkan.\n\n"
+                        "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                    ), inline=False)
+                    warn_embed.set_footer(text=STORE_NAME)
+                    _p1 = ticket.get("pihak1")
+                    _p2 = ticket.get("pihak2")
+                    _adm = ticket.get("admin")
+                    _mn = " ".join(filter(None, [
+                        _p1.mention if _p1 else None,
+                        _p2.mention if _p2 else None,
+                        _adm.mention if _adm else None,
+                    ]))
+                    await channel.send(content=_mn, embed=warn_embed)
+                except Exception:
+                    pass
+                ticket["warned"] = True
+                save_tickets(self.active_tickets)
 
     @ticket_timeout_check.before_loop
     async def before_timeout_check(self):
