@@ -86,9 +86,14 @@ def init_db():
             server_id   TEXT,
             dm          INTEGER,
             harga       INTEGER,
-            opened_at   TEXT
+            opened_at   TEXT,
+            game        TEXT DEFAULT 'ML'
         )
     ''')
+    try:
+        c.execute("ALTER TABLE ml_tickets ADD COLUMN game TEXT DEFAULT 'ML'")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")

@@ -62,6 +62,7 @@ def load_ml_tickets():
             'harga': row['harga'],
             'opened_at': row['opened_at'],
             'last_activity': row['opened_at'],
+            'game': row['game'] if row['game'] else 'ML',
         }
     return tickets
 
@@ -70,8 +71,8 @@ def save_ml_ticket(ticket):
     c = conn.cursor()
     c.execute('''
         INSERT OR REPLACE INTO ml_tickets
-        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at, game)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
@@ -80,6 +81,7 @@ def save_ml_ticket(ticket):
         ticket['dm'],
         ticket['harga'],
         ticket['opened_at'],
+        ticket.get('game', 'ML'),
     ))
     conn.commit()
     conn.close()
@@ -94,6 +96,52 @@ def delete_ml_ticket(channel_id):
 ML_KECIL = [p for p in ML_PRODUCTS if p["dm"] <= 100]
 ML_BESAR = [p for p in ML_PRODUCTS if p["dm"] > 100]
 
+
+
+FF_PRODUCTS = [
+    {"dm": 5,   "harga": 1000},
+    {"dm": 10,  "harga": 2000},
+    {"dm": 15,  "harga": 3000},
+    {"dm": 20,  "harga": 4000},
+    {"dm": 25,  "harga": 5000},
+    {"dm": 30,  "harga": 6000},
+    {"dm": 40,  "harga": 7000},
+    {"dm": 55,  "harga": 8000},
+    {"dm": 70,  "harga": 9000},
+    {"dm": 75,  "harga": 10000},
+    {"dm": 80,  "harga": 11000},
+    {"dm": 90,  "harga": 11500},
+    {"dm": 100, "harga": 12000},
+    {"dm": 120, "harga": 16000},
+    {"dm": 130, "harga": 17000},
+    {"dm": 140, "harga": 18000},
+    {"dm": 145, "harga": 19000},
+    {"dm": 150, "harga": 20000},
+    {"dm": 160, "harga": 21500},
+    {"dm": 170, "harga": 23000},
+    {"dm": 180, "harga": 24500},
+    {"dm": 190, "harga": 25000},
+    {"dm": 200, "harga": 26000},
+    {"dm": 210, "harga": 26500},
+    {"dm": 250, "harga": 34000},
+    {"dm": 260, "harga": 35000},
+    {"dm": 280, "harga": 35500},
+    {"dm": 300, "harga": 39000},
+    {"dm": 355, "harga": 43000},
+    {"dm": 360, "harga": 45500},
+    {"dm": 375, "harga": 48000},
+    {"dm": 405, "harga": 51000},
+    {"dm": 425, "harga": 53000},
+    {"dm": 475, "harga": 60000},
+    {"dm": 500, "harga": 63000},
+    {"dm": 510, "harga": 65000},
+    {"dm": 545, "harga": 70000},
+    {"dm": 565, "harga": 72000},
+    {"dm": 635, "harga": 79000},
+    {"dm": 790, "harga": 90000},
+]
+FF_KECIL = FF_PRODUCTS[:20]
+FF_BESAR = FF_PRODUCTS[20:]
 
 class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
     id_ml = discord.ui.TextInput(
@@ -193,6 +241,100 @@ class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
         )
 
 
+
+class FFFormModal(discord.ui.Modal, title="Topup Free Fire"):
+    player_id = discord.ui.TextInput(
+        label="Player ID Free Fire",
+        placeholder="Contoh: 123456789",
+        required=True,
+        max_length=20
+    )
+
+    def __init__(self, dm: int, harga: int):
+        super().__init__()
+        self.dm = dm
+        self.harga = harga
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        user = interaction.user
+
+        # Cek tiket aktif
+        cog = interaction.client.cogs.get("MLStore")
+        for ch_id, t in cog.active_tickets.items():
+            if t["user_id"] == user.id:
+                existing = guild.get_channel(ch_id)
+                if existing:
+                    await interaction.response.send_message(
+                        f"Kamu masih punya tiket aktif di {existing.mention}!",
+                        ephemeral=True
+                    )
+                    return
+
+        admin_role = guild.get_role(ADMIN_ROLE_ID)
+        category = guild.get_channel(TICKET_CATEGORY_ID)
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+        ticket_num = next_ticket_number()
+        channel = await guild.create_text_channel(
+            name=f"topupff-{str(ticket_num).zfill(4)}-{user.name[:10]}",
+            category=category,
+            overwrites=overwrites
+        )
+
+        ticket = {
+            "channel_id": channel.id,
+            "user_id": user.id,
+            "id_ml": self.player_id.value.strip(),
+            "server_id": "-",
+            "dm": self.dm,
+            "harga": self.harga,
+            "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "last_activity": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "game": "FF",
+        }
+        cog.active_tickets[channel.id] = ticket
+        save_ml_ticket(ticket)
+
+        embed = discord.Embed(
+            title=f"TOPUP FREE FIRE — {STORE_NAME}",
+            color=0xFF6B35,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        embed.add_field(name="\u200b", value=(
+            f"Halo, {user.mention}! Tiket topup FF kamu sudah dibuat.\n"
+            f"──────────────────────────────\n"
+            f"Member    : {user.mention}\n"
+            f"Player ID : `{self.player_id.value.strip()}`\n"
+            f"Item      : {self.dm} Diamond\n"
+            f"Total     : Rp {self.harga:,}\n"
+            f"Metode    : QRIS\n"
+            f"Status    : Menunggu proses\n"
+            f"──────────────────────────────\n"
+            f"**!mlselesai** — konfirmasi topup selesai\n"
+            f"**!mlbatal [alasan]** — batalkan tiket\n"
+            f"──────────────────────────────\n"
+            f"Tiket yang tidak aktif selama 2 jam akan otomatis ditutup dan transaksi dianggap batal."
+        ), inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=STORE_NAME)
+
+        if admin_role:
+            await channel.send(content=admin_role.mention, embed=embed)
+        else:
+            await channel.send(embed=embed)
+
+        await interaction.response.send_message(
+            f"Tiket berhasil dibuat di {channel.mention}!", ephemeral=True
+        )
+
 class MLSelectKecil(discord.ui.Select):
     def __init__(self):
         options = [
@@ -235,11 +377,55 @@ class MLSelectBesar(discord.ui.Select):
         await interaction.response.send_modal(MLFormModal(dm=dm, harga=harga))
 
 
+
+class FFSelectKecil(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label=f"{p['dm']} Diamond FF",
+                description=f"Rp {p['harga']:,}",
+                value=str(p['dm'])
+            ) for p in FF_KECIL
+        ]
+        super().__init__(
+            placeholder="[Free Fire] Pilih diamond (5–170 DM)...",
+            options=options,
+            custom_id="ff_select_kecil"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        dm = int(self.values[0])
+        harga = next(p["harga"] for p in FF_PRODUCTS if p["dm"] == dm)
+        await interaction.response.send_modal(FFFormModal(dm=dm, harga=harga))
+
+
+class FFSelectBesar(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label=f"{p['dm']} Diamond FF",
+                description=f"Rp {p['harga']:,}",
+                value=str(p['dm'])
+            ) for p in FF_BESAR
+        ]
+        super().__init__(
+            placeholder="[Free Fire] Pilih diamond (180–790 DM)...",
+            options=options,
+            custom_id="ff_select_besar"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        dm = int(self.values[0])
+        harga = next(p["harga"] for p in FF_PRODUCTS if p["dm"] == dm)
+        await interaction.response.send_modal(FFFormModal(dm=dm, harga=harga))
+
 class MLBuyView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(MLSelectKecil())
         self.add_item(MLSelectBesar())
+        self.add_item(FFSelectKecil())
+        self.add_item(FFSelectBesar())
 
 
 class MLStore(commands.Cog):
@@ -298,15 +484,14 @@ class MLStore(commands.Cog):
             return
 
         embed = discord.Embed(
-            title=f"💎 TOPUP MOBILE LEGENDS",
+            title=f"TOPUP DIAMOND GAME",
             description=(
                 f"Sekarang tersedia di **{STORE_NAME}**\n"
-                f"Topup diamond dengan harga terjangkau, proses cepat amanah dan transparan!\n\n"
-                f"**Cara Order:**\n"
-                f"1. Klik dropdown **KECIL** atau **BESAR** sesuai jumlah diamond\n"
-                f"2. Pilih jumlah diamond dari dropdown\n"
-                f"3. Isi form ID ML dan Server ID\n"
-                f"4. Tunggu admin memproses topup kamu\n\n"
+                f"Topup diamond dengan harga terjangkau, proses cepat, amanah dan transparan!\n\n"
+                f"**Mobile Legends:**\n"
+                f"Dropdown 1 & 2 — Pilih jumlah DM, isi ID ML + Server ID\n\n"
+                f"**Free Fire:**\n"
+                f"Dropdown 3 & 4 — Pilih jumlah DM, isi Player ID FF\n\n"
                 f"Metode Pembayaran: **QRIS**"
             ),
             color=0x3498DB
@@ -372,7 +557,11 @@ class MLStore(commands.Cog):
             )
             log_embed.add_field(name="Admin", value=f"{ctx.author.mention}\n`{ctx.author.id}`", inline=False)
             log_embed.add_field(name="Member", value=f"{member.mention if member else ticket['user_id']}\n`{ticket['user_id']}`", inline=False)
-            log_embed.add_field(name="ID ML", value=f"`{ticket['id_ml']}` (Server: `{ticket['server_id']}`)", inline=False)
+            if ticket.get("game") == "FF":
+                log_embed.add_field(name="Player ID FF", value=f"`{ticket['id_ml']}`", inline=False)
+                log_embed.color = 0xFF6B35
+            else:
+                log_embed.add_field(name="ID ML", value=f"`{ticket['id_ml']}` (Server: `{ticket['server_id']}`)", inline=False)
             log_embed.add_field(name="Item", value=f"{ticket['dm']} Diamond", inline=False)
             log_embed.add_field(name="Total", value=f"Rp {ticket['harga']:,}", inline=False)
             log_embed.add_field(name="Metode Pembayaran", value="QRIS", inline=False)
