@@ -376,6 +376,7 @@ class MLStore(commands.Cog):
             log_embed.add_field(name="Item", value=f"{ticket['dm']} Diamond", inline=False)
             log_embed.add_field(name="Total", value=f"Rp {ticket['harga']:,}", inline=False)
             log_embed.add_field(name="Metode Pembayaran", value="QRIS", inline=False)
+            log_embed.set_thumbnail(url=THUMBNAIL)
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
 
