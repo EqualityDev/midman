@@ -88,17 +88,22 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
         )
         usn = self.username.value
         pwd = self.password.value
+        from cogs.robux import get_rate as _get_rate
+        _rate = _get_rate()
+        _total = boost['robux'] * _rate if _rate else 0
+        _total_str = f"Rp {_total:,}" if _rate else "Rate belum diset"
+        _rate_str = f"Rp {_rate:,}/Robux" if _rate else "Belum diset"
         embed.add_field(name="\u200b", value=(
             f"Hallo, Selamat datang\n"
             f"Member   : {user.mention}\n"
             f"Username : ||{usn}||\n"
             f"Password : ||{pwd}||\n"
+            f"──────────────────────────────\n"
             f"Item     : {boost['nama']} ({boost['robux']} Robux)\n"
+            f"Rate     : {_rate_str}\n"
+            f"Total    : {_total_str}\n"
             f"Metode   : {metode_val}\n"
             f"Status   : Sesi berlangsung\n"
-            f"──────────────────────────────\n"
-            f"Admin harap konfirmasi dan tagih harga kepada member berdasarkan jumlah Robux × rate pasar yang berlaku saat transaksi dilakukan.\n"
-            f"Contoh : 1200 (Robux) X 90 (Rate) = Total\n"
             f"──────────────────────────────\n"
             f"**!batalin** untuk cancel tiket.\n"
             f"**!selesai** (**masukan angka total pembayaran**) di akhir sesi jika **transaksi sudah selesai**."
