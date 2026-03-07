@@ -109,6 +109,38 @@ def init_db():
         c.execute('ALTER TABLE ml_tickets ADD COLUMN warned INTEGER DEFAULT 0')
     except Exception:
         pass
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ml_products (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            dm      INTEGER NOT NULL,
+            harga   INTEGER NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ff_products (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            dm      INTEGER NOT NULL,
+            harga   INTEGER NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS robux_products (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            category    TEXT NOT NULL,
+            name        TEXT NOT NULL,
+            robux       INTEGER NOT NULL,
+            active      INTEGER DEFAULT 1
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vilog_boosts (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama    TEXT NOT NULL,
+            robux   INTEGER NOT NULL,
+            active  INTEGER DEFAULT 1
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")

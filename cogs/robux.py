@@ -8,33 +8,15 @@ from utils.robux_db import load_robux_tickets, save_robux_ticket, delete_robux_t
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
-PRODUCTS = [
-    # GAMEPASS
-    {"id": 1,  "category": "GAMEPASS", "name": "VIP + LUCK",                "robux": 445},
-    {"id": 2,  "category": "GAMEPASS", "name": "MUTATION",                   "robux": 295},
-    {"id": 3,  "category": "GAMEPASS", "name": "ADVANCED LUCK",              "robux": 525},
-    {"id": 4,  "category": "GAMEPASS", "name": "EXTRA LUCK",                 "robux": 245},
-    {"id": 5,  "category": "GAMEPASS", "name": "DOUBLE EXP",                 "robux": 195},
-    {"id": 6,  "category": "GAMEPASS", "name": "SELL ANYWHERE",              "robux": 315},
-    {"id": 7,  "category": "GAMEPASS", "name": "SMALL LUCK",                 "robux": 50},
-    {"id": 8,  "category": "GAMEPASS", "name": "HYPERBOATPACK",              "robux": 999},
-    # CRATE
-    {"id": 9,  "category": "CRATE",    "name": "VALENTINE CRATE 1X",         "robux": 249},
-    {"id": 10, "category": "CRATE",    "name": "VALENTINE CRATE 5X",         "robux": 1245},
-    {"id": 11, "category": "CRATE",    "name": "ELDERWOOD CRATE 1X",         "robux": 99},
-    {"id": 12, "category": "CRATE",    "name": "ELDERWOOD CRATE 5X",         "robux": 495},
-    # BOOST
-    {"id": 13, "category": "BOOST",    "name": "BOOST SERVER LUCK X2",       "robux": 99},
-    {"id": 14, "category": "BOOST",    "name": "BOOST SERVER LUCK X8 3 JAM", "robux": 800},
-    {"id": 15, "category": "BOOST",    "name": "BOOST X8 3 JAM",             "robux": 300},
-    {"id": 16, "category": "BOOST",    "name": "BOOST X8 6 JAM",             "robux": 1300},
-    {"id": 17, "category": "BOOST",    "name": "BOOST X8 12 JAM",            "robux": 1890},
-    {"id": 18, "category": "BOOST",    "name": "BOOST X8 24 JAM",            "robux": 3100},
-    # LIMITED
-    {"id": 19, "category": "LIMITED",  "name": "DARK MATTER SCYTHE",         "robux": 999},
-    {"id": 20, "category": "LIMITED",  "name": "KITTY GUITAR",               "robux": 899},
-    {"id": 21, "category": "LIMITED",  "name": "VOIDCRAFT BOAT",             "robux": 549},
-]
+def load_robux_products():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, category, name, robux FROM robux_products WHERE active = 1 ORDER BY category, id")
+    rows = c.fetchall()
+    conn.close()
+    return [{"id": r["id"], "category": r["category"], "name": r["name"], "robux": r["robux"]} for r in rows]
+
+PRODUCTS = load_robux_products()
 
 def get_rate():
     conn = get_conn()
@@ -290,6 +272,10 @@ class RobuxStore(commands.Cog):
     @auto_close_task.before_loop
     async def before_auto_close(self):
         await self.bot.wait_until_ready()
+
+    async def reload_products(self):
+        global PRODUCTS
+        PRODUCTS = load_robux_products()
 
     async def refresh_catalog(self):
         guild = self.bot.guilds[0] if self.bot.guilds else None

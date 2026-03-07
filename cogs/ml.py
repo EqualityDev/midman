@@ -7,41 +7,23 @@ from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
 from utils.db import get_conn
 
-ML_PRODUCTS = [
-    {"dm": 3,   "harga": 1500},
-    {"dm": 5,   "harga": 2000},
-    {"dm": 10,  "harga": 3000},
-    {"dm": 12,  "harga": 4000},
-    {"dm": 14,  "harga": 4500},
-    {"dm": 17,  "harga": 5000},
-    {"dm": 19,  "harga": 5500},
-    {"dm": 28,  "harga": 7500},
-    {"dm": 33,  "harga": 9500},
-    {"dm": 36,  "harga": 10000},
-    {"dm": 44,  "harga": 11000},
-    {"dm": 50,  "harga": 15500},
-    {"dm": 56,  "harga": 15500},
-    {"dm": 59,  "harga": 16000},
-    {"dm": 74,  "harga": 18000},
-    {"dm": 85,  "harga": 22000},
-    {"dm": 100, "harga": 25000},
-    {"dm": 110, "harga": 29000},
-    {"dm": 112, "harga": 29500},
-    {"dm": 140, "harga": 37000},
-    {"dm": 144, "harga": 38000},
-    {"dm": 170, "harga": 44000},
-    {"dm": 172, "harga": 44500},
-    {"dm": 185, "harga": 47000},
-    {"dm": 222, "harga": 57000},
-    {"dm": 229, "harga": 60000},
-    {"dm": 240, "harga": 62000},
-    {"dm": 257, "harga": 66000},
-    {"dm": 270, "harga": 74000},
-    {"dm": 284, "harga": 75000},
-    {"dm": 296, "harga": 76000},
-    {"dm": 301, "harga": 81000},
-    {"dm": 346, "harga": 86000},
-]
+def _load_ml_products():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT dm, harga FROM ml_products ORDER BY dm")
+    rows = c.fetchall()
+    conn.close()
+    return [{"dm": r["dm"], "harga": r["harga"]} for r in rows]
+
+def _load_ff_products():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT dm, harga FROM ff_products ORDER BY dm")
+    rows = c.fetchall()
+    conn.close()
+    return [{"dm": r["dm"], "harga": r["harga"]} for r in rows]
+
+ML_PRODUCTS = _load_ml_products()
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -98,48 +80,8 @@ ML_BESAR = [p for p in ML_PRODUCTS if p["dm"] > 100]
 
 
 
-FF_PRODUCTS = [
-    {"dm": 5,   "harga": 1000},
-    {"dm": 10,  "harga": 2000},
-    {"dm": 15,  "harga": 3000},
-    {"dm": 20,  "harga": 4000},
-    {"dm": 25,  "harga": 5000},
-    {"dm": 30,  "harga": 6000},
-    {"dm": 40,  "harga": 7000},
-    {"dm": 55,  "harga": 8000},
-    {"dm": 70,  "harga": 9000},
-    {"dm": 75,  "harga": 10000},
-    {"dm": 80,  "harga": 11000},
-    {"dm": 90,  "harga": 11500},
-    {"dm": 100, "harga": 12000},
-    {"dm": 120, "harga": 16000},
-    {"dm": 130, "harga": 17000},
-    {"dm": 140, "harga": 18000},
-    {"dm": 145, "harga": 19000},
-    {"dm": 150, "harga": 20000},
-    {"dm": 160, "harga": 21500},
-    {"dm": 170, "harga": 23000},
-    {"dm": 180, "harga": 24500},
-    {"dm": 190, "harga": 25000},
-    {"dm": 200, "harga": 26000},
-    {"dm": 210, "harga": 26500},
-    {"dm": 250, "harga": 34000},
-    {"dm": 260, "harga": 35000},
-    {"dm": 280, "harga": 35500},
-    {"dm": 300, "harga": 39000},
-    {"dm": 355, "harga": 43000},
-    {"dm": 360, "harga": 45500},
-    {"dm": 375, "harga": 48000},
-    {"dm": 405, "harga": 51000},
-    {"dm": 425, "harga": 53000},
-    {"dm": 475, "harga": 60000},
-    {"dm": 500, "harga": 63000},
-    {"dm": 510, "harga": 65000},
-    {"dm": 545, "harga": 70000},
-    {"dm": 565, "harga": 72000},
-    {"dm": 635, "harga": 79000},
-    {"dm": 790, "harga": 90000},
-]
+
+FF_PRODUCTS = _load_ff_products()
 FF_KECIL = FF_PRODUCTS[:20]
 FF_BESAR = FF_PRODUCTS[20:]
 
@@ -336,38 +278,48 @@ class FFFormModal(discord.ui.Modal, title="Topup Free Fire"):
         )
 
 class MLSelectKecil(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, products=None):
+        if products is None:
+            products = _load_ml_products()
+        kecil = [p for p in products if p["dm"] <= 100]
         options = [
             discord.SelectOption(
                 label=f"{p['dm']} Diamond",
                 description=f"Rp {p['harga']:,}",
                 value=str(p['dm'])
-            ) for p in ML_KECIL
-        ]
+            ) for p in kecil
+        ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
             placeholder="Pilih jumlah diamond (3–100 DM)...",
-            options=options,
+            options=options[:25],
             custom_id="ml_select_kecil"
         )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            await interaction.response.send_message("Tidak ada produk tersedia.", ephemeral=True)
+            return
         dm = int(self.values[0])
-        harga = next(p["harga"] for p in ML_PRODUCTS if p["dm"] == dm)
+        products = _load_ml_products()
+        harga = next((p["harga"] for p in products if p["dm"] == dm), 0)
         await interaction.response.send_modal(MLFormModal(dm=dm, harga=harga))
 
 
 class MLSelectBesar(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, products=None):
+        if products is None:
+            products = _load_ml_products()
+        besar = [p for p in products if p["dm"] > 100]
         options = [
             discord.SelectOption(
                 label=f"{p['dm']} Diamond",
                 description=f"Rp {p['harga']:,}",
                 value=str(p['dm'])
-            ) for p in ML_BESAR
-        ]
+            ) for p in besar
+        ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
             placeholder="Pilih jumlah diamond (110–346 DM)...",
-            options=options,
+            options=options[:25],
             custom_id="ml_select_besar"
         )
 
@@ -379,38 +331,48 @@ class MLSelectBesar(discord.ui.Select):
 
 
 class FFSelectKecil(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, products=None):
+        if products is None:
+            products = _load_ff_products()
+        kecil = products[:20]
         options = [
             discord.SelectOption(
                 label=f"{p['dm']} Diamond FF",
                 description=f"Rp {p['harga']:,}",
                 value=str(p['dm'])
-            ) for p in FF_KECIL
-        ]
+            ) for p in kecil
+        ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
             placeholder="[Free Fire] Pilih diamond (5–170 DM)...",
-            options=options,
+            options=options[:25],
             custom_id="ff_select_kecil"
         )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            await interaction.response.send_message("Tidak ada produk tersedia.", ephemeral=True)
+            return
         dm = int(self.values[0])
-        harga = next(p["harga"] for p in FF_PRODUCTS if p["dm"] == dm)
+        products = _load_ff_products()
+        harga = next((p["harga"] for p in products if p["dm"] == dm), 0)
         await interaction.response.send_modal(FFFormModal(dm=dm, harga=harga))
 
 
 class FFSelectBesar(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, products=None):
+        if products is None:
+            products = _load_ff_products()
+        besar = products[20:]
         options = [
             discord.SelectOption(
                 label=f"{p['dm']} Diamond FF",
                 description=f"Rp {p['harga']:,}",
                 value=str(p['dm'])
-            ) for p in FF_BESAR
-        ]
+            ) for p in besar
+        ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
             placeholder="[Free Fire] Pilih diamond (180–790 DM)...",
-            options=options,
+            options=options[:25],
             custom_id="ff_select_besar"
         )
 
@@ -422,10 +384,13 @@ class FFSelectBesar(discord.ui.Select):
 class MLBuyView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(MLSelectKecil())
-        self.add_item(MLSelectBesar())
-        self.add_item(FFSelectKecil())
-        self.add_item(FFSelectBesar())
+        # Reload produk terbaru dari DB setiap kali view dibuat
+        ml = _load_ml_products()
+        ff = _load_ff_products()
+        self.add_item(MLSelectKecil(ml))
+        self.add_item(MLSelectBesar(ml))
+        self.add_item(FFSelectKecil(ff))
+        self.add_item(FFSelectBesar(ff))
 
 
 class MLStore(commands.Cog):

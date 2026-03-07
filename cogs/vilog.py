@@ -6,6 +6,7 @@ from utils.config import (
     ADMIN_ROLE_ID, VILOG_CHANNEL_ID, LOG_CHANNEL_ID,
     TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
 )
+from utils.db import get_conn
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
 from utils.counter import next_ticket_number
 from utils.robux_db import save_bot_state, load_bot_state
@@ -14,18 +15,22 @@ from utils.config import TRANSCRIPT_CHANNEL_ID
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
-BOOST_OPTIONS = {
-    "1": {"nama": "X8 6 JAM", "robux": 1300},
-    "2": {"nama": "X8 12 JAM", "robux": 1890},
-    "3": {"nama": "X8 24 JAM", "robux": 3100},
-}
+def load_boost_options():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, nama, robux FROM vilog_boosts WHERE active = 1 ORDER BY id")
+    rows = c.fetchall()
+    conn.close()
+    return {str(i+1): {"nama": r["nama"], "robux": r["robux"]} for i, r in enumerate(rows)}
+
+BOOST_OPTIONS = load_boost_options()
 
 class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
     username = discord.ui.TextInput(label="Username Roblox", placeholder="Masukkan username Roblox kamu")
     password = discord.ui.TextInput(label="Password", placeholder="Masukkan password akun kamu")
     pilihan = discord.ui.TextInput(
-        label="Pilihan Boost (ketik 1/2/3)",
-        placeholder="1 = X8 6Jam | 2 = X8 12Jam | 3 = X8 24Jam"
+        label="Pilihan Boost (ketik nomor)",
+        placeholder="Ketik nomor pilihan boost"
     )
     metode = discord.ui.TextInput(
         label="Metode Bayar (QRIS/DANA/BANK)",
