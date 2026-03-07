@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 from utils.config import ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID
 from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
+from utils.db import get_conn
 
 ML_PRODUCTS = [
     {"dm": 3,   "harga": 1500},
