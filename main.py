@@ -18,6 +18,7 @@ async def main():
         await bot.load_extension("cogs.vilog")
         await bot.load_extension("cogs.selfroles")
         await bot.load_extension("cogs.robux")
+        await bot.load_extension("cogs.ml")
         await bot.start(TOKEN)
 
 asyncio.run(main())

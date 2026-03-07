@@ -388,6 +388,15 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.add_field(
+            name="TOPUP MOBILE LEGENDS",
+            value=(
+                "`!mlcatalog` — kirim embed catalog ML\n"
+                "`!mlselesai` — konfirmasi topup selesai\n"
+                "`!mlbatal [alasan]` — batalkan tiket ML"
+            ),
+            inline=False
+        )
+        embed.add_field(
             name="LAINNYA",
             value=(
                 "`!selfroles` — kirim embed self roles\n"
