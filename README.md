@@ -93,7 +93,7 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `AI_CHANNEL_ID` | ID channel AI customer service |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
-| `GROQ_API_KEY` | API key Groq untuk fitur AI CS |
+| `GEMINI_API_KEY=` | API key Gemini untuk fitur AI CS |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
