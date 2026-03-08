@@ -116,7 +116,7 @@ Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
 
 Kalau ada yang tanya di luar topik Cellyn Store, boleh jawab dengan santai seperti biasa — kamu tetap bisa ngobrol umum, bantu pertanyaan random, dll. Tapi kalau ada yang tanya soal toko, prioritaskan info Cellyn Store dulu."""
 
-GEMINI_MODEL = "gemini-1.5-flash-latest"
+GEMINI_MODEL = "gemini-2.0-flash"
 
 
 class AIChat(commands.Cog):
@@ -190,7 +190,7 @@ class AIChat(commands.Cog):
             history = history[-(MAX_HISTORY * 2):]
             self.histories[user_id] = history
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
         payload = {
             "system_instruction": {
