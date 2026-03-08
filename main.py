@@ -59,6 +59,7 @@ async def main():
         await bot.load_extension("cogs.ml")
         await bot.load_extension("cogs.nickname_enforcer")
         await bot.load_extension("cogs.jualbeli")
+        await bot.load_extension("cogs.ai_chat")
         await bot.start(TOKEN)
 
 asyncio.run(main())
