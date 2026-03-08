@@ -209,14 +209,17 @@ class AIChat(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
                     if resp.status != 200:
-                        history.pop()  # buang pesan user kalau gagal
+                        err = await resp.text()
+                        print(f"[GROQ ERROR] status={resp.status} body={err[:300]}")
+                        history.pop()
                         return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
                     data = await resp.json()
                     reply = data["choices"][0]["message"]["content"].strip()
                     # Simpan reply ke history
                     history.append({"role": "assistant", "content": reply})
                     return reply
-        except Exception:
+        except Exception as e:
+            print(f"[GROQ EXCEPTION] {e}")
             history.pop()
             return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
 
