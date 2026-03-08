@@ -116,7 +116,7 @@ Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
 
 Kalau ada yang tanya di luar topik Cellyn Store, boleh jawab dengan santai seperti biasa — kamu tetap bisa ngobrol umum, bantu pertanyaan random, dll. Tapi kalau ada yang tanya soal toko, prioritaskan info Cellyn Store dulu."""
 
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-1.5-flash-latest"
 
 
 class AIChat(commands.Cog):
