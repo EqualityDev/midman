@@ -27,7 +27,7 @@ fi
 STORE_NAME_ENV=$(grep -E "^STORE_NAME=" "$BOT_DIR/.env" 2>/dev/null | cut -d '=' -f2- | tr -d '"' | tr -d "'")
 [ -z "$STORE_NAME_ENV" ] && STORE_NAME_ENV="Cellyn Store"
 
-trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; [ -n "$ADMIN_PID" ] && kill $ADMIN_PID 2>/dev/null; [ -n "$CF_PID" ] && kill $CF_PID 2>/dev/null; exit 0' SIGINT SIGTERM
+trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; exit 0' SIGINT SIGTERM
 
 log() {
     local level="$1"
@@ -93,31 +93,15 @@ log INFO "Auto-restart aktif — max retry: ${MAX_RETRIES}x"
 echo -e "${PURPLE}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# ── ADMIN PANEL ───────────────────────────────────────────────────
-log INFO "Memulai Admin Panel di port 5000..."
+# ── SEED ──────────────────────────────────────────────────────────
 source "$BOT_DIR/venv/bin/activate"
-python "$BOT_DIR/admin.py" >> "$BOT_DIR/admin.log" 2>&1 &
-ADMIN_PID=$!
-log OK "Admin Panel berjalan (PID: $ADMIN_PID)"
-
-# ── CLOUDFLARE TUNNEL ─────────────────────────────────────────────
-if command -v cloudflared &> /dev/null; then
-    log INFO "Memulai Cloudflare Tunnel..."
-    cloudflared tunnel --url http://localhost:5000 >> "$BOT_DIR/cloudflared.log" 2>&1 &
-    CF_PID=$!
-    sleep 5
-    CF_URL=$(grep -o 'https://[^ ]*trycloudflare.com' "$BOT_DIR/cloudflared.log" 2>/dev/null | tail -1)
-    if [ -n "$CF_URL" ]; then
-        log OK "Admin Panel dapat diakses di: $CF_URL"
-    else
-        log WARN "Cloudflare Tunnel berjalan tapi URL belum tersedia. Cek cloudflared.log"
-    fi
-else
-    log WARN "cloudflared tidak ditemukan. Admin Panel hanya bisa diakses via localhost."
+python3 -c "from utils.db import init_db; init_db()" 2>/dev/null
+ML_COUNT=$(python3 -c "from utils.db import get_conn; c=get_conn().cursor(); c.execute('SELECT COUNT(*) FROM ml_products'); print(c.fetchone()[0])" 2>/dev/null)
+if [ "$ML_COUNT" = "0" ] || [ -z "$ML_COUNT" ]; then
+    log WARN "Database produk kosong. Menjalankan seed.py..."
+    python "$BOT_DIR/seed.py" >> "$BOT_DIR/seed.log" 2>&1
+    log OK "Seed selesai."
 fi
-
-echo ""
-echo -e "${PURPLE}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 retries=0
 
