@@ -5,7 +5,9 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+MODEL = "llama-3.1-8b-instant"
 
 def get_ai_channel_id():
     try:
@@ -116,7 +118,6 @@ Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
 
 Kalau ada yang tanya di luar topik Cellyn Store, boleh jawab dengan santai seperti biasa — kamu tetap bisa ngobrol umum, bantu pertanyaan random, dll. Tapi kalau ada yang tanya soal toko, prioritaskan info Cellyn Store dulu."""
 
-GEMINI_MODEL = "gemini-2.0-flash"
 
 
 class AIChat(commands.Cog):
@@ -171,52 +172,52 @@ class AIChat(commands.Cog):
 
         typing_task = asyncio.create_task(keep_typing())
         try:
-            reply = await self.ask_gemini(message.author.id, message.content)
+            reply = await self.ask_groq(message.author.id, message.content)
         finally:
             result["done"] = True
             typing_task.cancel()
 
         return reply
 
-    async def ask_gemini(self, user_id: int, user_message: str) -> str:
+    async def ask_groq(self, user_id: int, user_message: str) -> str:
         if user_id not in self.histories:
             self.histories[user_id] = []
 
         history = self.histories[user_id]
-        history.append({"role": "user", "parts": [{"text": user_message}]})
+        history.append({"role": "user", "content": user_message})
 
         # Batasi history
         if len(history) > MAX_HISTORY * 2:
             history = history[-(MAX_HISTORY * 2):]
             self.histories[user_id] = history
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
         payload = {
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_PROMPT}]
-            },
-            "contents": history,
-            "generationConfig": {
-                "maxOutputTokens": 512,
-                "temperature": 0.7
-            }
+            "model": MODEL,
+            "messages": messages,
+            "max_tokens": 512,
+            "temperature": 0.7
         }
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as resp:
+                async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
                     if resp.status != 200:
                         err = await resp.text()
-                        print(f"[GEMINI ERROR] status={resp.status} body={err[:300]}")
+                        print(f"[GROQ ERROR] status={resp.status} body={err[:300]}")
                         history.pop()
                         return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
                     data = await resp.json()
-                    reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    history.append({"role": "model", "parts": [{"text": reply}]})
+                    reply = data["choices"][0]["message"]["content"].strip()
+                    history.append({"role": "assistant", "content": reply})
                     return reply
         except Exception as e:
-            print(f"[GEMINI EXCEPTION] {e}")
+            print(f"[GROQ EXCEPTION] {e}")
             history.pop()
             return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
 
