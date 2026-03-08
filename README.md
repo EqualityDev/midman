@@ -1,20 +1,31 @@
 # Midman Bot — Cellyn Store Community
 
-Bot Discord untuk operasional Cellyn Store Community. Menangani transaksi middleman, boost via login (vilog), robux store, topup Mobile Legends & Free Fire, selfroles, dan admin panel berbasis web.
+Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire, AI customer service, selfroles, dan admin panel berbasis web.
 
 ---
 
 ## Fitur
 
-- **Midman Trade** — sistem tiket middleman dengan konfirmasi fee dua pihak
-- **Vilog** — boost Roblox via login dengan pilihan paket
+- **Midman Trade** — tiket perantara tukar item antar dua pihak
+- **Midman Jual Beli** — tiket perantara jual beli, admin tahan uang pembeli sampai item konfirmasi oke
+- **Vilog** — boost server Roblox via login dengan pilihan paket
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
-- **ML & FF Topup** — topup diamond Mobile Legends dan Free Fire (4 dropdown)
+- **ML & FF Topup** — topup diamond Mobile Legends dan Free Fire
+- **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API
 - **Selfroles** — self-assignable roles via Discord
 - **Admin Panel Web** — kelola produk ML/FF/Robux/Vilog via browser dari mana saja
 - **Auto-restart** — bot restart otomatis jika crash (max 5x)
 - **Warning & Auto-close** — tiket tidak aktif 1 jam dapat peringatan, 2 jam ditutup otomatis
-- **Notifikasi URL Admin** — URL Cloudflare Tunnel dikirim otomatis ke channel admin saat bot online
+- **Notifikasi URL Admin** — URL Cloudflare Tunnel dikirim ke channel admin setiap bot online
+
+---
+
+## Persyaratan
+
+- Python 3.12+
+- Termux (Android) atau Linux
+- Akun Discord + Bot Token
+- Akun Groq (gratis) untuk fitur AI CS
 
 ---
 
@@ -40,7 +51,7 @@ pip install -r requirements.txt
 ### 4. Setup .env
 ```bash
 cp .env.example .env
-# Edit .env dengan nilai yang sesuai
+nano .env  # isi semua variabel
 ```
 
 ### 5. Jalankan
@@ -73,14 +84,16 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `LOG_CHANNEL_ID` | ID channel log transaksi |
 | `TRANSCRIPT_CHANNEL_ID` | ID channel transcript tiket |
 | `BACKUP_CHANNEL_ID` | ID channel backup |
-| `ERROR_LOG_CHANNEL_ID` | ID channel log error + notifikasi admin |
-| `MIDMAN_CHANNEL_ID` | ID channel midman trade |
+| `ERROR_LOG_CHANNEL_ID` | ID channel log error + notifikasi admin panel |
+| `MIDMAN_CHANNEL_ID` | ID channel midman |
 | `VILOG_CHANNEL_ID` | ID channel vilog |
 | `ROBUX_CATALOG_CHANNEL_ID` | ID channel catalog robux |
 | `ML_CATALOG_CHANNEL_ID` | ID channel catalog ML/FF |
 | `SELFROLES_CHANNEL_ID` | ID channel selfroles |
+| `AI_CHANNEL_ID` | ID channel AI customer service |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
+| `GROQ_API_KEY` | API key Groq untuk fitur AI CS |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
@@ -95,6 +108,8 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 
 Admin panel otomatis jalan saat `bash start.sh`. URL Cloudflare Tunnel dikirim ke `ERROR_LOG_CHANNEL` via embed setiap kali bot online.
 
+Akses: buka URL yang dikirim bot di channel error log → login dengan `ADMIN_PASSWORD`
+
 **Fitur:**
 - **Dashboard** — ringkasan produk aktif + update rate Robux
 - **ML** — tambah, edit, hapus produk Mobile Legends
@@ -108,57 +123,125 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 
 ## Command Reference
 
-| Command | Fungsi | Akses |
-|---|---|---|
-| `!open` | Buka catalog midman trade | Public |
-| `!acc` | Tutup tiket midman | Admin |
-| `!batal [alasan]` | Batalkan tiket midman | Admin |
-| `!fee [nominal]` | Hitung fee | Admin |
-| `!vilog` | Refresh embed vilog | Admin |
-| `!selesai [nominal]` | Tutup tiket vilog | Admin |
-| `!batalin [alasan]` | Batalkan tiket vilog | Admin |
-| `!catalog` | Buka catalog robux | Admin |
-| `!rate [angka]` | Set rate robux | Admin |
-| `!gift` | Tutup tiket robux | Admin |
-| `!tolak [alasan]` | Batalkan tiket robux | Admin |
-| `!mlcatalog` | Buka catalog ML+FF topup | Admin |
-| `!mlselesai` | Tutup tiket ML/FF | Admin |
-| `!mlbatal [alasan]` | Batalkan tiket ML/FF | Admin |
-| `!selfroles` | Kirim embed self roles | Admin |
-| `!cmd` | Tampilkan prefix guide | Admin |
-| `!update` | Pull GitHub + restart | Admin |
-| `!ping` | Cek latency | Admin |
-| `!info` | Info bot | Admin |
+### Midman Trade
+| Command | Fungsi |
+|---|---|
+| `!open` | Kirim embed catalog midman |
+| `!acc` | Konfirmasi trade selesai |
+| `!batal [alasan]` | Batalkan tiket midman |
+| `!fee [nominal]` | Hitung fee midman |
+
+### Midman Jual Beli
+| Command | Fungsi |
+|---|---|
+| `!jbuang` | Konfirmasi uang dari pembeli diterima |
+| `!jbselesai` | Release dana ke penjual (setelah pembeli konfirmasi item) |
+| `!jbbatal [alasan]` | Batalkan tiket jual beli |
+
+### Vilog
+| Command | Fungsi |
+|---|---|
+| `!vilog` | Refresh embed pricelist vilog |
+| `!selesai [nominal]` | Tutup tiket vilog |
+| `!batalin [alasan]` | Batalkan tiket vilog |
+
+### Robux Store
+| Command | Fungsi |
+|---|---|
+| `!catalog` | Kirim embed catalog robux |
+| `!rate [angka]` | Set rate Robux |
+| `!gift` | Konfirmasi gift item selesai |
+| `!tolak [alasan]` | Batalkan tiket robux |
+
+### ML & FF Topup
+| Command | Fungsi |
+|---|---|
+| `!mlcatalog` | Kirim embed catalog ML/FF |
+| `!mlselesai` | Konfirmasi topup selesai |
+| `!mlbatal [alasan]` | Batalkan tiket ML/FF |
+
+### Lainnya
+| Command | Fungsi |
+|---|---|
+| `!selfroles` | Kirim embed self roles |
+| `!cmd` | Tampilkan prefix guide (auto-hapus 10 detik) |
+| `!update` | Pull GitHub + restart bot |
+| `!ping` | Cek latency |
+| `!info` | Info bot |
+
+> Semua command kecuali `!open` hanya bisa digunakan oleh role admin.
+
+---
+
+## Alur Tiket
+
+### Midman Trade
+1. Member klik tombol **⚔️ Midman Trade** di channel midman
+2. Isi form: item pihak 1 + item yang diminta
+3. Admin bergabung, setup pihak 2 + fee
+4. Fee dibayar, admin konfirmasi → trade berlangsung
+5. Admin ketik `!acc` untuk tutup tiket
+
+### Midman Jual Beli
+1. Penjual klik tombol **🛒 Midman Jual Beli** di channel midman
+2. Isi form: deskripsi item + harga
+3. Admin setup: tambah pembeli, set fee + penanggung fee
+4. Pembeli transfer ke admin sesuai nominal
+5. Admin ketik `!jbuang` → konfirmasi uang diterima, serahkan item ke pembeli
+6. Pembeli klik **✅ Item Diterima & Sesuai**
+7. Admin ketik `!jbselesai` → dana direlease ke penjual, tiket ditutup
+
+### Vilog
+1. Member klik tombol **BELI** di channel vilog
+2. Isi form: username Roblox, password, pilihan boost, metode bayar
+3. Transfer ke admin, kirim bukti bayar
+4. Admin proses boost, ketik `!selesai [nominal]`
+5. Member **wajib ganti password** setelah selesai
+
+### Robux Store
+1. Member klik kategori di channel catalog robux
+2. Pilih item dari dropdown
+3. Transfer sesuai nominal + kirim bukti bayar
+4. Admin verifikasi, gift item via Roblox
+5. Admin ketik `!gift` untuk tutup tiket
+
+### ML & FF Topup
+1. Member pilih diamond di channel catalog ML
+2. Isi form: ID ML + Server ID (untuk ML) atau Player ID (untuk FF)
+3. Bayar via QRIS
+4. Admin proses topup, ketik `!mlselesai`
 
 ---
 
 ## Struktur File
 
 ```
-midman_bot/
+midman/
 ├── main.py               # Entry point bot + notifikasi URL tunnel
-├── admin.py              # Flask admin panel
+├── admin.py              # Flask admin panel (port 5000)
 ├── seed.py               # Seed data produk default ke DB
-├── start.sh              # Auto-start: seed + admin + cloudflared + bot
+├── start.sh              # Auto-start semua service
 ├── requirements.txt
-├── .env / .env.example
+├── .env.example
 ├── utils/
-│   ├── config.py
+│   ├── config.py         # Semua env variable
 │   ├── db.py             # init_db() + semua tabel SQLite
-│   ├── counter.py
-│   ├── transcript.py
-│   ├── fee.py
-│   ├── tickets.py
-│   ├── vilog_db.py
-│   └── robux_db.py
+│   ├── counter.py        # Auto-increment nomor tiket
+│   ├── transcript.py     # Generate HTML transcript
+│   ├── fee.py            # Kalkulator fee midman
+│   ├── tickets.py        # CRUD tiket midman trade
+│   ├── vilog_db.py       # CRUD tiket vilog
+│   └── robux_db.py       # CRUD tiket robux + bot_state
 └── cogs/
-    ├── midman.py
-    ├── vilog.py
-    ├── robux.py
-    ├── ml.py
-    ├── selfroles.py
-    ├── views.py
-    └── modals.py
+    ├── midman.py         # Midman trade
+    ├── jualbeli.py       # Midman jual beli
+    ├── vilog.py          # Boost via login
+    ├── robux.py          # Robux store
+    ├── ml.py             # Topup ML & FF
+    ├── ai_chat.py        # AI customer service
+    ├── selfroles.py      # Self-assignable roles
+    ├── views.py          # Persistent views & embeds
+    └── modals.py         # Modal forms
 ```
 
 ---
@@ -167,14 +250,15 @@ midman_bot/
 
 SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash start.sh`.
 
-Tabel produk (di-seed dari `seed.py`):
+**Tabel produk** (di-seed dari `seed.py`):
 - `ml_products` — produk Mobile Legends
 - `ff_products` — produk Free Fire
 - `robux_products` — item Robux per kategori
 - `vilog_boosts` — paket boost vilog
 
-Tabel transaksi:
+**Tabel transaksi:**
 - `tickets` — midman trade
+- `jb_tickets` — midman jual beli
 - `vilog_tickets` — tiket vilog
 - `robux_tickets` — tiket robux
 - `ml_tickets` — tiket ML & FF
@@ -183,10 +267,32 @@ Tabel transaksi:
 
 ---
 
+## Cara Tambah Layanan Baru
+
+1. Buat `cogs/namalayanan.py` — ikuti pola cog yang sudah ada (tiket, modal, auto-close, warning, persistent view, log, transcript)
+2. Tambah tabel di `utils/db.py`
+3. Tambah data produk di `seed.py` (jika ada)
+4. Tambah halaman di `admin.py` (jika ada produk yang perlu dikelola)
+5. Daftarkan di `main.py` — `await bot.load_extension("cogs.namalayanan")`
+6. Tambah prefix di `!cmd` di `cogs/midman.py`
+7. Update system prompt AI di `cogs/ai_chat.py`
+
+---
+
+## Cara Mendapatkan Groq API Key
+
+1. Daftar di https://console.groq.com
+2. Buat API key baru
+3. Isi di `.env` → `GROQ_API_KEY=your_key_here`
+
+Limit gratis: 30 request/menit, 14.400 request/hari, 500.000 token/hari.
+
+---
+
 ## Workflow Development
 
 ```
-HP (dev/test) → GitHub → RF via !update
+HP (dev) → GitHub → Production via !update di Discord
 ```
 
-Semua perubahan kode dilakukan di HP, push ke GitHub, lalu `!update` di Discord untuk deploy ke RF.
+Semua perubahan kode dilakukan di HP, push ke GitHub, lalu `!update` di Discord untuk deploy ke production.
