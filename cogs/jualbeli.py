@@ -209,7 +209,11 @@ class JBItemDiterimaView(discord.ui.View):
         admin = guild.get_member(ticket["admin_id"])
 
         e = embed_item_diterima(STORE_NAME, ticket, p1, p2, admin)
-        await interaction.message.edit(embed=e, view=self)
+        try:
+            msg = await interaction.channel.fetch_message(ticket.get("embed_message_id"))
+            await msg.edit(embed=e, view=self)
+        except Exception:
+            await interaction.channel.send(embed=e)
         admin_role = guild.get_role(ADMIN_ROLE_ID)
         ping = admin_role.mention if admin_role else ""
         await interaction.response.send_message(
@@ -506,7 +510,15 @@ class JualBeli(commands.Cog):
         save_jb_ticket(ticket)
 
         e = embed_selesai(STORE_NAME, ticket, p1, p2, admin)
-        await ctx.send(embed=e)
+        try:
+            msg = await ctx.channel.fetch_message(ticket.get("embed_message_id"))
+            await msg.edit(embed=e, view=None)
+        except Exception:
+            await ctx.send(embed=e)
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
         # Log
         log_ch = guild.get_channel(LOG_CHANNEL_ID)
@@ -573,8 +585,17 @@ class JualBeli(commands.Cog):
 
         e = embed_uang_diterima(STORE_NAME, ticket, p1, p2, admin)
         view = JBItemDiterimaView()
-        await ctx.send(embed=e, view=view)
-        await ctx.message.delete()
+        try:
+            msg = await ctx.channel.fetch_message(ticket.get("embed_message_id"))
+            await msg.edit(embed=e, view=view)
+        except Exception:
+            msg = await ctx.channel.send(embed=e, view=view)
+            ticket["embed_message_id"] = msg.id
+            save_jb_ticket(ticket)
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
     @commands.command(name="jbbatal")
     async def jbbatal(self, ctx, *, alasan: str = "Tidak ada alasan"):

@@ -137,9 +137,8 @@ class AIChat(commands.Cog):
             return
         if message.channel.id != AI_CHANNEL_ID:
             return
-        if message.content.startswith("!"):
+        if not message.content or message.content.startswith("!"):
             return
-
         user_id = message.author.id
 
         # Cooldown check
