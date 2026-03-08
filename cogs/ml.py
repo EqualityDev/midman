@@ -290,7 +290,7 @@ class MLSelectKecil(discord.ui.Select):
             ) for p in kecil
         ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
-            placeholder="Pilih jumlah diamond (3–100 DM)...",
+            placeholder="[MoLe] Pilih jumlah diamond (3–100 DM)...",
             options=options[:25],
             custom_id="ml_select_kecil"
         )
@@ -318,7 +318,7 @@ class MLSelectBesar(discord.ui.Select):
             ) for p in besar
         ] or [discord.SelectOption(label="Tidak ada produk", value="none")]
         super().__init__(
-            placeholder="Pilih jumlah diamond (110–346 DM)...",
+            placeholder="[MoLe] Pilih jumlah diamond (110–346 DM)...",
             options=options[:25],
             custom_id="ml_select_besar"
         )
