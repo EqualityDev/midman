@@ -148,6 +148,7 @@ class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
             "last_activity": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
         cog.active_tickets[channel.id] = ticket
+        save_ml_ticket(ticket)
 
         embed = discord.Embed(
             title=f"TOPUP MOBILE LEGENDS — {STORE_NAME}",
