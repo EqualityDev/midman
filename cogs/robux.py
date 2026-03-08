@@ -278,6 +278,7 @@ class RobuxStore(commands.Cog):
         PRODUCTS = load_robux_products()
 
     async def refresh_catalog(self):
+        await self.reload_products()
         guild = self.bot.guilds[0] if self.bot.guilds else None
         if not guild:
             return
