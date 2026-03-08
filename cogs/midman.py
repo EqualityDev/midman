@@ -18,6 +18,8 @@ class Midman(commands.Cog):
         self.bot = bot
         self.active_tickets = {}
         self.restored = False
+        self.ticket_timeout_check.start()
+        self.auto_backup.start()
 
     def cog_unload(self):
         self.ticket_timeout_check.cancel()
@@ -393,7 +395,7 @@ class Midman(commands.Cog):
         embed.add_field(name="Total Bayar", value=format_nominal(angka + result), inline=True)
         embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, delete_after=30)
 
     @commands.command(name="cmd")
     async def cmd(self, ctx):
@@ -439,6 +441,15 @@ class Midman(commands.Cog):
                 "`!mlcatalog` — kirim embed catalog ML\n"
                 "`!mlselesai` — konfirmasi topup selesai\n"
                 "`!mlbatal [alasan]` — batalkan tiket ML"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="MIDMAN JUAL BELI",
+            value=(
+                "`!jbuang` — konfirmasi uang dari pembeli diterima\n"
+                "`!jbselesai` — release dana ke penjual\n"
+                "`!jbbatal [alasan]` — batalkan tiket jual beli"
             ),
             inline=False
         )

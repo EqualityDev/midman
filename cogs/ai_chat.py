@@ -8,6 +8,8 @@ from discord.ext import commands
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 AI_CHANNEL_ID = int(os.getenv("AI_CHANNEL_ID", 0))
 
+# pastikan cogs lain tidak block on_message
+
 COOLDOWN_SECONDS = 3      # jeda antar pesan per user
 MAX_HISTORY = 10          # maksimal pesan history per user (user+bot = 1 pasang)
 
@@ -124,8 +126,14 @@ class AIChat(commands.Cog):
         self.cooldowns: dict[int, float] = {}
 
     @commands.Cog.listener()
+    async def on_ready(self):
+        print(f"Cog AIChat siap. Channel ID: {AI_CHANNEL_ID}")
+
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
+            return
+        if AI_CHANNEL_ID == 0:
             return
         if message.channel.id != AI_CHANNEL_ID:
             return

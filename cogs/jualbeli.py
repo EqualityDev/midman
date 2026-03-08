@@ -473,14 +473,6 @@ class JualBeli(commands.Cog):
             await asyncio.sleep(3)
 
             guild = channel.guild
-            transcript_ch = guild.get_channel(
-                int(__import__('os').getenv('TRANSCRIPT_CHANNEL_ID', 0)))
-            if transcript_ch:
-                f = await transcript_gen.generate(channel, STORE_NAME)
-                await transcript_ch.send(
-                    content=f"📄 Transcript tiket `{channel.name}` (auto-close)",
-                    file=f
-                )
             await channel.delete()
         except Exception as ex:
             print(f"[WARNING] JualBeli auto-close: {ex}")
@@ -553,6 +545,37 @@ class JualBeli(commands.Cog):
         await asyncio.sleep(5)
         await ctx.channel.delete()
 
+    @commands.command(name="jbuang")
+    async def jbuang(self, ctx):
+        """Admin konfirmasi uang dari pembeli sudah diterima."""
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        ch_id = ctx.channel.id
+        if ch_id not in self.active_tickets:
+            await ctx.send("Channel ini bukan tiket jual beli aktif.", delete_after=5)
+            return
+        ticket = self.active_tickets[ch_id]
+        if ticket.get("status") != "menunggu_bayar":
+            await ctx.send("Status tiket tidak sesuai. Pastikan admin sudah setup dan pembeli belum konfirmasi item.", delete_after=8)
+            return
+        if not ticket.get("p2_id"):
+            await ctx.send("Pembeli belum di-setup. Gunakan tombol Setup (Admin) terlebih dahulu.", delete_after=8)
+            return
+
+        ticket["status"] = "uang_diterima"
+        ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        save_jb_ticket(ticket)
+
+        guild = ctx.guild
+        p1 = guild.get_member(ticket["p1_id"])
+        p2 = guild.get_member(ticket["p2_id"])
+        admin = ctx.author
+
+        e = embed_uang_diterima(STORE_NAME, ticket, p1, p2, admin)
+        view = JBItemDiterimaView()
+        await ctx.send(embed=e, view=view)
+        await ctx.message.delete()
+
     @commands.command(name="jbbatal")
     async def jbbatal(self, ctx, *, alasan: str = "Tidak ada alasan"):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
@@ -576,17 +599,6 @@ class JualBeli(commands.Cog):
 
         mentions = " ".join(filter(None, [p1.mention if p1 else None, p2.mention if p2 else None]))
         await ctx.send(content=mentions or None, embed=e)
-
-        transcript_ch = guild.get_channel(TRANSCRIPT_CHANNEL_ID)
-        if transcript_ch:
-            try:
-                f = await transcript_gen.generate(ctx.channel, STORE_NAME)
-                await transcript_ch.send(
-                    content=f"📄 Transcript `{ctx.channel.name}` (dibatalkan)",
-                    file=f
-                )
-            except Exception as ex:
-                print(f"[WARNING] JualBeli transcript: {ex}")
 
         delete_jb_ticket(ch_id)
         del self.active_tickets[ch_id]
