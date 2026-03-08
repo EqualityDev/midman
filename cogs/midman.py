@@ -171,6 +171,23 @@ class Midman(commands.Cog):
             ),
             color=0x2ECC71
         )
+        embed.add_field(
+            name="📋 Daftar Fee Midman",
+            value=(
+                "```"
+                "Nominal Trade        Fee\n"
+                "─────────────────────────\n"
+                "< Rp 10.000          Rp 1.500\n"
+                "Rp 10.000 – 49.000   Rp 2.500\n"
+                "Rp 50.000 – 99.000   Rp 4.500\n"
+                "Rp 100.000 – 199.000 Rp 6.500\n"
+                "Rp 200.000 – 499.000 Rp 10.000\n"
+                "Rp 500.000 – 1 jt    Rp 15.000\n"
+                "> Rp 1.000.000       Rp 20.000"
+                "```"
+            ),
+            inline=False
+        )
         embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
         await ch.send(embed=embed, view=MidmanMainView())
