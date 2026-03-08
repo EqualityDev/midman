@@ -141,6 +141,21 @@ def init_db():
             active  INTEGER DEFAULT 1
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS jb_tickets (
+            channel_id      INTEGER PRIMARY KEY,
+            p1_id           INTEGER,
+            p2_id           INTEGER,
+            deskripsi       TEXT,
+            harga           INTEGER,
+            fee_final       INTEGER,
+            fee_penanggung  TEXT,
+            admin_id        INTEGER,
+            opened_at       TEXT,
+            warned          INTEGER DEFAULT 0,
+            status          TEXT DEFAULT 'menunggu_admin'
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")

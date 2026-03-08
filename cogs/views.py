@@ -85,10 +85,15 @@ class MidmanMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
+    @discord.ui.button(label="⚔️ Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
     async def open_ticket(self, interaction, button):
         from cogs.modals import MidmanTradeModal
         await interaction.response.send_modal(MidmanTradeModal())
+
+    @discord.ui.button(label="🛒 Midman Jual Beli", style=discord.ButtonStyle.secondary, custom_id="open_midman_jualbeli")
+    async def open_jualbeli(self, interaction, button):
+        from cogs.jualbeli import JBTradeModal
+        await interaction.response.send_modal(JBTradeModal())
 
 class AdminSetupView(discord.ui.View):
     def __init__(self):

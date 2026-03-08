@@ -68,16 +68,29 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
    - Admin proses topup langsung ke akun
    Bayar: QRIS
 
-5. MIDDLEMAN TRADE (Midman)
+5. MIDMAN TRADE
    Jasa perantara tukar item game antar dua pemain. Admin jadi saksi dan memastikan kedua pihak jujur.
-   Cocok untuk: tukar item Roblox, tukar akun, atau transaksi game apapun yang butuh pihak ketiga.
+   Cocok untuk: tukar item Roblox, tukar akun, atau barter apapun yang butuh pihak ketiga.
    Cara order:
-   - Ketik !open di channel midman
+   - Pergi ke channel midman
+   - Klik tombol Midman Trade
    - Isi form: item yang kamu punya + item yang kamu minta dari lawan
    - Tiket terbuka, tunggu admin bergabung
-   - Admin akan setup detail trade bersama kedua pihak
-   - Ada fee midman yang disepakati bersama sebelum trade dimulai
+   - Admin setup detail + fee, ikuti instruksi
    Bayar fee: QRIS, DANA, BCA
+
+6. MIDMAN JUAL BELI
+   Jasa perantara jual beli item/akun game. Admin menahan uang pembeli dulu, baru diserahkan ke penjual setelah pembeli konfirmasi item oke.
+   Cocok untuk: jual beli akun Roblox, item game, atau aset digital lainnya.
+   Cara order:
+   - Pergi ke channel midman
+   - Klik tombol Midman Jual Beli
+   - Penjual isi form: deskripsi item + harga
+   - Admin tambahkan pembeli ke tiket, setup fee + siapa yang menanggung
+   - Pembeli transfer ke admin
+   - Admin serahkan item ke pembeli
+   - Pembeli konfirmasi item oke → admin release dana ke penjual
+   Bayar: QRIS, DANA, BCA
 
 === ALUR TIKET (PENTING) ===
 - Semua transaksi pakai sistem tiket otomatis — channel private terbuka khusus untuk kamu dan admin

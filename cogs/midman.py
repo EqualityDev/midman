@@ -160,14 +160,11 @@ class Midman(commands.Cog):
         embed = discord.Embed(
             title=f"MIDMAN TRADE — {STORE_NAME}",
             description=(
-                "Transaksi item game kamu dengan aman dan terpercaya bersama Cellyn Store.\n"
-                "Admin kami siap memastikan kedua pihak menukar item sesuai kesepakatan.\n\n"
-                "**Cara pakai:**\n"
-                "1. Klik tombol di bawah untuk membuka tiket\n"
-                "2. Isi form — item kamu dan item yang kamu minta\n"
-                "3. Tunggu admin bergabung dan menambahkan pihak 2\n"
-                "4. Fee dibayar oleh pihak yang disepakati — admin akan konfirmasi\n"
-                "5. Ikuti instruksi admin di dalam tiket"
+                "Jasa perantara transaksi item game dengan aman bersama Cellyn Store.\n\n"
+                "⚔️ **Midman Trade** — Tukar item/akun antar dua pihak\n"
+                "Cara pakai: Klik tombol **Midman Trade** → isi form → tunggu admin bergabung\n\n"
+                "🛒 **Midman Jual Beli** — Jual/beli item dengan admin sebagai perantara dana\n"
+                "Cara pakai: Klik tombol **Midman Jual Beli** → isi form → tunggu admin setup"
             ),
             color=0x2ECC71
         )
