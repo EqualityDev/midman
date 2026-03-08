@@ -1,10 +1,15 @@
 import os
+import asyncio
+import time
 import aiohttp
 import discord
 from discord.ext import commands
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 AI_CHANNEL_ID = int(os.getenv("AI_CHANNEL_ID", 0))
+
+COOLDOWN_SECONDS = 3      # jeda antar pesan per user
+MAX_HISTORY = 10          # maksimal pesan history per user (user+bot = 1 pasang)
 
 SYSTEM_PROMPT = """Kamu adalah CS bot Cellyn Store, toko digital yang jual produk game di Discord. Gaya jawabmu santai, singkat, to the point — kayak orang chat biasa, bukan robot kaku. Pakai bahasa gaul Indonesia yang wajar. Kalau tidak tahu atau tidak yakin, jujur aja dan suruh tanya admin langsung.
 
@@ -100,33 +105,78 @@ MODEL = "llama-3.3-70b-versatile"
 class AIChat(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # history per user: {user_id: [{"role": ..., "content": ...}, ...]}
+        self.histories: dict[int, list] = {}
+        # cooldown per user: {user_id: last_message_timestamp}
+        self.cooldowns: dict[int, float] = {}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        # Ignore bot dan channel lain
         if message.author.bot:
             return
         if message.channel.id != AI_CHANNEL_ID:
             return
-        # Ignore pesan yang dimulai dengan prefix command
         if message.content.startswith("!"):
             return
 
-        async with message.channel.typing():
-            reply = await self.ask_groq(message.content)
-            await message.reply(reply)
+        user_id = message.author.id
 
-    async def ask_groq(self, user_message: str) -> str:
+        # Cooldown check
+        now = time.time()
+        last = self.cooldowns.get(user_id, 0)
+        sisa = COOLDOWN_SECONDS - (now - last)
+        if sisa > 0:
+            await message.reply(
+                f"Sabar bentar ya, tunggu {sisa:.1f} detik lagi 😅",
+                delete_after=3
+            )
+            return
+        self.cooldowns[user_id] = now
+
+        # Jalankan typing loop + request Groq bersamaan
+        reply = await self._typing_and_ask(message)
+        await message.reply(reply)
+
+    async def _typing_and_ask(self, message: discord.Message) -> str:
+        """Kirim typing indicator terus-menerus sambil nunggu Groq respond."""
+        result = {}
+
+        async def keep_typing():
+            while not result.get("done"):
+                await message.channel.typing()
+                await asyncio.sleep(5)
+
+        typing_task = asyncio.create_task(keep_typing())
+        try:
+            reply = await self.ask_groq(message.author.id, message.content)
+        finally:
+            result["done"] = True
+            typing_task.cancel()
+
+        return reply
+
+    async def ask_groq(self, user_id: int, user_message: str) -> str:
+        # Ambil atau buat history user
+        if user_id not in self.histories:
+            self.histories[user_id] = []
+
+        history = self.histories[user_id]
+        history.append({"role": "user", "content": user_message})
+
+        # Batasi history: MAX_HISTORY pasang (user+assistant)
+        if len(history) > MAX_HISTORY * 2:
+            history = history[-(MAX_HISTORY * 2):]
+            self.histories[user_id] = history
+
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
+
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
         payload = {
             "model": MODEL,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
-            ],
+            "messages": messages,
             "max_tokens": 512,
             "temperature": 0.7
         }
@@ -135,12 +185,18 @@ class AIChat(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
                     if resp.status != 200:
+                        history.pop()  # buang pesan user kalau gagal
                         return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
                     data = await resp.json()
-                    return data["choices"][0]["message"]["content"].strip()
+                    reply = data["choices"][0]["message"]["content"].strip()
+                    # Simpan reply ke history
+                    history.append({"role": "assistant", "content": reply})
+                    return reply
         except Exception:
+            history.pop()
             return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(AIChat(bot))
+    print("Cog AIChat siap.")
