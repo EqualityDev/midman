@@ -27,7 +27,7 @@ fi
 STORE_NAME_ENV=$(grep -E "^STORE_NAME=" "$BOT_DIR/.env" 2>/dev/null | cut -d '=' -f2- | tr -d '"' | tr -d "'")
 [ -z "$STORE_NAME_ENV" ] && STORE_NAME_ENV="Cellyn Store"
 
-trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; exit 0' SIGINT SIGTERM
+trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; [ -n "$ADMIN_PID" ] && kill $ADMIN_PID 2>/dev/null; [ -n "$CF_PID" ] && kill $CF_PID 2>/dev/null; exit 0' SIGINT SIGTERM
 
 log() {
     local level="$1"
@@ -102,6 +102,35 @@ if [ "$ML_COUNT" = "0" ] || [ -z "$ML_COUNT" ]; then
     python "$BOT_DIR/seed.py" >> "$BOT_DIR/seed.log" 2>&1
     log OK "Seed selesai."
 fi
+
+# ── ADMIN PANEL ───────────────────────────────────────────────────
+log INFO "Memulai Admin Panel di port 5000..."
+python "$BOT_DIR/admin.py" >> "$BOT_DIR/admin.log" 2>&1 &
+ADMIN_PID=$!
+log OK "Admin Panel berjalan (PID: $ADMIN_PID)"
+
+# ── CLOUDFLARE TUNNEL ─────────────────────────────────────────────
+if ! command -v cloudflared &> /dev/null; then
+    log WARN "cloudflared tidak ditemukan. Menginstall..."
+    pkg install -y cloudflared >> "$BOT_DIR/cloudflared.log" 2>&1
+fi
+
+if command -v cloudflared &> /dev/null; then
+    log INFO "Memulai Cloudflare Tunnel..."
+    cloudflared tunnel --url http://localhost:5000 >> "$BOT_DIR/cloudflared.log" 2>&1 &
+    CF_PID=$!
+    sleep 5
+    CF_URL=$(grep -o 'https://[^ ]*trycloudflare.com' "$BOT_DIR/cloudflared.log" 2>/dev/null | tail -1)
+    if [ -n "$CF_URL" ]; then
+        log OK "Admin Panel: $CF_URL"
+    else
+        log WARN "Cloudflare Tunnel berjalan tapi URL belum tersedia. Cek cloudflared.log"
+    fi
+else
+    log WARN "cloudflared tidak bisa diinstall. Admin Panel hanya via localhost."
+fi
+
+echo -e "${PURPLE}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 retries=0
 
