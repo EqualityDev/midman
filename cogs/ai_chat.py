@@ -190,7 +190,7 @@ class AIChat(commands.Cog):
             history = history[-(MAX_HISTORY * 2):]
             self.histories[user_id] = history
 
-        url = f"https://generativelanguage.googleapis.com/v1/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
         payload = {
             "system_instruction": {
