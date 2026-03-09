@@ -53,8 +53,8 @@ def save_ml_ticket(ticket):
     c = conn.cursor()
     c.execute('''
         INSERT OR REPLACE INTO ml_tickets
-        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at, game)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at, game, warned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
@@ -64,6 +64,7 @@ def save_ml_ticket(ticket):
         ticket['harga'],
         ticket['opened_at'],
         ticket.get('game', 'ML'),
+        1 if ticket.get('warned') else 0,
     ))
     conn.commit()
     conn.close()
