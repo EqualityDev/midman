@@ -9,7 +9,7 @@ BAD_WORDS = [
     "bangsat", "bngsat", "b4ngsat", "bgst",
     "kontol", "k0ntol", "kntol", "kntl", "kontl", "k0nt0l",
     "memek", "m3mek", "mmk", "m3m3k",
-    "ngentot", "ng3ntot", "ngewe", "ngwe", "ewe", "entod", "entd", "ngntd", "eue", "euwe", "ewue"
+    "ngentot", "ng3ntot", "ngewe", "ngwe", "ewe", "entod", "entd", "ngntd", "eue", "euwe", "ewue",
     "bajingan", "b4jingan",
     "tolol", "t0lol", "tlol", "tll",
     "goblok", "g0blok", "goblog", "gblk", "gblg", "g0bl0g", "g0bl0k",
