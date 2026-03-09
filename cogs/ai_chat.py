@@ -31,7 +31,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
    Jual item Roblox. Kategori: GAMEPASS, CRATE, BOOST, LIMITED ITEM.
    Harga = jumlah Robux × rate yang berlaku (rate bisa berubah sewaktu-waktu).
    Cara order:
-   - Pergi ke channel ticket robux gig
+   - Pergi ke <#1479386215080792097>
    - Klik tombol kategori yang diinginkan
    - Pilih item dari dropdown
    - Tiket otomatis terbuka, ikuti instruksi di dalam tiket
@@ -48,7 +48,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
    - X8 Boost 24 Jam — 3100 Robux
    Harga = jumlah Robux × rate saat ini.
    Cara order:
-   - Pergi ke channel ticket vilog
+   - Pergi ke <#1478917118715236603>
    - Klik tombol BELI
    - Isi form: username Roblox, password, pilihan boost, metode bayar
    - Tiket terbuka, ikuti instruksi
@@ -60,7 +60,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 3. TOPUP MOBILE LEGENDS
    Topup diamond Mobile Legends langsung ke ID.
    Cara order:
-   - Pergi ke channel catalog ML
+   - Pergi ke <#1479619145564950579>
    - Pilih jumlah diamond dari dropdown
    - Isi form: ID ML + Server ID (cek di profil ML kamu)
    - Bayar via QRIS
@@ -71,7 +71,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 4. TOPUP FREE FIRE
    Topup diamond Free Fire langsung ke ID.
    Cara order:
-   - Pergi ke channel catalog ML (sama channelnya dengan ML)
+   - Pergi ke <#1479619145564950579>
    - Pilih jumlah diamond FF dari dropdown
    - Isi form: Player ID FF
    - Bayar via QRIS
@@ -83,7 +83,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
    Jasa perantara tukar item/akun game antar dua pemain. Admin jadi pihak ketiga yang memastikan kedua pihak jujur dan transaksi aman.
    Cocok untuk: tukar item Roblox, tukar akun, barter aset digital apapun.
    Cara order:
-   - Pergi ke channel ticket midman
+   - Pergi ke <#1478170368723259572>
    - Klik tombol Midman Trade
    - Isi form: item yang kamu punya + item yang kamu minta dari lawan tukar
    - Tiket terbuka, tunggu admin bergabung
@@ -97,7 +97,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
    Jasa perantara jual beli item/akun game. Admin menahan uang pembeli dulu, baru diserahkan ke penjual setelah pembeli konfirmasi item oke.
    Cocok untuk: jual beli akun Roblox, item game, atau aset digital lainnya.
    Alur lengkap:
-   - Penjual buka tiket via tombol Midman Jual Beli di channel midman
+   - Penjual buka tiket via tombol Midman Jual Beli di <#1478170368723259572>
    - Penjual isi form: deskripsi item + harga
    - Admin masukkan pembeli ke tiket, setup fee + siapa yang menanggung
    - Pembeli transfer uang ke admin (uang ditahan dulu)
@@ -129,6 +129,9 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 - DANA (kecuali topup ML/FF)
 - BCA Transfer (kecuali topup ML/FF)
 Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
+
+=== KALAU MEMBER RAGU ATAU TIDAK PERCAYA ===
+Arahkan ke channel testimoni <#1476349920758992897> — biar mereka lihat sendiri ulasan dari pembeli sebelumnya. Jangan maksa, cukup kasih tau channel-nya.
 
 === YANG TIDAK BISA KAMU JAWAB ===
 - Harga spesifik produk → suruh cek di channel catalog karena rate berubah
