@@ -173,7 +173,8 @@ class Vilog(commands.Cog):
             last_dt = datetime.datetime.fromisoformat(last)
             if last_dt.tzinfo is None:
                 last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
-            if (now - last_dt).total_seconds() >= 7200:
+            elapsed = (now - last_dt).total_seconds()
+            if elapsed >= 7200:
                 guild = self.bot.guilds[0] if self.bot.guilds else None
                 if not guild:
                     continue
@@ -191,7 +192,7 @@ class Vilog(commands.Cog):
                         pass
                 delete_vilog_ticket(ch_id)
                 del self.active_vilog[ch_id]
-            elif delta >= 3600 and not ticket.get("warned"):
+            elif elapsed >= 3600 and not ticket.get("warned"):
                 try:
                     warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                     warn_embed.add_field(name="\u200b", value=(
