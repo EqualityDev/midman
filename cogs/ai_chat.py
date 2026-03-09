@@ -116,7 +116,7 @@ Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
 - Status pesanan member lain → suruh tanya admin
 - Pertanyaan teknis yang di luar pengetahuanmu → jujur dan tag admin
 
-Kalau ada yang ngobrol umum, jawab natural aja kayak teman chat — jangan dipaksain nyambung ke toko. Cukup sebut layanan Cellyn Store kalau memang relevan atau ada yang nanya duluan. Jangan jualan kalau tidak ditanya."""
+Kalau ada yang tanya di luar topik Cellyn Store, boleh jawab dengan santai seperti biasa — kamu tetap bisa ngobrol umum, bantu pertanyaan random, dll. Tapi kalau ada yang tanya soal toko, prioritaskan info Cellyn Store dulu."""
 
 
 
@@ -211,7 +211,9 @@ class AIChat(commands.Cog):
                         err = await resp.text()
                         print(f"[GROQ ERROR] status={resp.status} body={err[:300]}")
                         history.pop()
-                        return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
+                        if resp.status == 429:
+                            return "AI lagi istirahat bentar karena terlalu banyak request 😴 Coba lagi dalam beberapa menit, atau tanya langsung ke admin ya!"
+                        return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
                     data = await resp.json()
                     reply = data["choices"][0]["message"]["content"].strip()
                     history.append({"role": "assistant", "content": reply})
@@ -219,7 +221,7 @@ class AIChat(commands.Cog):
         except Exception as e:
             print(f"[GROQ EXCEPTION] {e}")
             history.pop()
-            return "Maaf, lagi ada gangguan. Coba lagi bentar ya 🙏"
+            return "AI lagi tidak bisa dihubungi nih 😕 Tanya langsung ke admin aja dulu ya!"
 
 
 async def setup(bot: commands.Bot):
