@@ -23,6 +23,12 @@ def _load_ff_products():
     conn.close()
     return [{"dm": r["dm"], "harga": r["harga"]} for r in rows]
 
+WDP_PRODUCTS = [
+    {"qty": 1, "label": "1x Weekly Diamond Pass", "harga": 29000},
+    {"qty": 2, "label": "2x Weekly Diamond Pass", "harga": 57000},
+    {"qty": 3, "label": "3x Weekly Diamond Pass", "harga": 86000},
+]
+
 ML_PRODUCTS = _load_ml_products()
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
@@ -101,10 +107,11 @@ class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
         max_length=10
     )
 
-    def __init__(self, dm: int, harga: int):
+    def __init__(self, dm: int, harga: int, label: str = None):
         super().__init__()
         self.dm = dm
         self.harga = harga
+        self.label = label  # Untuk WDP, label menggantikan "X Diamond"
 
     async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
@@ -145,6 +152,7 @@ class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
             "id_ml": self.id_ml.value.strip(),
             "server_id": self.server_id.value.strip(),
             "dm": self.dm,
+            "item_label": self.label if self.label else f"{self.dm} Diamond",
             "harga": self.harga,
             "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "last_activity": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -195,10 +203,11 @@ class FFFormModal(discord.ui.Modal, title="Topup Free Fire"):
         max_length=20
     )
 
-    def __init__(self, dm: int, harga: int):
+    def __init__(self, dm: int, harga: int, label: str = None):
         super().__init__()
         self.dm = dm
         self.harga = harga
+        self.label = label  # Untuk WDP, label menggantikan "X Diamond"
 
     async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
@@ -384,6 +393,27 @@ class FFSelectBesar(discord.ui.Select):
         harga = next(p["harga"] for p in FF_PRODUCTS if p["dm"] == dm)
         await interaction.response.send_modal(FFFormModal(dm=dm, harga=harga))
 
+class WDPSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label=p["label"],
+                description=f"Rp {p['harga']:,}",
+                value=str(p["qty"])
+            ) for p in WDP_PRODUCTS
+        ]
+        super().__init__(
+            placeholder="[MoLe] Pilih Weekly Diamond Pass (WDP)...",
+            options=options,
+            custom_id="ml_select_wdp"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        qty = int(self.values[0])
+        wdp = next(p for p in WDP_PRODUCTS if p["qty"] == qty)
+        await interaction.response.send_modal(MLFormModal(dm=wdp["qty"], harga=wdp["harga"], label=wdp["label"]))
+
+
 class MLBuyView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -392,6 +422,7 @@ class MLBuyView(discord.ui.View):
         ff = _load_ff_products()
         self.add_item(MLSelectKecil(ml))
         self.add_item(MLSelectBesar(ml))
+        self.add_item(WDPSelect())
         self.add_item(FFSelectKecil(ff))
         self.add_item(FFSelectBesar(ff))
 
@@ -484,8 +515,11 @@ class MLStore(commands.Cog):
                 f"Topup diamond dengan harga terjangkau, proses cepat, amanah dan transparan!\n\n"
                 f"**Mobile Legends:**\n"
                 f"Dropdown 1 & 2 — Pilih jumlah DM, isi ID ML + Server ID\n\n"
+                f"**Weekly Diamond Pass (WDP):**\n"
+                f"Dropdown 3 — Pilih paket WDP, isi ID ML + Server ID\n"
+                f"1x WDP = 80 DM langsung + 20 DM/hari selama 7 hari (total 220 DM)\n\n"
                 f"**Free Fire:**\n"
-                f"Dropdown 3 & 4 — Pilih jumlah DM, isi Player ID FF\n\n"
+                f"Dropdown 4 & 5 — Pilih jumlah DM, isi Player ID FF\n\n"
                 f"Metode Pembayaran: **QRIS**"
             ),
             color=0x3498DB
