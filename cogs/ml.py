@@ -171,7 +171,7 @@ class MLFormModal(discord.ui.Modal, title="Topup Mobile Legends"):
             f"Member   : {user.mention}\n"
             f"ID ML    : `{self.id_ml.value.strip()}`\n"
             f"Server   : `{self.server_id.value.strip()}`\n"
-            f"Item     : {self.dm} Diamond\n"
+            f"Item     : {self.label if self.label else f"{self.dm} Diamond"}\n"
             f"Total    : Rp {self.harga:,}\n"
             f"Metode   : QRIS\n"
             f"Status   : Menunggu proses\n"
