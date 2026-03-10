@@ -150,6 +150,15 @@ while true; do
     if [ $EXIT_CODE -eq 0 ]; then
         retries=0
         log OK "Bot restart disengaja (exit 0), counter direset."
+        # Restart admin panel agar kode terbaru aktif
+        if [ -n "$ADMIN_PID" ] && kill -0 $ADMIN_PID 2>/dev/null; then
+            kill $ADMIN_PID 2>/dev/null
+            sleep 1
+        fi
+        log INFO "Restart Admin Panel..."
+        python "$BOT_DIR/admin.py" >> "$BOT_DIR/admin.log" 2>&1 &
+        ADMIN_PID=$!
+        log OK "Admin Panel restart (PID: $ADMIN_PID)"
     else
         retries=$((retries + 1))
         log ERROR "Bot mati! (exit: $EXIT_CODE) — Percobaan $retries/$MAX_RETRIES"
