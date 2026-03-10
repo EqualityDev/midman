@@ -269,28 +269,32 @@ class AIChat(commands.Cog):
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
-                    if resp.status != 200:
+                # Coba semua key satu per satu sampai ada yang berhasil
+                tried = 1  # sudah pakai 1 key di headers awal
+                last_status = None
+                current_key = api_key
+
+                while True:
+                    async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            reply = data["choices"][0]["message"]["content"].strip()
+                            history.append({"role": "assistant", "content": reply})
+                            return reply
                         err = await resp.text()
-                        print(f"[GROQ ERROR] status={resp.status} body={err[:300]}")
-                        history.pop()
-                        if resp.status == 429:
-                            print(f"[GROQ] Key limit, rotasi ke key berikutnya...")
-                            if len(GROQ_KEYS) > 1:
-                                retry_key = _get_next_key()
-                                headers["Authorization"] = f"Bearer {retry_key}"
-                                async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp2:
-                                    if resp2.status == 200:
-                                        data2 = await resp2.json()
-                                        reply2 = data2["choices"][0]["message"]["content"].strip()
-                                        history.append({"role": "assistant", "content": reply2})
-                                        return reply2
-                            return "AI lagi istirahat bentar karena terlalu banyak request 😴 Coba lagi dalam beberapa menit, atau tanya langsung ke admin ya!"
-                        return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
-                    data = await resp.json()
-                    reply = data["choices"][0]["message"]["content"].strip()
-                    history.append({"role": "assistant", "content": reply})
-                    return reply
+                        last_status = resp.status
+                        print(f"[GROQ ERROR] key ke-{tried} status={resp.status} body={err[:200]}")
+                        if resp.status == 429 and tried < len(GROQ_KEYS):
+                            print(f"[GROQ] Rotasi ke key ke-{tried+1}...")
+                            next_key = _get_next_key()
+                            headers["Authorization"] = f"Bearer {next_key}"
+                            tried += 1
+                        else:
+                            # Semua key sudah dicoba atau error bukan 429
+                            history.pop()
+                            if last_status == 429:
+                                return "AI lagi istirahat bentar karena terlalu banyak request 😴 Coba lagi dalam beberapa menit, atau tanya langsung ke admin ya!"
+                            return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
         except Exception as e:
             print(f"[GROQ EXCEPTION] {e}")
             history.pop()
