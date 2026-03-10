@@ -81,9 +81,15 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 
 3. TOPUP MOBILE LEGENDS
    Topup diamond Mobile Legends langsung ke ID.
+   Tersedia 2 jenis item:
+   a) Diamond reguler — berbagai pilihan jumlah diamond, langsung masuk ke akun.
+   b) Weekly Diamond Pass (WDP) — paket langganan diamond mingguan.
+      1x WDP = 80 diamond langsung + 20 diamond/hari selama 7 hari (total 220 diamond).
+      Tersedia: 1x WDP (Rp 29.000), 2x WDP (Rp 57.000), 3x WDP (Rp 86.000).
+      WDP bisa di-stack — makin banyak pass, makin banyak diamond harian.
    Cara order:
    - Pergi ke <#1479619145564950579>
-   - Pilih jumlah diamond dari dropdown
+   - Pilih diamond reguler atau WDP dari dropdown
    - Isi form: ID ML + Server ID (cek di profil ML kamu)
    - Bayar via QRIS
    - Admin proses topup langsung ke akun
