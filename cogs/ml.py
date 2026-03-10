@@ -52,16 +52,23 @@ def load_ml_tickets():
             'last_activity': row['opened_at'],
             'game': row['game'] if row['game'] else 'ML',
             'warned': bool(row['warned']) if row['warned'] is not None else False,
+            'item_label': row['item_label'] if row['item_label'] else f"{row['dm']} Diamond",
         }
     return tickets
 
 def save_ml_ticket(ticket):
     conn = get_conn()
     c = conn.cursor()
+    # Safe migration: tambah kolom item_label kalau belum ada
+    try:
+        c.execute("ALTER TABLE ml_tickets ADD COLUMN item_label TEXT")
+        conn.commit()
+    except Exception:
+        pass
     c.execute('''
         INSERT OR REPLACE INTO ml_tickets
-        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at, game, warned)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (channel_id, user_id, id_ml, server_id, dm, harga, opened_at, game, warned, item_label)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
@@ -72,6 +79,7 @@ def save_ml_ticket(ticket):
         ticket['opened_at'],
         ticket.get('game', 'ML'),
         1 if ticket.get('warned') else 0,
+        ticket.get('item_label', f"{ticket['dm']} Diamond"),
     ))
     conn.commit()
     conn.close()
@@ -337,7 +345,8 @@ class MLSelectBesar(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         dm = int(self.values[0])
-        harga = next(p["harga"] for p in ML_PRODUCTS if p["dm"] == dm)
+        products = _load_ml_products()
+        harga = next((p["harga"] for p in products if p["dm"] == dm), 0)
         await interaction.response.send_modal(MLFormModal(dm=dm, harga=harga))
 
 
@@ -390,7 +399,8 @@ class FFSelectBesar(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         dm = int(self.values[0])
-        harga = next(p["harga"] for p in FF_PRODUCTS if p["dm"] == dm)
+        products = _load_ff_products()
+        harga = next((p["harga"] for p in products if p["dm"] == dm), 0)
         await interaction.response.send_modal(FFFormModal(dm=dm, harga=harga))
 
 class WDPSelect(discord.ui.Select):
@@ -496,6 +506,13 @@ class MLStore(commands.Cog):
     async def before_auto_close(self):
         await self.bot.wait_until_ready()
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+        if message.channel.id in self.active_tickets:
+            self.active_tickets[message.channel.id]["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
     @commands.command(name="mlcatalog")
     async def mlcatalog(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
@@ -590,13 +607,14 @@ class MLStore(commands.Cog):
                 log_embed.color = 0xFF6B35
             else:
                 log_embed.add_field(name="ID ML", value=f"`{ticket['id_ml']}` (Server: `{ticket['server_id']}`)", inline=False)
-            log_embed.add_field(name="Item", value=f"{ticket['dm']} Diamond", inline=False)
+            log_embed.add_field(name="Item", value=ticket.get("item_label", f"{ticket['dm']} Diamond"), inline=False)
             log_embed.add_field(name="Total", value=f"Rp {ticket['harga']:,}", inline=False)
             log_embed.add_field(name="Metode Pembayaran", value="QRIS", inline=False)
             log_embed.set_thumbnail(url=THUMBNAIL)
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
 
+        delete_ml_ticket(channel_id)
         del self.active_tickets[channel_id]
         await ctx.channel.delete()
 
@@ -616,6 +634,7 @@ class MLStore(commands.Cog):
         await ctx.send(embed=embed)
         await asyncio.sleep(5)
 
+        delete_ml_ticket(channel_id)
         del self.active_tickets[channel_id]
         await ctx.channel.delete()
 
