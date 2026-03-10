@@ -5,7 +5,29 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# Rotasi API key — isi GROQ_API_KEY_1 s/d GROQ_API_KEY_5 di .env
+def _load_groq_keys() -> list[str]:
+    keys = []
+    for i in range(1, 6):
+        k = os.getenv(f"GROQ_API_KEY_{i}")
+        if k:
+            keys.append(k)
+    if not keys:
+        k = os.getenv("GROQ_API_KEY")
+        if k:
+            keys.append(k)
+    return keys
+
+GROQ_KEYS = _load_groq_keys()
+_key_index = 0
+
+def _get_next_key() -> str | None:
+    global _key_index
+    if not GROQ_KEYS:
+        return None
+    key = GROQ_KEYS[_key_index % len(GROQ_KEYS)]
+    _key_index += 1
+    return key
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "llama-3.1-8b-instant"
 
@@ -224,8 +246,11 @@ class AIChat(commands.Cog):
             self.histories[user_id] = history
 
 
+        api_key = _get_next_key()
+        if not api_key:
+            return "API key belum diset. Hubungi admin ya!"
         headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
@@ -244,6 +269,16 @@ class AIChat(commands.Cog):
                         print(f"[GROQ ERROR] status={resp.status} body={err[:300]}")
                         history.pop()
                         if resp.status == 429:
+                            print(f"[GROQ] Key limit, rotasi ke key berikutnya...")
+                            if len(GROQ_KEYS) > 1:
+                                retry_key = _get_next_key()
+                                headers["Authorization"] = f"Bearer {retry_key}"
+                                async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp2:
+                                    if resp2.status == 200:
+                                        data2 = await resp2.json()
+                                        reply2 = data2["choices"][0]["message"]["content"].strip()
+                                        history.append({"role": "assistant", "content": reply2})
+                                        return reply2
                             return "AI lagi istirahat bentar karena terlalu banyak request 😴 Coba lagi dalam beberapa menit, atau tanya langsung ke admin ya!"
                         return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
                     data = await resp.json()
