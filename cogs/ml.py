@@ -408,6 +408,9 @@ class MLStore(commands.Cog):
     @tasks.loop(minutes=10)
     async def auto_close_task(self):
         now = datetime.datetime.now(datetime.timezone.utc)
+        guild = self.bot.guilds[0] if self.bot.guilds else None
+        if not guild:
+            return
         for ch_id, ticket in list(self.active_tickets.items()):
             last = ticket.get("last_activity") or ticket.get("opened_at")
             if not last:
@@ -415,11 +418,9 @@ class MLStore(commands.Cog):
             last_dt = datetime.datetime.fromisoformat(last)
             if last_dt.tzinfo is None:
                 last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
-            if (now - last_dt).total_seconds() >= 7200:
-                guild = self.bot.guilds[0] if self.bot.guilds else None
-                if not guild:
-                    continue
-                channel = guild.get_channel(ch_id)
+            elapsed = (now - last_dt).total_seconds()
+            channel = guild.get_channel(ch_id)
+            if elapsed >= 7200:
                 if channel:
                     try:
                         await channel.send(
@@ -433,7 +434,7 @@ class MLStore(commands.Cog):
                         pass
                 delete_ml_ticket(ch_id)
                 self.active_tickets.pop(ch_id, None)
-            elif (now - last_dt).total_seconds() >= 3600 and not ticket.get("warned"):
+            elif elapsed >= 3600 and not ticket.get("warned"):
                 try:
                     warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                     warn_embed.add_field(name="\u200b", value=(

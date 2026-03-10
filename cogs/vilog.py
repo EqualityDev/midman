@@ -166,6 +166,9 @@ class Vilog(commands.Cog):
     @tasks.loop(minutes=10)
     async def auto_close_task(self):
         now = datetime.datetime.now(datetime.timezone.utc)
+        guild = self.bot.guilds[0] if self.bot.guilds else None
+        if not guild:
+            return
         for ch_id, ticket in list(self.active_vilog.items()):
             last = ticket.get("last_activity") or ticket.get("opened_at")
             if not last:
@@ -174,11 +177,8 @@ class Vilog(commands.Cog):
             if last_dt.tzinfo is None:
                 last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
             elapsed = (now - last_dt).total_seconds()
+            channel = guild.get_channel(ch_id)
             if elapsed >= 7200:
-                guild = self.bot.guilds[0] if self.bot.guilds else None
-                if not guild:
-                    continue
-                channel = guild.get_channel(ch_id)
                 if channel:
                     try:
                         await channel.send(
