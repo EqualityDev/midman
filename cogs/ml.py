@@ -23,11 +23,26 @@ def _load_ff_products():
     conn.close()
     return [{"dm": r["dm"], "harga": r["harga"]} for r in rows]
 
-WDP_PRODUCTS = [
-    {"qty": 1, "label": "1x Weekly Diamond Pass", "harga": 29000},
-    {"qty": 2, "label": "2x Weekly Diamond Pass", "harga": 57000},
-    {"qty": 3, "label": "3x Weekly Diamond Pass", "harga": 86000},
-]
+def _load_wdp_products():
+    conn = get_conn()
+    c = conn.cursor()
+    # Buat tabel kalau belum ada + seed default
+    c.execute("""CREATE TABLE IF NOT EXISTS wdp_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        qty INTEGER NOT NULL,
+        label TEXT NOT NULL,
+        harga INTEGER NOT NULL
+    )""")
+    if c.execute("SELECT COUNT(*) FROM wdp_products").fetchone()[0] == 0:
+        c.executemany("INSERT INTO wdp_products (qty, label, harga) VALUES (?,?,?)", [
+            (1, "1x Weekly Diamond Pass", 29000),
+            (2, "2x Weekly Diamond Pass", 57000),
+            (3, "3x Weekly Diamond Pass", 86000),
+        ])
+    conn.commit()
+    rows = c.execute("SELECT qty, label, harga FROM wdp_products ORDER BY qty").fetchall()
+    conn.close()
+    return [{"qty": r["qty"], "label": r["label"], "harga": r["harga"]} for r in rows]
 
 ML_PRODUCTS = _load_ml_products()
 
@@ -405,13 +420,14 @@ class FFSelectBesar(discord.ui.Select):
 
 class WDPSelect(discord.ui.Select):
     def __init__(self):
+        products = _load_wdp_products()
         options = [
             discord.SelectOption(
                 label=p["label"],
                 description=f"Rp {p['harga']:,}",
                 value=str(p["qty"])
-            ) for p in WDP_PRODUCTS
-        ]
+            ) for p in products
+        ] or [discord.SelectOption(label="Tidak ada paket WDP", value="none")]
         super().__init__(
             placeholder="[MoLe] Pilih Weekly Diamond Pass (WDP)...",
             options=options,
@@ -419,8 +435,15 @@ class WDPSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            await interaction.response.send_message("Tidak ada paket WDP tersedia.", ephemeral=True)
+            return
         qty = int(self.values[0])
-        wdp = next(p for p in WDP_PRODUCTS if p["qty"] == qty)
+        products = _load_wdp_products()
+        wdp = next((p for p in products if p["qty"] == qty), None)
+        if not wdp:
+            await interaction.response.send_message("Paket WDP tidak ditemukan.", ephemeral=True)
+            return
         await interaction.response.send_modal(MLFormModal(dm=wdp["qty"], harga=wdp["harga"], label=wdp["label"]))
 
 

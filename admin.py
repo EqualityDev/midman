@@ -276,7 +276,23 @@ def index():
 @login_required
 def page_ml():
     conn = get_conn()
+    # Safe migration: buat tabel wdp_products kalau belum ada
+    conn.execute("""CREATE TABLE IF NOT EXISTS wdp_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        qty INTEGER NOT NULL,
+        label TEXT NOT NULL,
+        harga INTEGER NOT NULL
+    )""")
+    # Seed data default kalau kosong
+    if conn.execute("SELECT COUNT(*) FROM wdp_products").fetchone()[0] == 0:
+        conn.executemany("INSERT INTO wdp_products (qty, label, harga) VALUES (?,?,?)", [
+            (1, "1x Weekly Diamond Pass", 29000),
+            (2, "2x Weekly Diamond Pass", 57000),
+            (3, "3x Weekly Diamond Pass", 86000),
+        ])
+    conn.commit()
     products = conn.execute("SELECT * FROM ml_products ORDER BY dm").fetchall()
+    wdp_products = conn.execute("SELECT * FROM wdp_products ORDER BY qty").fetchall()
     conn.close()
     rows = "".join(f"""<tr>
       <td style="color:var(--muted)">{i+1}</td>
@@ -298,6 +314,56 @@ def page_ml():
   <thead><tr><th>#</th><th>Diamond (DM)</th><th>Harga</th><th>Aksi</th></tr></thead>
   <tbody>{rows}</tbody>
 </table></div>
+<div class="page-header" style="margin-top:2rem;">
+  <div class="page-title" style="font-size:1.2rem;">Weekly Diamond Pass <small>Harga WDP</small></div>
+  <button class="btn btn-primary" onclick="openModal('modal-add-wdp')">+ Tambah WDP</button>
+</div>
+<div class="card"><table>
+  <thead><tr><th>#</th><th>Label</th><th>Qty Pass</th><th>Harga</th><th>Aksi</th></tr></thead>
+  <tbody>WDP_ROWS_PLACEHOLDER</tbody>
+</table></div>
+<div class="modal-overlay" id="modal-add-wdp"><div class="modal">
+  <div class="modal-title">Tambah Paket WDP</div>
+  <form method="post" action="/ml/wdp/add">
+    <div class="form-grid">
+      <div class="form-group"><label>Label</label><input type="text" name="label" placeholder="contoh: 1x Weekly Diamond Pass" required></div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group"><label>Qty Pass</label><input type="number" name="qty" placeholder="contoh: 1" min="1" required></div>
+        <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" placeholder="contoh: 29000" min="1" required></div>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Simpan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-wdp')">Batal</button>
+    </div>
+  </form>
+</div></div>
+<div class="modal-overlay" id="modal-edit-wdp"><div class="modal">
+  <div class="modal-title">Edit Paket WDP</div>
+  <form method="post" action="/ml/wdp/edit">
+    <input type="hidden" name="id" id="edit-wdp-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Label</label><input type="text" name="label" id="edit-wdp-label" required></div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group"><label>Qty Pass</label><input type="number" name="qty" id="edit-wdp-qty" min="1" required></div>
+        <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" id="edit-wdp-harga" min="1" required></div>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Simpan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-wdp')">Batal</button>
+    </div>
+  </form>
+</div></div>
+<script>
+function openEditWDP(id,label,qty,harga){{
+  document.getElementById('edit-wdp-id').value=id;
+  document.getElementById('edit-wdp-label').value=label;
+  document.getElementById('edit-wdp-qty').value=qty;
+  document.getElementById('edit-wdp-harga').value=harga;
+  openModal('modal-edit-wdp');
+}}
+</script>
 <div class="modal-overlay" id="modal-add-ml"><div class="modal">
   <div class="modal-title">Tambah Produk ML</div>
   <form method="post" action="/ml/add">
@@ -333,6 +399,19 @@ function openEditML(id,dm,harga){{
   openModal('modal-edit-ml');
 }}
 </script>"""
+    wdp_rows = "".join(f"""<tr>
+      <td style="color:var(--muted)">{i+1}</td>
+      <td><span class="badge badge-ml">{p['label']}</span></td>
+      <td>{p['qty']}x</td>
+      <td>Rp {p['harga']:,}</td>
+      <td><div style="display:flex;gap:.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditWDP({p['id']},'{p['label']}',{p['qty']},{p['harga']})">Edit</button>
+        <form method="post" action="/ml/wdp/delete/{p['id']}" style="display:inline;" onsubmit="return confirm('Hapus paket WDP ini?')">
+          <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+        </form>
+      </div></td>
+    </tr>""" for i, p in enumerate(wdp_products)) or '<tr><td colspan="5" class="empty">Belum ada paket WDP</td></tr>'
+    content = content.replace("WDP_ROWS_PLACEHOLDER", wdp_rows)
     return render_page(content)
 
 
@@ -377,6 +456,50 @@ def ml_delete(pid):
     conn.execute("DELETE FROM ml_products WHERE id=?", (pid,))
     conn.commit(); conn.close()
     flash("Produk ML berhasil dihapus.", "success")
+    return redirect(url_for("page_ml"))
+
+
+# ── WDP ────────────────────────────────────────────────────────────────────────
+@app.route("/ml/wdp/add", methods=["POST"])
+@login_required
+def wdp_add():
+    qty = safe_int(request.form.get("qty"), min_val=1)
+    label = request.form.get("label", "").strip()
+    harga = safe_int(request.form.get("harga"), min_val=1)
+    if qty is None or not label or harga is None:
+        flash("Input tidak valid.", "error")
+        return redirect(url_for("page_ml"))
+    conn = get_conn()
+    conn.execute("INSERT INTO wdp_products (qty, label, harga) VALUES (?,?,?)", (qty, label, harga))
+    conn.commit(); conn.close()
+    flash(f"Paket WDP {label} berhasil ditambahkan.", "success")
+    return redirect(url_for("page_ml"))
+
+
+@app.route("/ml/wdp/edit", methods=["POST"])
+@login_required
+def wdp_edit():
+    pid = safe_int(request.form.get("id"), min_val=1)
+    qty = safe_int(request.form.get("qty"), min_val=1)
+    label = request.form.get("label", "").strip()
+    harga = safe_int(request.form.get("harga"), min_val=1)
+    if None in (pid, qty, harga) or not label:
+        flash("Input tidak valid.", "error")
+        return redirect(url_for("page_ml"))
+    conn = get_conn()
+    conn.execute("UPDATE wdp_products SET qty=?, label=?, harga=? WHERE id=?", (qty, label, harga, pid))
+    conn.commit(); conn.close()
+    flash("Paket WDP berhasil diupdate.", "success")
+    return redirect(url_for("page_ml"))
+
+
+@app.route("/ml/wdp/delete/<int:pid>", methods=["POST"])
+@login_required
+def wdp_delete(pid):
+    conn = get_conn()
+    conn.execute("DELETE FROM wdp_products WHERE id=?", (pid,))
+    conn.commit(); conn.close()
+    flash("Paket WDP berhasil dihapus.", "success")
     return redirect(url_for("page_ml"))
 
 
