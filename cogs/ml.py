@@ -52,7 +52,7 @@ def load_ml_tickets():
             'last_activity': row['opened_at'],
             'game': row['game'] if row['game'] else 'ML',
             'warned': bool(row['warned']) if row['warned'] is not None else False,
-            'item_label': row['item_label'] if row['item_label'] else f"{row['dm']} Diamond",
+            'item_label': (row['item_label'] if 'item_label' in row.keys() and row['item_label'] else f"{row['dm']} Diamond"),
         }
     return tickets
 
