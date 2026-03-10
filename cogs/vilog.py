@@ -194,6 +194,13 @@ class Vilog(commands.Cog):
                 del self.active_vilog[ch_id]
             elif elapsed >= 3600 and not ticket.get("warned"):
                 try:
+                    old_warn_id = ticket.get("warn_message_id")
+                    if old_warn_id:
+                        try:
+                            old_msg = await channel.fetch_message(old_warn_id)
+                            await old_msg.delete()
+                        except Exception:
+                            pass
                     warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                     warn_embed.add_field(name="\u200b", value=(
                         "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
@@ -203,7 +210,8 @@ class Vilog(commands.Cog):
                     warn_embed.set_footer(text=STORE_NAME)
                     _user = guild.get_member(ticket["user_id"])
                     _mn = _user.mention if _user else ""
-                    await channel.send(content=_mn, embed=warn_embed)
+                    warn_msg = await channel.send(content=_mn, embed=warn_embed)
+                    ticket["warn_message_id"] = warn_msg.id
                 except Exception:
                     pass
                 ticket["warned"] = True

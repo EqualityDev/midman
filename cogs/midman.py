@@ -68,6 +68,13 @@ class Midman(commands.Cog):
                 save_tickets(self.active_tickets)
             elif delta >= 3600 and not ticket.get("warned"):
                 try:
+                    old_warn_id = ticket.get("warn_message_id")
+                    if old_warn_id:
+                        try:
+                            old_msg = await channel.fetch_message(old_warn_id)
+                            await old_msg.delete()
+                        except Exception:
+                            pass
                     warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                     warn_embed.add_field(name="\u200b", value=(
                         "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
@@ -83,7 +90,8 @@ class Midman(commands.Cog):
                         _p2.mention if _p2 else None,
                         _adm.mention if _adm else None,
                     ]))
-                    await channel.send(content=_mn, embed=warn_embed)
+                    warn_msg = await channel.send(content=_mn, embed=warn_embed)
+                    ticket["warn_message_id"] = warn_msg.id
                 except Exception:
                     pass
                 ticket["warned"] = True

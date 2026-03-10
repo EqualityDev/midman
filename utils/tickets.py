@@ -4,14 +4,20 @@ from utils.db import get_conn
 def save_tickets(active_tickets):
     conn = get_conn()
     c = conn.cursor()
+    # Pastikan kolom warned ada (safe migration)
+    try:
+        c.execute('ALTER TABLE tickets ADD COLUMN warned INTEGER DEFAULT 0')
+        conn.commit()
+    except Exception:
+        pass
     c.execute('DELETE FROM tickets')
     for ch_id, t in active_tickets.items():
         c.execute('''
             INSERT INTO tickets (
                 channel_id, pihak1_id, pihak2_id, item_p1, item_p2,
                 fee_final, fee_paid, link_server, admin_id, embed_message_id,
-                ticket_number, opened_at, fee_warning_id, verified_by_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ticket_number, opened_at, fee_warning_id, verified_by_id, warned
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             ch_id,
             t["pihak1"].id if t.get("pihak1") else None,
@@ -27,6 +33,7 @@ def save_tickets(active_tickets):
             t["opened_at"].isoformat() if t.get("opened_at") else None,
             t.get("fee_warning_id"),
             t["verified_by"].id if t.get("verified_by") else None,
+            1 if t.get("warned") else 0,
         ))
     conn.commit()
     conn.close()
@@ -60,4 +67,5 @@ async def load_tickets(guild, active_tickets):
             "opened_at": datetime.datetime.fromisoformat(row["opened_at"]) if row["opened_at"] else None,
             "fee_warning_id": row["fee_warning_id"],
             "verified_by": verified_by,
+            "warned": bool(row["warned"]) if row["warned"] is not None else False,
         }
