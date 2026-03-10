@@ -81,6 +81,7 @@ class Midman(commands.Cog):
                         "Segera ketik `!acc` jika selesai, atau `!batal` jika dibatalkan.\n\n"
                         "Tiket akan otomatis ditutup dalam **1 jam lagi**."
                     ), inline=False)
+                    warn_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     warn_embed.set_footer(text=STORE_NAME)
                     _p1 = ticket.get("pihak1")
                     _p2 = ticket.get("pihak2")

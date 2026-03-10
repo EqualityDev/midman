@@ -500,28 +500,29 @@ class MLStore(commands.Cog):
                 delete_ml_ticket(ch_id)
                 self.active_tickets.pop(ch_id, None)
             elif elapsed >= 3600 and not ticket.get("warned"):
-                try:
-                    # Hapus pesan peringatan lama kalau ada
-                    old_warn_id = ticket.get("warn_message_id")
-                    if old_warn_id:
-                        try:
-                            old_msg = await channel.fetch_message(old_warn_id)
-                            await old_msg.delete()
-                        except Exception:
-                            pass
-                    warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
-                    warn_embed.add_field(name="\u200b", value=(
-                        "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
-                        "Segera ketik `!mlselesai` jika selesai, atau `!mlbatal` jika dibatalkan.\n\n"
-                        "Tiket akan otomatis ditutup dalam **1 jam lagi**."
-                    ), inline=False)
-                    warn_embed.set_footer(text=STORE_NAME)
-                    _user = guild.get_member(ticket["user_id"])
-                    _mn = _user.mention if _user else ""
-                    warn_msg = await channel.send(content=_mn, embed=warn_embed)
-                    ticket["warn_message_id"] = warn_msg.id
-                except Exception:
-                    pass
+                if channel:
+                    try:
+                        old_warn_id = ticket.get("warn_message_id")
+                        if old_warn_id:
+                            try:
+                                old_msg = await channel.fetch_message(old_warn_id)
+                                await old_msg.delete()
+                            except Exception:
+                                pass
+                        warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
+                        warn_embed.add_field(name="\u200b", value=(
+                            "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
+                            "Segera ketik `!mlselesai` jika selesai, atau `!mlbatal` jika dibatalkan.\n\n"
+                            "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                        ), inline=False)
+                        warn_embed.set_thumbnail(url=THUMBNAIL)
+                        warn_embed.set_footer(text=STORE_NAME)
+                        _user = guild.get_member(ticket["user_id"])
+                        _mn = _user.mention if _user else ""
+                        warn_msg = await channel.send(content=_mn, embed=warn_embed)
+                        ticket["warn_message_id"] = warn_msg.id
+                    except Exception:
+                        pass
                 ticket["warned"] = True
                 save_ml_ticket(ticket)
 
