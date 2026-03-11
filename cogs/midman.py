@@ -287,11 +287,9 @@ class Midman(commands.Cog):
         try:
             royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")
             if royal_role:
-                for uid in [ticket.get("pihak1_id"), ticket.get("pihak2_id")]:
-                    if uid:
-                        member = ctx.guild.get_member(uid)
-                        if member and royal_role not in member.roles:
-                            await member.add_roles(royal_role)
+                for m in [ticket.get("pihak1"), ticket.get("pihak2")]:
+                    if m and royal_role not in m.roles:
+                        await m.add_roles(royal_role)
         except Exception as e:
             print(f"[ROLE] Gagal assign Royal Customer: {e}")
         del self.active_tickets[ctx.channel.id]
