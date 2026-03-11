@@ -43,6 +43,10 @@ async def on_ready():
     try:
         from utils.config import GUILD_ID
         guild = discord.Object(id=GUILD_ID)
+        # Hapus global commands
+        bot.tree.clear_commands(guild=None)
+        await bot.tree.sync()
+        # Sync ke guild spesifik
         bot.tree.copy_global_to(guild=guild)
         synced = await bot.tree.sync(guild=guild)
         print(f"[BOT] Synced {len(synced)} slash command(s) to guild {GUILD_ID}")
