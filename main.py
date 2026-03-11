@@ -41,8 +41,11 @@ async def on_ready():
     await asyncio.sleep(8)
 
     try:
-        synced = await bot.tree.sync()
-        print(f"[BOT] Synced {len(synced)} slash command(s)")
+        from utils.config import GUILD_ID
+        guild = discord.Object(id=GUILD_ID)
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"[BOT] Synced {len(synced)} slash command(s) to guild {GUILD_ID}")
     except Exception as e:
         print(f"[BOT] Sync error: {e}")
 
