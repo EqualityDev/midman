@@ -495,6 +495,26 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.add_field(
+            name="CLOUD PHONE & DISCORD NITRO",
+            value=(
+                "`!kirimkatalog_lainnya` — kirim katalog Cloud Phone & Nitro\n"
+                "`!done` — tutup tiket sukses\n"
+                "`!cancel [alasan]` — batalkan tiket"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="SC TB / ASET GAME",
+            value=(
+                "`!kirimkatalog_scaset` — kirim katalog SC/Aset Game\n"
+                "`!additem <nama> <qty> <harga>` — tambah item ke tiket\n"
+                "`!delitem <nomor>` — hapus item dari tiket\n"
+                "`!done` — tutup tiket sukses\n"
+                "`!cancel [alasan]` — batalkan tiket"
+            ),
+            inline=False
+        )
+        embed.add_field(
             name="LAINNYA",
             value=(
                 "`!selfroles` — kirim embed self roles\n"

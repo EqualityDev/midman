@@ -140,6 +140,9 @@ async def main():
         await bot.load_extension("cogs.broadcast")
         await bot.load_extension("cogs.auto_react")
         await bot.load_extension("cogs.server_stats")
+        await bot.load_extension("cogs.lainnya")
+        await bot.load_extension("cogs.scaset")
+        await bot.load_extension("cogs.orders")
 
         await bot.start(TOKEN)
 
