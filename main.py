@@ -40,6 +40,12 @@ async def on_ready():
 
     await asyncio.sleep(8)
 
+    try:
+        synced = await bot.tree.sync()
+        print(f"[BOT] Synced {len(synced)} slash command(s)")
+    except Exception as e:
+        print(f"[BOT] Sync error: {e}")
+
     if not ERROR_LOG_CHANNEL_ID:
 
         return
