@@ -123,6 +123,13 @@ class WelcomeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
+        # Assign role Customer
+        try:
+            role = discord.utils.get(member.guild.roles, name="Customer")
+            if role:
+                await member.add_roles(role)
+        except Exception as e:
+            print(f"[Welcome] Auto role error: {e}")
         await self._send_welcome(member)
 
     @commands.Cog.listener()

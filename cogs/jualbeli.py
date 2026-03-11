@@ -579,6 +579,17 @@ class JualBeli(commands.Cog):
             )
         except Exception as e:
             print(f"[LOG] Gagal log transaksi jualbeli: {e}")
+        # Assign Royal Customer
+        try:
+            royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")
+            if royal_role:
+                for uid in [ticket.get("p1_id"), ticket.get("p2_id")]:
+                    if uid:
+                        member = ctx.guild.get_member(uid)
+                        if member and royal_role not in member.roles:
+                            await member.add_roles(royal_role)
+        except Exception as e:
+            print(f"[ROLE] Gagal assign Royal Customer: {e}")
         delete_jb_ticket(ch_id)
         del self.active_tickets[ch_id]
         await asyncio.sleep(5)
