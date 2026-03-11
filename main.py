@@ -122,6 +122,10 @@ async def main():
 
         await bot.load_extension("cogs.ai_chat")
         await bot.load_extension("cogs.testimoni")
+        await bot.load_extension("cogs.giveaway")
+        await bot.load_extension("cogs.welcome")
+        await bot.load_extension("cogs.broadcast")
+        await bot.load_extension("cogs.auto_react")
 
         await bot.start(TOKEN)
 
