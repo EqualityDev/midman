@@ -66,14 +66,40 @@ BASE = r"""<!DOCTYPE html>
   --sidebar-w:240px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;position:relative;}
+
+/* ── BACKGROUND DECORATIONS ── */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 600px 400px at 80% 10%, rgba(201,168,76,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 10% 80%, rgba(201,168,76,.04) 0%, transparent 70%),
+    radial-gradient(ellipse 300px 200px at 60% 60%, rgba(30,45,71,.5) 0%, transparent 70%);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(201,168,76,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,.03) 1px, transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%);}
+
+/* ── SIDEBAR GLOW ── */
+.sidebar::after{content:'';position:absolute;top:0;right:-1px;width:1px;height:100%;
+  background:linear-gradient(180deg,transparent,rgba(201,168,76,.3) 30%,rgba(201,168,76,.15) 70%,transparent);}
+
+/* ── DECORATIVE DOTS ── */
+.deco-dots{position:fixed;top:0;right:0;width:300px;height:300px;pointer-events:none;z-index:0;opacity:.4;
+  background-image:radial-gradient(circle, rgba(201,168,76,.2) 1px, transparent 1px);
+  background-size:20px 20px;mask-image:radial-gradient(ellipse at top right,black 0%,transparent 70%);}
+
 a{color:var(--gold);text-decoration:none;}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;transition:transform .25s ease;}
-.sidebar-logo{padding:1.5rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;}
-.sidebar-logo img{width:38px;height:38px;border-radius:8px;object-fit:cover;}
+.sidebar{width:var(--sidebar-w);min-height:100vh;
+  background:linear-gradient(180deg,#0c1422 0%,var(--surface) 40%,#0a1018 100%);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;transition:transform .25s ease;position:relative;z-index:200;}
+.sidebar-logo{padding:1.5rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;
+  background:linear-gradient(135deg,rgba(201,168,76,.08),transparent);}
+.sidebar-logo img{width:38px;height:38px;border-radius:8px;object-fit:cover;
+  box-shadow:0 0 16px rgba(201,168,76,.3),0 0 4px rgba(201,168,76,.2);}
 .sidebar-logo-text{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;letter-spacing:.04em;line-height:1.1;}
 .sidebar-logo-text span{display:block;font-size:.65rem;font-weight:400;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;font-family:'Plus Jakarta Sans',sans-serif;}
 .sidebar-nav{flex:1;padding:1rem 0;overflow-y:auto;}
@@ -101,7 +127,7 @@ a{color:var(--gold);text-decoration:none;}
 .sidebar-overlay.active{display:block;}
 
 /* ── MAIN CONTENT ── */
-.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
 .content{flex:1;padding:2rem;}
 
 /* ── PAGE HEADER ── */
@@ -111,15 +137,22 @@ a{color:var(--gold);text-decoration:none;}
 .page-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;}
 
 /* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.25rem;}
-.card-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
-.card-title{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(0,0,0,.2);}
+.card-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(90deg,var(--surface2),var(--surface));position:relative;}
+.card-header::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--gold),var(--gold3));border-radius:0;}
+.card-title{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:.5rem;}
 .card-body{padding:1.25rem;}
 
 /* ── STAT CARDS ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem;}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:border-color .2s;}
-.stat-card:hover{border-color:var(--border2);}
+.stat-card{background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:all .2s;}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.stat-card::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;opacity:.06;}
+.stat-card.ml::before{background:#3498DB;}.stat-card.ff::before{background:#FF6B35;}
+.stat-card.robux::before{background:#E91E63;}.stat-card.vilog::before{background:var(--gold);}
+.stat-card.autopost::before{background:var(--success);}
 .stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
 .stat-card.ml::after{background:linear-gradient(90deg,#3498DB,transparent);}
 .stat-card.ff::after{background:linear-gradient(90deg,#FF6B35,transparent);}
@@ -224,6 +257,9 @@ code{background:var(--surface3);padding:.1rem .4rem;border-radius:4px;font-size:
 </style>
 </head>
 <body>
+<!-- Decorative dots -->
+<div class="deco-dots"></div>
+
 <!-- Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
