@@ -174,6 +174,7 @@ def render_page(content, **ctx):
     <a href="/ff" {"class='active'" if ep=='page_ff' else ""}>FF</a>
     <a href="/robux" {"class='active'" if ep=='page_robux' else ""}>Robux</a>
     <a href="/vilog" {"class='active'" if ep=='page_vilog' else ""}>Vilog</a>
+    <a href="/autopost" {"class='active'" if ep=='page_autopost' else ""}>Autopost</a>
     <a href="/logout" class="nav-logout">Logout</a>
   </div>
 </nav>"""
@@ -884,6 +885,211 @@ def vilog_delete(bid):
     conn.commit(); conn.close()
     flash("Paket Vilog berhasil dihapus.", "success")
     return redirect(url_for("page_vilog"))
+
+
+# ── AUTOPOST ──────────────────────────────────────────────────────────────────
+
+def _ensure_autopost_table():
+    conn = get_conn()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS autopost_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            message TEXT NOT NULL,
+            interval_minutes INTEGER NOT NULL DEFAULT 60,
+            active INTEGER NOT NULL DEFAULT 1,
+            last_sent TEXT DEFAULT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_ensure_autopost_table()
+
+
+@app.route("/autopost")
+@login_required
+def page_autopost():
+    conn = get_conn()
+    tasks = conn.execute("SELECT * FROM autopost_tasks ORDER BY id DESC").fetchall()
+    conn.close()
+    rows = ""
+    for t in tasks:
+        status = "<span style='color:#2ECC71'>Aktif</span>" if t["active"] else "<span style='color:#E74C3C'>Nonaktif</span>"
+        last = t["last_sent"] or "-"
+        rows += f"""<tr>
+            <td>{t['id']}</td>
+            <td>{t['label']}</td>
+            <td><code>{t['channel_id']}</code></td>
+            <td style='max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{t['message']}</td>
+            <td>{t['interval_minutes']} menit</td>
+            <td>{status}</td>
+            <td style='font-size:12px'>{last}</td>
+            <td>
+                <form method='post' action='/autopost/toggle/{t['id']}' style='display:inline'>
+                    <button class='btn {"btn-danger" if t["active"] else "btn-success"}' style='padding:4px 10px;font-size:12px'>
+                        {"Nonaktifkan" if t["active"] else "Aktifkan"}
+                    </button>
+                </form>
+                <button class='btn btn-warning' style='padding:4px 10px;font-size:12px'
+                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]})'>
+                    Edit
+                </button>
+                <form method='post' action='/autopost/delete/{t["id"]}' style='display:inline'
+                    onsubmit='return confirm("Hapus task ini?")'>
+                    <button class='btn btn-danger' style='padding:4px 10px;font-size:12px'>Hapus</button>
+                </form>
+            </td>
+        </tr>"""
+    if not rows:
+        rows = "<tr><td colspan='8' style='text-align:center;color:#888'>Belum ada task autopost.</td></tr>"
+
+    content = f"""
+    <div class='card'>
+        <h2>Autopost</h2>
+        <p style='color:#aaa;font-size:13px'>Pesan dikirim otomatis ke channel Discord dengan interval tertentu menggunakan user token.</p>
+        <button class='btn btn-success' onclick="document.getElementById('addForm').style.display='block'">+ Tambah Task</button>
+    </div>
+
+    <div class='card' id='addForm' style='display:none'>
+        <h3>Tambah Task Baru</h3>
+        <form method='post' action='/autopost/add'>
+            <div class='form-group'>
+                <label>Label (nama task)</label>
+                <input type='text' name='label' class='form-control' placeholder='Contoh: Promo Robux' required>
+            </div>
+            <div class='form-group'>
+                <label>Channel ID</label>
+                <input type='text' name='channel_id' class='form-control' placeholder='123456789012345678' required>
+            </div>
+            <div class='form-group'>
+                <label>Pesan</label>
+                <textarea name='message' class='form-control' rows='5' placeholder='Isi pesan yang akan dikirim...' required></textarea>
+            </div>
+            <div class='form-group'>
+                <label>Interval (menit)</label>
+                <input type='number' name='interval_minutes' class='form-control' value='60' min='1' required>
+            </div>
+            <button type='submit' class='btn btn-success'>Simpan</button>
+            <button type='button' class='btn' onclick="document.getElementById('addForm').style.display='none'">Batal</button>
+        </form>
+    </div>
+
+    <div class='card' id='editForm' style='display:none'>
+        <h3>Edit Task</h3>
+        <form method='post' action='/autopost/edit'>
+            <input type='hidden' name='id' id='editId'>
+            <div class='form-group'>
+                <label>Label</label>
+                <input type='text' name='label' id='editLabel' class='form-control' required>
+            </div>
+            <div class='form-group'>
+                <label>Channel ID</label>
+                <input type='text' name='channel_id' id='editChannel' class='form-control' required>
+            </div>
+            <div class='form-group'>
+                <label>Pesan</label>
+                <textarea name='message' id='editMessage' class='form-control' rows='5' required></textarea>
+            </div>
+            <div class='form-group'>
+                <label>Interval (menit)</label>
+                <input type='number' name='interval_minutes' id='editInterval' class='form-control' min='1' required>
+            </div>
+            <button type='submit' class='btn btn-success'>Simpan</button>
+            <button type='button' class='btn' onclick="document.getElementById('editForm').style.display='none'">Batal</button>
+        </form>
+    </div>
+
+    <div class='card'>
+        <h3>Daftar Task</h3>
+        <div style='overflow-x:auto'>
+            <table>
+                <thead><tr>
+                    <th>ID</th><th>Label</th><th>Channel ID</th><th>Pesan</th>
+                    <th>Interval</th><th>Status</th><th>Terakhir Kirim</th><th>Aksi</th>
+                </tr></thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    function openEdit(id, label, channel, message, interval) {{
+        document.getElementById('editId').value = id;
+        document.getElementById('editLabel').value = label;
+        document.getElementById('editChannel').value = channel;
+        document.getElementById('editMessage').value = message;
+        document.getElementById('editInterval').value = interval;
+        document.getElementById('editForm').style.display = 'block';
+        document.getElementById('editForm').scrollIntoView({{behavior:'smooth'}});
+    }}
+    </script>
+    """
+    return render_page(content)
+
+
+@app.route("/autopost/add", methods=["POST"])
+@login_required
+def autopost_add():
+    label = request.form.get("label", "").strip()
+    channel_id = request.form.get("channel_id", "").strip()
+    message = request.form.get("message", "").strip()
+    interval = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    if not label or not channel_id or not message:
+        flash("Semua field wajib diisi.", "error")
+        return redirect(url_for("page_autopost"))
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO autopost_tasks (label, channel_id, message, interval_minutes, active) VALUES (?,?,?,?,1)",
+        (label, channel_id, message, interval)
+    )
+    conn.commit(); conn.close()
+    flash(f"Task '{label}' berhasil ditambahkan.", "success")
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/edit", methods=["POST"])
+@login_required
+def autopost_edit():
+    tid = safe_int(request.form.get("id"))
+    label = request.form.get("label", "").strip()
+    channel_id = request.form.get("channel_id", "").strip()
+    message = request.form.get("message", "").strip()
+    interval = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    if not tid or not label or not channel_id or not message:
+        flash("Semua field wajib diisi.", "error")
+        return redirect(url_for("page_autopost"))
+    conn = get_conn()
+    conn.execute(
+        "UPDATE autopost_tasks SET label=?, channel_id=?, message=?, interval_minutes=? WHERE id=?",
+        (label, channel_id, message, interval, tid)
+    )
+    conn.commit(); conn.close()
+    flash("Task berhasil diupdate.", "success")
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/toggle/<int:tid>", methods=["POST"])
+@login_required
+def autopost_toggle(tid):
+    conn = get_conn()
+    task = conn.execute("SELECT active FROM autopost_tasks WHERE id=?", (tid,)).fetchone()
+    if task:
+        conn.execute("UPDATE autopost_tasks SET active=? WHERE id=?", (0 if task["active"] else 1, tid))
+        conn.commit()
+    conn.close()
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/delete/<int:tid>", methods=["POST"])
+@login_required
+def autopost_delete(tid):
+    conn = get_conn()
+    conn.execute("DELETE FROM autopost_tasks WHERE id=?", (tid,))
+    conn.commit(); conn.close()
+    flash("Task berhasil dihapus.", "success")
+    return redirect(url_for("page_autopost"))
 
 
 if __name__ == "__main__":
