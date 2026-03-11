@@ -1,6 +1,6 @@
 # Midman Bot — Cellyn Store Community
 
-Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire, AI customer service, selfroles, dan admin panel berbasis web.
+Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), AI customer service, selfroles, autopost, dan admin panel berbasis web.
 
 ---
 
@@ -10,10 +10,11 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Midman Jual Beli** — tiket perantara jual beli, admin tahan uang pembeli sampai item konfirmasi oke
 - **Vilog** — boost server Roblox via login dengan pilihan paket
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
-- **ML & FF Topup** — topup diamond Mobile Legends dan Free Fire
-- **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API
+- **ML & FF Topup** — topup diamond Mobile Legends, Free Fire, dan Weekly Diamond Pass (WDP)
+- **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API (rotasi hingga 5 API key)
 - **Selfroles** — self-assignable roles via Discord
-- **Admin Panel Web** — kelola produk ML/FF/Robux/Vilog via browser dari mana saja
+- **Autopost** — kirim pesan promosi/pengumuman ke channel manapun secara otomatis berdasarkan interval
+- **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Vilog dan task autopost via browser dari mana saja
 - **Auto-restart** — bot restart otomatis jika crash (max 5x)
 - **Warning & Auto-close** — tiket tidak aktif 1 jam dapat peringatan, 2 jam ditutup otomatis
 - **Notifikasi URL Admin** — URL Cloudflare Tunnel dikirim ke channel admin setiap bot online
@@ -26,6 +27,7 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - Termux (Android) atau Linux
 - Akun Discord + Bot Token
 - Akun Groq (gratis) untuk fitur AI CS
+- User Token Discord untuk fitur Autopost
 
 ---
 
@@ -64,6 +66,7 @@ bash start.sh
 - Init database SQLite
 - Seed data produk default jika DB kosong
 - Jalankan admin panel di port 5000
+- Jalankan autopost script di background
 - Install cloudflared jika belum ada
 - Jalankan Cloudflare Tunnel (URL dikirim ke Discord)
 - Jalankan bot dengan auto-restart
@@ -93,7 +96,12 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `AI_CHANNEL_ID` | ID channel AI customer service |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
-| `GEMINI_API_KEY=` | API key Gemini untuk fitur AI CS |
+| `GROQ_API_KEY_1` | API key Groq utama untuk fitur AI CS |
+| `GROQ_API_KEY_2` | API key Groq cadangan ke-2 (opsional) |
+| `GROQ_API_KEY_3` | API key Groq cadangan ke-3 (opsional) |
+| `GROQ_API_KEY_4` | API key Groq cadangan ke-4 (opsional) |
+| `GROQ_API_KEY_5` | API key Groq cadangan ke-5 (opsional) |
+| `AUTOPOST_TOKEN` | User token Discord untuk fitur autopost |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
@@ -112,12 +120,27 @@ Akses: buka URL yang dikirim bot di channel error log → login dengan `ADMIN_PA
 
 **Fitur:**
 - **Dashboard** — ringkasan produk aktif + update rate Robux
-- **ML** — tambah, edit, hapus produk Mobile Legends
+- **ML** — tambah, edit, hapus produk Mobile Legends + Weekly Diamond Pass (WDP)
 - **FF** — tambah, edit, hapus produk Free Fire
 - **Robux** — tambah, edit, nonaktifkan/aktifkan, hapus item + tambah kategori baru
 - **Vilog** — tambah, edit, nonaktifkan/aktifkan, hapus paket boost
+- **Autopost** — tambah, edit, hapus, aktifkan/nonaktifkan task autopost
 
 Perubahan produk via web langsung berlaku ke bot tanpa restart.
+
+---
+
+## Autopost
+
+Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis berdasarkan interval waktu.
+
+**Cara pakai:**
+1. Buka admin panel → menu **Autopost**
+2. Klik **+ Tambah Task**
+3. Isi label, channel ID tujuan, isi pesan, dan interval (dalam menit)
+4. Simpan — pesan akan terkirim otomatis sesuai interval
+
+> Autopost menggunakan user token (`AUTOPOST_TOKEN`), bukan bot token. Bisa mengirim ke channel di server manapun selama akun tersebut adalah member dan punya izin kirim pesan di channel tersebut.
 
 ---
 
@@ -156,7 +179,7 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 ### ML & FF Topup
 | Command | Fungsi |
 |---|---|
-| `!mlcatalog` | Kirim embed catalog ML/FF |
+| `!mlcatalog` | Kirim embed catalog ML/FF/WDP |
 | `!mlselesai` | Konfirmasi topup selesai |
 | `!mlbatal [alasan]` | Batalkan tiket ML/FF |
 
@@ -206,7 +229,7 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 5. Admin ketik `!gift` untuk tutup tiket
 
 ### ML & FF Topup
-1. Member pilih diamond di channel catalog ML
+1. Member pilih diamond / WDP di channel catalog ML
 2. Isi form: ID ML + Server ID (untuk ML) atau Player ID (untuk FF)
 3. Bayar via QRIS
 4. Admin proses topup, ketik `!mlselesai`
@@ -219,6 +242,7 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 midman/
 ├── main.py               # Entry point bot + notifikasi URL tunnel
 ├── admin.py              # Flask admin panel (port 5000)
+├── autopost.py           # Script autopost background (pakai user token)
 ├── seed.py               # Seed data produk default ke DB
 ├── start.sh              # Auto-start semua service
 ├── requirements.txt
@@ -237,9 +261,11 @@ midman/
     ├── jualbeli.py       # Midman jual beli
     ├── vilog.py          # Boost via login
     ├── robux.py          # Robux store
-    ├── ml.py             # Topup ML & FF
-    ├── ai_chat.py        # AI customer service
+    ├── ml.py             # Topup ML, FF & WDP
+    ├── ai_chat.py        # AI customer service (Groq, rotasi 5 key)
     ├── selfroles.py      # Self-assignable roles
+    ├── testimoni.py      # Auto-reply channel testimoni
+    ├── nickname_enforcer.py  # Auto-enforce suffix nama
     ├── views.py          # Persistent views & embeds
     └── modals.py         # Modal forms
 ```
@@ -252,6 +278,7 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 
 **Tabel produk** (di-seed dari `seed.py`):
 - `ml_products` — produk Mobile Legends
+- `wdp_products` — paket Weekly Diamond Pass
 - `ff_products` — produk Free Fire
 - `robux_products` — item Robux per kategori
 - `vilog_boosts` — paket boost vilog
@@ -264,6 +291,9 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `ml_tickets` — tiket ML & FF
 - `robux_rate` — rate Robux saat ini
 - `bot_state` — state bot (embed message ID, dll)
+
+**Tabel lainnya:**
+- `autopost_tasks` — task autopost (label, channel ID, pesan, interval, status)
 
 ---
 
@@ -283,9 +313,10 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 
 1. Daftar di https://console.groq.com
 2. Buat API key baru
-3. Isi di `.env` → `GROQ_API_KEY=your_key_here`
+3. Isi di `.env` → `GROQ_API_KEY_1=your_key_here`
 
 Limit gratis: 30 request/menit, 14.400 request/hari, 500.000 token/hari.
+Untuk menghindari rate limit, daftarkan hingga 5 akun Groq dan isi semua `GROQ_API_KEY_1` sampai `GROQ_API_KEY_5`.
 
 ---
 
