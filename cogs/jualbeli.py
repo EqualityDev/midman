@@ -404,16 +404,12 @@ class JBAdminSetupView(discord.ui.View):
 class JualBeli(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.active_tickets: dict = {}
+        self.active_tickets: dict = load_jb_tickets()
         self.auto_close_loop.start()
+        print(f"Cog JualBeli siap. ({len(self.active_tickets)} tiket dimuat)")
 
     def cog_unload(self):
         self.auto_close_loop.cancel()
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.active_tickets = load_jb_tickets()
-        print(f"Cog JualBeli siap. ({len(self.active_tickets)} tiket dimuat)")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -442,6 +438,7 @@ class JualBeli(commands.Cog):
             diff = (now - last_dt).total_seconds() / 60
             channel = self.bot.get_channel(ch_id)
             if not channel:
+                delete_jb_ticket(ch_id)
                 to_close.append(ch_id)
                 continue
             if diff >= 120:
@@ -450,17 +447,28 @@ class JualBeli(commands.Cog):
             elif diff >= 60 and not ticket.get("warned"):
                 ticket["warned"] = 1
                 save_jb_ticket(ticket)
-                warn = discord.Embed(title="⚠️ Peringatan Tiket Tidak Aktif", color=0xFFA500)
+                # Hapus pesan peringatan lama kalau ada
+                old_warn_id = ticket.get("warn_message_id")
+                if old_warn_id:
+                    try:
+                        old_msg = await channel.fetch_message(old_warn_id)
+                        await old_msg.delete()
+                    except Exception:
+                        pass
+                warn = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                 warn.add_field(name="\u200b", value=(
-                    "Tiket ini tidak ada aktivitas selama **1 jam**.\n"
+                    "Tiket ini tidak ada aktivitas selama **1 jam**.\n\n"
                     "Jika tidak ada aktivitas dalam 1 jam ke depan, tiket akan **otomatis ditutup**."
                 ), inline=False)
+                warn.set_thumbnail(url=THUMBNAIL)
                 warn.set_footer(text=STORE_NAME)
                 guild = channel.guild
                 p1 = guild.get_member(ticket["p1_id"])
                 p2 = guild.get_member(ticket["p2_id"]) if ticket.get("p2_id") else None
                 mentions = " ".join(filter(None, [p1.mention if p1 else None, p2.mention if p2 else None]))
-                await channel.send(content=mentions or None, embed=warn)
+                warn_msg = await channel.send(content=mentions or None, embed=warn)
+                ticket["warn_message_id"] = warn_msg.id
+                save_jb_ticket(ticket)
         for ch_id in to_close:
             self.active_tickets.pop(ch_id, None)
 
@@ -472,6 +480,7 @@ class JualBeli(commands.Cog):
         try:
             e = discord.Embed(title="Tiket Ditutup Otomatis", color=COLOR_BATAL)
             e.add_field(name="Alasan", value=alasan, inline=False)
+            e.set_thumbnail(url=THUMBNAIL)
             e.set_footer(text=STORE_NAME)
             await channel.send(embed=e)
             await asyncio.sleep(3)
