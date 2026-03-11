@@ -27,7 +27,7 @@ fi
 STORE_NAME_ENV=$(grep -E "^STORE_NAME=" "$BOT_DIR/.env" 2>/dev/null | cut -d '=' -f2- | tr -d '"' | tr -d "'")
 [ -z "$STORE_NAME_ENV" ] && STORE_NAME_ENV="Cellyn Store"
 
-trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; [ -n "$ADMIN_PID" ] && kill $ADMIN_PID 2>/dev/null; [ -n "$CF_PID" ] && kill $CF_PID 2>/dev/null; exit 0' SIGINT SIGTERM
+trap 'MANUAL_STOP=1; echo -e "\n${YELLOW}  Dihentikan manual.${NC}"; [ -n "$ADMIN_PID" ] && kill $ADMIN_PID 2>/dev/null; [ -n "$AUTOPOST_PID" ] && kill $AUTOPOST_PID 2>/dev/null; [ -n "$CF_PID" ] && kill $CF_PID 2>/dev/null; exit 0' SIGINT SIGTERM
 
 log() {
     local level="$1"
@@ -109,6 +109,14 @@ python "$BOT_DIR/admin.py" >> "$BOT_DIR/admin.log" 2>&1 &
 ADMIN_PID=$!
 log OK "Admin Panel berjalan (PID: $ADMIN_PID)"
 
+# ── AUTOPOST ──────────────────────────────────────────────────────
+if [ -f "$BOT_DIR/autopost.py" ]; then
+    log INFO "Memulai Autopost..."
+    python "$BOT_DIR/autopost.py" >> "$BOT_DIR/autopost.log" 2>&1 &
+    AUTOPOST_PID=$!
+    log OK "Autopost berjalan (PID: $AUTOPOST_PID)"
+fi
+
 # ── CLOUDFLARE TUNNEL ─────────────────────────────────────────────
 if ! command -v cloudflared &> /dev/null; then
     log WARN "cloudflared tidak ditemukan. Menginstall..."
@@ -159,6 +167,17 @@ while true; do
         python "$BOT_DIR/admin.py" >> "$BOT_DIR/admin.log" 2>&1 &
         ADMIN_PID=$!
         log OK "Admin Panel restart (PID: $ADMIN_PID)"
+        # Restart autopost
+        if [ -f "$BOT_DIR/autopost.py" ]; then
+            if [ -n "$AUTOPOST_PID" ] && kill -0 $AUTOPOST_PID 2>/dev/null; then
+                kill $AUTOPOST_PID 2>/dev/null
+                sleep 1
+            fi
+            log INFO "Restart Autopost..."
+            python "$BOT_DIR/autopost.py" >> "$BOT_DIR/autopost.log" 2>&1 &
+            AUTOPOST_PID=$!
+            log OK "Autopost restart (PID: $AUTOPOST_PID)"
+        fi
     else
         retries=$((retries + 1))
         log ERROR "Bot mati! (exit: $EXIT_CODE) — Percobaan $retries/$MAX_RETRIES"
