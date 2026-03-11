@@ -59,7 +59,6 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 1. ROBUX STORE
    Jual item Roblox. Kategori: GAMEPASS, CRATE, BOOST, LIMITED ITEM.
    Harga = jumlah Robux x rate yang berlaku.
-   TOPUP ROBUX VIA GAMEPASS: metode beli Robux langsung via pembelian gamepass — ini belum tersedia saat ini, masih dalam rencana dan akan segera hadir di Cellyn. Kalau ada yang nanya, bilang 'coming soon, nantikan aja'.
    Harga = jumlah Robux × rate yang berlaku (rate bisa berubah sewaktu-waktu).
    Cara order:
    - Pergi ke <#1479386215080792097>
@@ -302,7 +301,7 @@ class AIChat(commands.Cog):
                             # Semua key sudah dicoba atau error bukan 429
                             history.pop()
                             if last_status == 429:
-                                return "AI lagi istirahat bentar karena terlalu banyak request 😴 Coba lagi dalam beberapa menit, atau tanya langsung ke admin ya!"
+                                return "tunggu bentaran, harus satu satu nanya nya jirr🤬"
                             return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
         except Exception as e:
             print(f"[GROQ EXCEPTION] {e}")
