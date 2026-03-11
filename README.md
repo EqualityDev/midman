@@ -96,6 +96,8 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `AI_CHANNEL_ID` | ID channel AI customer service |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
+| `TESTIMONI_CHANNEL_ID` | ID channel testimoni |
+| `CELLYN_TEAM_ROLE_ID` | ID role Cellyn Team (untuk nickname enforcer) |
 | `GROQ_API_KEY_1` | API key Groq utama untuk fitur AI CS |
 | `GROQ_API_KEY_2` | API key Groq cadangan ke-2 (opsional) |
 | `GROQ_API_KEY_3` | API key Groq cadangan ke-3 (opsional) |

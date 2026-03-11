@@ -324,6 +324,12 @@ class Midman(commands.Cog):
                 return
 
         await ctx.send("Mengunduh update dari GitHub...")
+        # Backup DB sebelum update
+        try:
+            from utils.backup import do_backup
+            await do_backup(self.bot, BACKUP_CHANNEL_ID)
+        except Exception as _be:
+            print(f"[UPDATE] Backup sebelum update gagal: {_be}")
         # Simpan commit hash sebelum pull
         hash_proc = await asyncio.create_subprocess_shell(
             "git rev-parse HEAD",

@@ -25,9 +25,21 @@ def init_db():
             ticket_number     INTEGER,
             opened_at         TEXT,
             fee_warning_id    INTEGER,
-            verified_by_id    INTEGER
+            verified_by_id    INTEGER,
+            warned            INTEGER DEFAULT 0,
+            warn_message_id   INTEGER,
+            last_activity     TEXT
         )
     ''')
+    for col, defval in [
+        ('warned', 'INTEGER DEFAULT 0'),
+        ('warn_message_id', 'INTEGER'),
+        ('last_activity', 'TEXT'),
+    ]:
+        try:
+            c.execute(f'ALTER TABLE tickets ADD COLUMN {col} {defval}')
+        except Exception:
+            pass
     c.execute('''
         CREATE TABLE IF NOT EXISTS counter (
             id    INTEGER PRIMARY KEY DEFAULT 1,
@@ -47,13 +59,20 @@ def init_db():
             nominal         INTEGER,
             admin_id        INTEGER,
             opened_at       TEXT,
-            warned          INTEGER DEFAULT 0
+            warned          INTEGER DEFAULT 0,
+            warn_message_id INTEGER,
+            last_activity   TEXT
         )
     ''')
-    try:
-        c.execute('ALTER TABLE vilog_tickets ADD COLUMN warned INTEGER DEFAULT 0')
-    except Exception:
-        pass
+    for col, defval in [
+        ('warned', 'INTEGER DEFAULT 0'),
+        ('warn_message_id', 'INTEGER'),
+        ('last_activity', 'TEXT'),
+    ]:
+        try:
+            c.execute(f'ALTER TABLE vilog_tickets ADD COLUMN {col} {defval}')
+        except Exception:
+            pass
     c.execute('''
         CREATE TABLE IF NOT EXISTS robux_rate (
             id    INTEGER PRIMARY KEY DEFAULT 1,
@@ -75,13 +94,20 @@ def init_db():
             paid        INTEGER DEFAULT 0,
             admin_id    INTEGER,
             opened_at   TEXT,
-            warned      INTEGER DEFAULT 0
+            warned      INTEGER DEFAULT 0,
+            warn_message_id INTEGER,
+            last_activity   TEXT
         )
     ''')
-    try:
-        c.execute('ALTER TABLE robux_tickets ADD COLUMN warned INTEGER DEFAULT 0')
-    except Exception:
-        pass
+    for col, defval in [
+        ('warned', 'INTEGER DEFAULT 0'),
+        ('warn_message_id', 'INTEGER'),
+        ('last_activity', 'TEXT'),
+    ]:
+        try:
+            c.execute(f'ALTER TABLE robux_tickets ADD COLUMN {col} {defval}')
+        except Exception:
+            pass
     c.execute('''
         CREATE TABLE IF NOT EXISTS bot_state (
             key   TEXT PRIMARY KEY,
@@ -90,25 +116,31 @@ def init_db():
     ''')
     c.execute('''
         CREATE TABLE IF NOT EXISTS ml_tickets (
-            channel_id  INTEGER PRIMARY KEY,
-            user_id     INTEGER,
-            id_ml       TEXT,
-            server_id   TEXT,
-            dm          INTEGER,
-            harga       INTEGER,
-            opened_at   TEXT,
-            game        TEXT DEFAULT 'ML',
-            warned      INTEGER DEFAULT 0
+            channel_id      INTEGER PRIMARY KEY,
+            user_id         INTEGER,
+            id_ml           TEXT,
+            server_id       TEXT,
+            dm              INTEGER,
+            harga           INTEGER,
+            opened_at       TEXT,
+            game            TEXT DEFAULT 'ML',
+            warned          INTEGER DEFAULT 0,
+            item_label      TEXT,
+            warn_message_id INTEGER,
+            last_activity   TEXT
         )
     ''')
-    try:
-        c.execute("ALTER TABLE ml_tickets ADD COLUMN game TEXT DEFAULT 'ML'")
-    except Exception:
-        pass
-    try:
-        c.execute('ALTER TABLE ml_tickets ADD COLUMN warned INTEGER DEFAULT 0')
-    except Exception:
-        pass
+    for col, defval in [
+        ('game', "TEXT DEFAULT 'ML'"),
+        ('warned', 'INTEGER DEFAULT 0'),
+        ('item_label', 'TEXT'),
+        ('warn_message_id', 'INTEGER'),
+        ('last_activity', 'TEXT'),
+    ]:
+        try:
+            c.execute(f'ALTER TABLE ml_tickets ADD COLUMN {col} {defval}')
+        except Exception:
+            pass
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS ml_products (
@@ -153,7 +185,38 @@ def init_db():
             admin_id        INTEGER,
             opened_at       TEXT,
             warned          INTEGER DEFAULT 0,
-            status          TEXT DEFAULT 'menunggu_admin'
+            status          TEXT DEFAULT 'menunggu_admin',
+            last_activity   TEXT,
+            warn_message_id INTEGER,
+            embed_message_id INTEGER
+        )
+    ''')
+    for col, defval in [
+        ('warned', 'INTEGER DEFAULT 0'),
+        ('last_activity', 'TEXT'),
+        ('warn_message_id', 'INTEGER'),
+        ('embed_message_id', 'INTEGER'),
+    ]:
+        try:
+            c.execute(f'ALTER TABLE jb_tickets ADD COLUMN {col} {defval}')
+        except Exception:
+            pass
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS wdp_products (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            jumlah  INTEGER NOT NULL,
+            harga   INTEGER NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS autopost_tasks (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            label             TEXT NOT NULL,
+            channel_id        TEXT NOT NULL,
+            message           TEXT NOT NULL,
+            interval_minutes  INTEGER NOT NULL DEFAULT 60,
+            active            INTEGER NOT NULL DEFAULT 1,
+            last_sent         TEXT DEFAULT NULL
         )
     ''')
     conn.commit()
