@@ -139,6 +139,7 @@ async def main():
         await bot.load_extension("cogs.welcome")
         await bot.load_extension("cogs.broadcast")
         await bot.load_extension("cogs.auto_react")
+        await bot.load_extension("cogs.server_stats")
 
         await bot.start(TOKEN)
 
