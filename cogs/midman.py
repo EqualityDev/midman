@@ -32,6 +32,7 @@ class Midman(commands.Cog):
     @auto_backup.before_loop
     async def before_auto_backup(self):
         await self.bot.wait_until_ready()
+        await asyncio.sleep(6 * 3600)  # skip backup saat startup, tunggu 6 jam dulu
 
     @tasks.loop(minutes=10)
     async def ticket_timeout_check(self):
