@@ -37,7 +37,7 @@ def get_ai_channel_id():
     except Exception:
         return 0
 
-COOLDOWN_SECONDS = 4      # jeda antar pesan per user
+COOLDOWN_SECONDS = 1      # jeda antar pesan per user
 MAX_HISTORY = 10          # maksimal pesan history per user (user+bot = 1 pasang)
 
 SYSTEM_PROMPT = """Kamu adalah CS bot Cellyn Store, toko digital yang jual produk game di Discord. Gaya jawabmu santai, singkat, to the point — kayak orang chat biasa, bukan robot kaku. Pakai bahasa gaul Indonesia yang wajar. Kalau tidak tahu atau tidak yakin, jujur aja dan suruh tanya admin langsung.
