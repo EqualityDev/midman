@@ -55,135 +55,124 @@ BASE = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cellyn Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d0f18;--surface:#12151f;--surface2:#181c2a;--surface3:#1f2437;
-  --border:#232840;--border2:#2d3352;
-  --accent:#7c5cbf;--accent2:#9b7de0;--accent-bg:rgba(124,92,191,.15);
-  --text:#e2e4f0;--muted:#5a6080;--muted2:#8892b0;
-  --danger:#e05555;--success:#3dbf82;--warning:#e09440;--info:#3a9fd6;
-  --sidebar-w:220px;
+  --bg:#080c14;--surface:#0e1420;--surface2:#141c2e;--surface3:#1a2438;
+  --border:#1e2d47;--border2:#253550;
+  --gold:#c9a84c;--gold2:#e8c96a;--gold3:#a07830;
+  --text:#e8eaf0;--muted:#6a7a95;--muted2:#8a9ab5;
+  --danger:#e05555;--success:#4dbb8a;--warning:#e09440;
+  --sidebar-w:240px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:14px;}
-a{color:var(--accent2);text-decoration:none;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+a{color:var(--gold);text-decoration:none;}
 
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);
   display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;transition:transform .25s ease;}
-.sidebar-logo{padding:1.25rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.7rem;}
-.sidebar-logo img{width:36px;height:36px;border-radius:10px;object-fit:cover;}
-.sidebar-logo-text{font-size:.95rem;font-weight:700;letter-spacing:.01em;line-height:1.2;}
-.sidebar-logo-text span{display:block;font-size:.6rem;font-weight:400;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;margin-top:.1rem;}
-.sidebar-nav{flex:1;padding:.75rem .75rem;overflow-y:auto;}
-.nav-section{padding:.5rem .5rem .25rem;font-size:.62rem;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:.5rem;}
-.nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;color:var(--muted2);font-size:.82rem;font-weight:500;
-  transition:all .15s;cursor:pointer;border-radius:8px;margin:2px 0;}
-.nav-item:hover{color:var(--text);background:var(--surface2);}
-.nav-item.active{color:#fff;background:var(--accent);box-shadow:0 4px 12px rgba(124,92,191,.35);}
-.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.sidebar-logo{padding:1.5rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;}
+.sidebar-logo img{width:38px;height:38px;border-radius:8px;object-fit:cover;}
+.sidebar-logo-text{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;letter-spacing:.04em;line-height:1.1;}
+.sidebar-logo-text span{display:block;font-size:.65rem;font-weight:400;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;font-family:'Plus Jakarta Sans',sans-serif;}
+.sidebar-nav{flex:1;padding:1rem 0;overflow-y:auto;}
+.nav-section{padding:.35rem 1.25rem;font-size:.6rem;font-weight:600;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:.75rem;}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;color:var(--muted2);font-size:.82rem;font-weight:500;
+  transition:all .15s;cursor:pointer;border-left:2px solid transparent;margin:1px 0;}
+.nav-item:hover{color:var(--text);background:var(--surface2);border-left-color:var(--border2);}
+.nav-item.active{color:var(--gold);background:linear-gradient(90deg,rgba(201,168,76,.1),transparent);border-left-color:var(--gold);}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7;}
 .nav-item.active svg{opacity:1;}
-.sidebar-footer{padding:.75rem;border-top:1px solid var(--border);}
-.nav-logout{display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:8px;color:var(--danger);font-size:.82rem;
-  font-weight:500;transition:all .15s;cursor:pointer;}
-.nav-logout:hover{background:rgba(224,85,85,.1);}
+.sidebar-footer{padding:1rem 1.25rem;border-top:1px solid var(--border);}
+.nav-logout{display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-radius:8px;color:var(--danger);font-size:.82rem;
+  font-weight:500;transition:all .15s;cursor:pointer;background:rgba(224,85,85,.05);border:1px solid rgba(224,85,85,.15);}
+.nav-logout:hover{background:rgba(224,85,85,.12);color:var(--danger);}
 .nav-logout svg{width:15px;height:15px;}
 
-/* ── TOPBAR (always visible) ── */
-.topbar{height:60px;background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:150;gap:1rem;}
-.topbar-left{display:flex;align-items:center;gap:1rem;}
-.topbar-title{font-size:1rem;font-weight:600;}
-.topbar-title small{display:block;font-size:.68rem;font-weight:400;color:var(--muted2);margin-top:.05rem;}
-.topbar-right{display:flex;align-items:center;gap:.75rem;}
-.topbar-icon{width:34px;height:34px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--muted2);}
-.topbar-icon:hover{border-color:var(--border2);color:var(--text);}
-.topbar-icon svg{width:16px;height:16px;}
-.topbar-avatar{width:34px;height:34px;border-radius:10px;overflow:hidden;border:2px solid var(--accent);cursor:pointer;}
-.topbar-avatar img{width:100%;height:100%;object-fit:cover;}
-.hamburger{background:none;border:none;color:var(--text);cursor:pointer;padding:.4rem;display:none;}
-.hamburger svg{width:20px;height:20px;}
-
-/* ── SIDEBAR OVERLAY MOBILE ── */
+/* ── TOPBAR MOBILE ── */
+.topbar{display:none;height:56px;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 1rem;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:150;}
+.topbar-logo{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;}
+.topbar-logo span{color:var(--gold);}
+.hamburger{background:none;border:none;color:var(--text);cursor:pointer;padding:.4rem;}
+.hamburger svg{width:22px;height:22px;}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:190;backdrop-filter:blur(2px);}
 .sidebar-overlay.active{display:block;}
 
 /* ── MAIN CONTENT ── */
 .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}
-.content{flex:1;padding:1.5rem;}
+.content{flex:1;padding:2rem;}
 
 /* ── PAGE HEADER ── */
-.page-header{margin-bottom:1.5rem;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
-.page-title{font-size:1.4rem;font-weight:700;letter-spacing:-.01em;}
-.page-title small{display:block;font-size:.7rem;font-weight:400;color:var(--muted2);margin-top:.2rem;}
-.page-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
-
-/* ── STAT CARDS ── */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.25rem 1rem;
-  display:flex;flex-direction:column;gap:.75rem;transition:all .2s;position:relative;overflow:hidden;}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
-.stat-card-top{display:flex;align-items:center;justify-content:space-between;}
-.stat-circle{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
-.stat-circle.ml{background:rgba(52,152,219,.15);color:#3498DB;}
-.stat-circle.ff{background:rgba(255,107,53,.15);color:#FF6B35;}
-.stat-circle.robux{background:rgba(233,30,99,.15);color:#E91E63;}
-.stat-circle.vilog{background:rgba(124,92,191,.15);color:#9b7de0;}
-.stat-circle.autopost{background:rgba(61,191,130,.15);color:var(--success);}
-.stat-dots{color:var(--muted);font-size:1.2rem;letter-spacing:.1em;cursor:pointer;}
-.stat-value{font-size:2rem;font-weight:700;line-height:1;letter-spacing:-.02em;}
-.stat-label{font-size:.72rem;color:var(--muted2);font-weight:400;}
+.page-header{margin-bottom:1.75rem;}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;letter-spacing:.02em;color:var(--text);}
+.page-title small{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-size:.72rem;font-weight:400;color:var(--muted);margin-top:.2rem;letter-spacing:.05em;}
+.page-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;}
 
 /* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.25rem;}
-.card-header{padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
-.card-title{font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted2);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.25rem;}
+.card-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
+.card-title{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .card-body{padding:1.25rem;}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:border-color .2s;}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.stat-card.ml::after{background:linear-gradient(90deg,#3498DB,transparent);}
+.stat-card.ff::after{background:linear-gradient(90deg,#FF6B35,transparent);}
+.stat-card.robux::after{background:linear-gradient(90deg,#E91E63,transparent);}
+.stat-card.vilog::after{background:linear-gradient(90deg,var(--gold),transparent);}
+.stat-card.autopost::after{background:linear-gradient(90deg,var(--success),transparent);}
+.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;font-size:1rem;}
+.stat-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:500;}
+.stat-value{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;margin-top:.15rem;line-height:1;}
+.stat-sub{font-size:.72rem;color:var(--muted);margin-top:.3rem;}
 
 /* ── TABLE ── */
 table{width:100%;border-collapse:collapse;}
-th{text-align:left;padding:.65rem 1.25rem;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;}
-td{padding:.8rem 1.25rem;border-bottom:1px solid rgba(35,40,64,.7);font-size:.83rem;vertical-align:middle;}
+th{text-align:left;padding:.7rem 1.25rem;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;}
+td{padding:.8rem 1.25rem;border-bottom:1px solid rgba(30,45,71,.6);font-size:.83rem;vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(124,92,191,.04);}
+tr:hover td{background:rgba(201,168,76,.03);}
 
 /* ── BADGE ── */
-.badge{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:20px;font-size:.67rem;font-weight:600;letter-spacing:.04em;}
-.badge-gamepass{background:rgba(124,106,255,.12);color:#a090ff;}
-.badge-crate{background:rgba(255,107,157,.12);color:#ff8ab5;}
-.badge-boost{background:rgba(255,183,77,.12);color:#ffb74d;}
-.badge-limited{background:rgba(61,191,130,.12);color:#3dbf82;}
-.badge-ml{background:rgba(52,152,219,.12);color:#60aadb;}
-.badge-ff{background:rgba(255,107,53,.12);color:#ff8860;}
-.badge-vilog{background:rgba(124,92,191,.12);color:#9b7de0;}
-.badge-aktif{background:rgba(61,191,130,.12);color:var(--success);}
-.badge-nonaktif{background:rgba(224,85,85,.12);color:var(--danger);}
+.badge{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:4px;font-size:.67rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+.badge-gamepass{background:rgba(124,106,255,.12);color:#a090ff;border:1px solid rgba(124,106,255,.25);}
+.badge-crate{background:rgba(255,107,157,.12);color:#ff8ab5;border:1px solid rgba(255,107,157,.25);}
+.badge-boost{background:rgba(201,168,76,.12);color:var(--gold2);border:1px solid rgba(201,168,76,.25);}
+.badge-limited{background:rgba(77,187,138,.12);color:#5dd4a0;border:1px solid rgba(77,187,138,.25);}
+.badge-ml{background:rgba(52,152,219,.12);color:#60aadb;border:1px solid rgba(52,152,219,.25);}
+.badge-ff{background:rgba(255,107,53,.12);color:#ff8860;border:1px solid rgba(255,107,53,.25);}
+.badge-vilog{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.25);}
+.badge-aktif{background:rgba(77,187,138,.12);color:var(--success);border:1px solid rgba(77,187,138,.25);}
+.badge-nonaktif{background:rgba(224,85,85,.12);color:var(--danger);border:1px solid rgba(224,85,85,.25);}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:8px;
-  font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;border:none;transition:all .15s;text-decoration:none;}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(124,92,191,.3);}
-.btn-primary:hover{background:var(--accent2);color:#fff;}
-.btn-danger{background:rgba(224,85,85,.1);color:var(--danger);border:1px solid rgba(224,85,85,.2);}
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;border:none;transition:all .15s;text-decoration:none;}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#0a0c14;font-weight:600;}
+.btn-primary:hover{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#0a0c14;}
+.btn-danger{background:rgba(224,85,85,.1);color:var(--danger);border:1px solid rgba(224,85,85,.25);}
 .btn-danger:hover{background:rgba(224,85,85,.2);}
 .btn-ghost{background:var(--surface2);color:var(--muted2);border:1px solid var(--border);}
 .btn-ghost:hover{color:var(--text);border-color:var(--border2);}
-.btn-success{background:rgba(61,191,130,.1);color:var(--success);border:1px solid rgba(61,191,130,.2);}
-.btn-success:hover{background:rgba(61,191,130,.2);}
-.btn-warning{background:rgba(224,148,64,.1);color:var(--warning);border:1px solid rgba(224,148,64,.2);}
+.btn-success{background:rgba(77,187,138,.1);color:var(--success);border:1px solid rgba(77,187,138,.25);}
+.btn-success:hover{background:rgba(77,187,138,.2);}
+.btn-warning{background:rgba(224,148,64,.1);color:var(--warning);border:1px solid rgba(224,148,64,.25);}
 .btn-warning:hover{background:rgba(224,148,64,.2);}
 .btn-sm{padding:.3rem .65rem;font-size:.73rem;}
 
 /* ── FORMS ── */
 .form-grid{display:grid;gap:1rem;}.form-grid-2{grid-template-columns:1fr 1fr;}
 .form-group{display:flex;flex-direction:column;gap:.4rem;}
-label{font-size:.7rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:600;}
 input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
-  padding:.6rem .9rem;color:var(--text);font-family:'Inter',sans-serif;font-size:.83rem;
+  padding:.6rem .9rem;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.83rem;
   transition:border-color .15s;width:100%;}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,191,.1);}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold3);background:rgba(201,168,76,.04);}
 select option{background:var(--surface2);}
 textarea{resize:vertical;min-height:80px;}
 .form-actions{display:flex;gap:.75rem;margin-top:.5rem;}
@@ -191,44 +180,43 @@ textarea{resize:vertical;min-height:80px;}
 /* ── RATE DISPLAY ── */
 .rate-display{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
   padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;}
-.rate-value{font-size:1.5rem;font-weight:700;color:var(--accent2);}
+.rate-value{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;color:var(--gold);}
 
 /* ── MODAL ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;
-  align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:1rem;}
+  align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:1rem;}
 .modal-overlay.active{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;
   padding:1.75rem;width:100%;max-width:480px;animation:modalIn .2s ease;}
 @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.modal-title{font-size:1.05rem;font-weight:700;margin-bottom:1.5rem;}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;margin-bottom:1.5rem;color:var(--text);}
 
 /* ── FLASH ── */
 .flash-list{list-style:none;margin-bottom:1.25rem;}
 .flash{padding:.7rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:.4rem;font-weight:500;}
-.flash-success{background:rgba(61,191,130,.1);border:1px solid rgba(61,191,130,.2);color:var(--success);}
-.flash-error{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.2);color:var(--danger);}
+.flash-success{background:rgba(77,187,138,.1);border:1px solid rgba(77,187,138,.25);color:var(--success);}
+.flash-error{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.25);color:var(--danger);}
 
 /* ── MISC ── */
 .empty{text-align:center;padding:3rem;color:var(--muted);font-size:.83rem;}
-.note{margin-top:1rem;padding:.9rem 1.25rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);font-size:.78rem;color:var(--muted2);}
+.note{margin-top:1rem;padding:.9rem 1.25rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);font-size:.78rem;color:var(--muted);}
 .inline-form{display:flex;gap:.5rem;align-items:center;}
 .inline-form input{width:auto;min-width:80px;}
 .divider{height:1px;background:var(--border);margin:1.25rem 0;}
-code{background:var(--surface3);padding:.15rem .4rem;border-radius:4px;font-size:.78rem;color:var(--muted2);}
+code{background:var(--surface3);padding:.1rem .4rem;border-radius:4px;font-size:.8rem;color:var(--muted2);}
 
 /* ── MOBILE ── */
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
-  .hamburger{display:flex;}
+  .topbar{display:flex;}
   .main{margin-left:0;}
   .content{padding:1rem;}
   .form-grid-2{grid-template-columns:1fr;}
   .stats-grid{grid-template-columns:1fr 1fr;}
-  th,td{padding:.55rem .75rem;}
-  .page-title{font-size:1.2rem;}
+  th,td{padding:.6rem .75rem;}
+  .page-title{font-size:1.4rem;}
   table{font-size:.78rem;}
-  .topbar-title small{display:none;}
 }
 @media(max-width:480px){
   .stats-grid{grid-template-columns:1fr;}
@@ -244,7 +232,15 @@ NAVPLACEHOLDER
 
 <!-- Main -->
 <div class="main">
-  TOPBARPLACEHOLDER
+  <!-- Topbar Mobile -->
+  <div class="topbar">
+    <div class="topbar-logo">CELLYN <span>ADMIN</span></div>
+    <button class="hamburger" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+  </div>
   <div class="content">
     FLASHPLACEHOLDER
     CONTENTPLACEHOLDER
@@ -293,33 +289,6 @@ def render_page(content, **ctx):
         ico_vilog = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/><circle cx="18" cy="5" r="3" fill="currentColor" opacity=".3"/></svg>'
         ico_auto  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.72A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>'
         ico_out   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
-        page_titles = {
-            'index': ('Dashboard', 'Ringkasan aktivitas toko'),
-            'page_ml': ('Mobile Legends', 'Kelola produk ML & WDP'),
-            'page_ff': ('Free Fire', 'Kelola produk Free Fire'),
-            'page_robux': ('Robux Store', 'Kelola produk Robux'),
-            'page_vilog': ('Vilog', 'Kelola produk Vilog'),
-            'page_autopost': ('Autopost', 'Kelola jadwal posting otomatis'),
-        }
-        pt = page_titles.get(ep, ('Admin', ''))
-        topbar = f'''<div class="topbar">
-  <div class="topbar-left">
-    <button class="hamburger" onclick="toggleSidebar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    </button>
-    <div class="topbar-title">{pt[0]}<small>{pt[1]}</small></div>
-  </div>
-  <div class="topbar-right">
-    <div class="topbar-icon" title="Notifikasi">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-      </svg>
-    </div>
-    <div class="topbar-avatar"><img src="https://i.imgur.com/xp2F452.png" alt="Admin"></div>
-  </div>
-</div>'''
         nav = f'''<aside class="sidebar">
   <div class="sidebar-logo">
     <img src="https://i.imgur.com/xp2F452.png" alt="Cellyn">
@@ -335,6 +304,7 @@ def render_page(content, **ctx):
     {_a("Vilog", "/vilog", ico_vilog, "page_vilog")}
     <div class="nav-section">Tools</div>
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
+    {_a("Statistik", "/stats", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', "page_stats")}
   </nav>
   <div class="sidebar-footer">
     <a href="/logout" class="nav-logout">{ico_out}<span>Logout</span></a>
@@ -347,7 +317,7 @@ def render_page(content, **ctx):
         for cat, msg in msgs:
             flash_html += f'<li class="flash flash-{cat}">{msg}</li>'
         flash_html += '</ul>'
-    html = BASE.replace("NAVPLACEHOLDER", nav).replace("TOPBARPLACEHOLDER", topbar if session.get("logged_in") else "").replace("FLASHPLACEHOLDER", flash_html).replace("CONTENTPLACEHOLDER", content)
+    html = BASE.replace("NAVPLACEHOLDER", nav).replace("FLASHPLACEHOLDER", flash_html).replace("CONTENTPLACEHOLDER", content)
     return render_template_string(html, **ctx)
 
 
@@ -414,22 +384,14 @@ def index():
   <div class="page-title">Dashboard <small>Ringkasan produk aktif</small></div>
 </div>
 <div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-card-top"><div class="stat-circle ml">💎</div><span class="stat-dots">···</span></div>
-    <div class="stat-value">{ml_count}</div><div class="stat-label">Mobile Legends</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-card-top"><div class="stat-circle ff">🔥</div><span class="stat-dots">···</span></div>
-    <div class="stat-value">{ff_count}</div><div class="stat-label">Free Fire</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-card-top"><div class="stat-circle robux">🎮</div><span class="stat-dots">···</span></div>
-    <div class="stat-value">{robux_count}</div><div class="stat-label">Robux Store</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-card-top"><div class="stat-circle vilog">⚡</div><span class="stat-dots">···</span></div>
-    <div class="stat-value">{vilog_count}</div><div class="stat-label">Vilog Boost</div>
-  </div>
+  <div class="stat-card ml"><div class="stat-label">Mobile Legends</div>
+    <div class="stat-value">{ml_count}</div><div class="stat-sub">produk aktif</div></div>
+  <div class="stat-card ff"><div class="stat-label">Free Fire</div>
+    <div class="stat-value">{ff_count}</div><div class="stat-sub">produk aktif</div></div>
+  <div class="stat-card robux"><div class="stat-label">Robux Store</div>
+    <div class="stat-value">{robux_count}</div><div class="stat-sub">item aktif</div></div>
+  <div class="stat-card vilog"><div class="stat-label">Vilog Boost</div>
+    <div class="stat-value">{vilog_count}</div><div class="stat-sub">paket aktif</div></div>
 </div>
 <div class="card">
   <div class="card-header"><span class="card-title">Rate Robux</span></div>
@@ -1268,6 +1230,196 @@ def autopost_delete(tid):
     flash("Task berhasil dihapus.", "success")
     return redirect(url_for("page_autopost"))
 
+
+
+# ── STATISTIK ─────────────────────────────────────────────────────────────────
+@app.route("/stats")
+def page_stats():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Total per layanan
+    c.execute("SELECT layanan, COUNT(*) as total, SUM(nominal) as omzet FROM transaction_log GROUP BY layanan")
+    per_layanan = {row["layanan"]: {"total": row["total"], "omzet": row["omzet"] or 0} for row in c.fetchall()}
+
+    # Total keseluruhan
+    c.execute("SELECT COUNT(*) as total, SUM(nominal) as omzet FROM transaction_log")
+    row = c.fetchone()
+    grand_total = row["total"] or 0
+    grand_omzet = row["omzet"] or 0
+
+    # 7 hari terakhir (harian)
+    c.execute("""
+        SELECT date(closed_at) as tgl, COUNT(*) as total, SUM(nominal) as omzet
+        FROM transaction_log
+        WHERE closed_at >= date('now', '-6 days')
+        GROUP BY date(closed_at)
+        ORDER BY tgl ASC
+    """)
+    harian = c.fetchall()
+
+    # Produk terlaris (top 5)
+    c.execute("""
+        SELECT item, COUNT(*) as total
+        FROM transaction_log
+        WHERE item IS NOT NULL AND item != '-'
+        GROUP BY item ORDER BY total DESC LIMIT 5
+    """)
+    terlaris = c.fetchall()
+
+    # Jam tersibuk
+    c.execute("""
+        SELECT strftime('%H', closed_at) as jam, COUNT(*) as total
+        FROM transaction_log
+        GROUP BY jam ORDER BY total DESC LIMIT 5
+    """)
+    peak_hours = c.fetchall()
+
+    # 30 hari terakhir
+    c.execute("""
+        SELECT date(closed_at) as tgl, COUNT(*) as total, SUM(nominal) as omzet
+        FROM transaction_log
+        WHERE closed_at >= date('now', '-29 days')
+        GROUP BY date(closed_at)
+        ORDER BY tgl ASC
+    """)
+    bulanan = c.fetchall()
+
+    conn.close()
+
+    label_map = {"midman":"Midman Trade","vilog":"Vilog","robux":"Robux","ml":"ML","ff":"Free Fire","jualbeli":"Jual Beli"}
+
+    # Stat cards
+    layanan_list = [
+        ("midman","💼","#7c5cbf"),("vilog","⚡","#c9a84c"),("robux","🎮","#E91E63"),
+        ("ml","💎","#3498DB"),("ff","🔥","#FF6B35"),("jualbeli","🤝","#4dbb8a")
+    ]
+    stat_cards = ""
+    for key, ico, color in layanan_list:
+        d = per_layanan.get(key, {"total":0,"omzet":0})
+        stat_cards += f"""
+        <div class="stat-card" style="border-top:2px solid {color}20;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:-15px;right:-15px;font-size:3rem;opacity:.06;">{ico}</div>
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">{ico}</div>
+          <div class="stat-label">{label_map[key]}</div>
+          <div class="stat-value" style="color:{color};">{d['total']}</div>
+          <div class="stat-sub">Rp {d['omzet']:,}</div>
+        </div>"""
+
+    # Chart data harian (7 hari)
+    from datetime import date, timedelta
+    today = date.today()
+    days7 = [(today - timedelta(days=i)).isoformat() for i in range(6,-1,-1)]
+    harian_map = {row["tgl"]: {"total": row["total"], "omzet": row["omzet"] or 0} for row in harian}
+    chart_labels = [d[-5:] for d in days7]
+    chart_total  = [harian_map.get(d, {}).get("total", 0) for d in days7]
+    chart_omzet  = [harian_map.get(d, {}).get("omzet", 0) for d in days7]
+
+    # Chart data 30 hari
+    days30 = [(today - timedelta(days=i)).isoformat() for i in range(29,-1,-1)]
+    bulanan_map = {row["tgl"]: {"total": row["total"], "omzet": row["omzet"] or 0} for row in bulanan}
+    chart30_labels = [d[-5:] for d in days30]
+    chart30_total  = [bulanan_map.get(d, {}).get("total", 0) for d in days30]
+
+    # Tabel terlaris
+    terlaris_html = ""
+    for i, row in enumerate(terlaris, 1):
+        terlaris_html += f"<tr><td>{i}</td><td>{row['item']}</td><td>{row['total']}</td></tr>"
+    if not terlaris_html:
+        terlaris_html = "<tr><td colspan=3 class='empty'>Belum ada data</td></tr>"
+
+    # Peak hours
+    peak_html = ""
+    for row in peak_hours:
+        peak_html += f"<tr><td>{row['jam']}:00</td><td>{row['total']} transaksi</td></tr>"
+    if not peak_html:
+        peak_html = "<tr><td colspan=2 class='empty'>Belum ada data</td></tr>"
+
+    content = f"""
+<div class="page-header">
+  <div class="page-title">Statistik<small>Data transaksi sukses semua layanan</small></div>
+</div>
+
+<!-- Summary Cards -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+  <div class="stat-card" style="border-top:2px solid var(--accent);">
+    <div class="stat-label">Total Transaksi</div>
+    <div class="stat-value">{grand_total}</div>
+    <div class="stat-sub">Semua layanan</div>
+  </div>
+  <div class="stat-card" style="border-top:2px solid var(--success);">
+    <div class="stat-label">Total Omzet</div>
+    <div class="stat-value" style="font-size:1.4rem;">Rp {grand_omzet:,}</div>
+    <div class="stat-sub">Semua layanan</div>
+  </div>
+</div>
+
+<!-- Per Layanan -->
+<div class="stats-grid" style="margin-bottom:1.5rem;">
+  {stat_cards}
+</div>
+
+<!-- Charts -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">📈 Transaksi 7 Hari</span></div>
+    <div class="card-body"><canvas id="chart7" height="180"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📊 Transaksi 30 Hari</span></div>
+    <div class="card-body"><canvas id="chart30" height="180"></canvas></div>
+  </div>
+</div>
+
+<!-- Tabel bawah -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏆 Produk Terlaris</span></div>
+    <table>
+      <thead><tr><th>#</th><th>Item</th><th>Terjual</th></tr></thead>
+      <tbody>{terlaris_html}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🕐 Jam Tersibuk</span></div>
+    <table>
+      <thead><tr><th>Jam</th><th>Transaksi</th></tr></thead>
+      <tbody>{peak_html}</tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const chartDefaults = {{
+  responsive: true,
+  plugins: {{ legend: {{ display: false }} }},
+  scales: {{
+    x: {{ grid: {{ color: 'rgba(255,255,255,.04)' }}, ticks: {{ color: '#6a7a95', font: {{ size: 10 }} }} }},
+    y: {{ grid: {{ color: 'rgba(255,255,255,.04)' }}, ticks: {{ color: '#6a7a95', font: {{ size: 10 }} }}, beginAtZero: true }}
+  }}
+}};
+new Chart(document.getElementById('chart7'), {{
+  type: 'bar',
+  data: {{
+    labels: {chart_labels},
+    datasets: [{{ data: {chart_total}, backgroundColor: 'rgba(124,92,191,.5)', borderColor: '#7c5cbf', borderWidth: 1, borderRadius: 4 }}]
+  }},
+  options: chartDefaults
+}});
+new Chart(document.getElementById('chart30'), {{
+  type: 'line',
+  data: {{
+    labels: {chart30_labels},
+    datasets: [{{ data: {chart30_total}, borderColor: '#4dbb8a', backgroundColor: 'rgba(77,187,138,.1)', borderWidth: 2, pointRadius: 2, fill: true, tension: .4 }}]
+  }},
+  options: chartDefaults
+}});
+</script>"""
+    return render_page(content)
 
 if __name__ == "__main__":
     port = int(os.environ.get("ADMIN_PORT", 5000))

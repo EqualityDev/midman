@@ -267,6 +267,22 @@ class Midman(commands.Cog):
                 content=f"Transcript #{ticket_num} — {ctx.channel.name}",
                 file=transcript_file
             )
+        # Log transaksi
+        try:
+            from utils.db import log_transaction
+            opened_at_dt = datetime.datetime.fromisoformat(ticket["opened_at"]) if ticket.get("opened_at") else None
+            durasi = int((closed_at - opened_at_dt).total_seconds()) if opened_at_dt and closed_at else 0
+            log_transaction(
+                layanan="midman",
+                nominal=ticket.get("fee_final", 0) or 0,
+                item=f"{ticket.get('item_p1','-')} ↔ {ticket.get('item_p2','-')}",
+                admin_id=ctx.author.id,
+                user_id=ticket.get("pihak1_id"),
+                closed_at=closed_at,
+                durasi_detik=durasi
+            )
+        except Exception as e:
+            print(f"[LOG] Gagal log transaksi midman: {e}")
         del self.active_tickets[ctx.channel.id]
         save_tickets(self.active_tickets)
         await ctx.channel.delete()

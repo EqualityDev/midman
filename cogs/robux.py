@@ -640,6 +640,20 @@ class RobuxStore(commands.Cog):
             f"Item berhasil diberikan. Terima kasih telah berbelanja di {STORE_NAME}!\n"
             f"Tiket ditutup dalam 5 detik."
         )
+        # Log transaksi
+        try:
+            from utils.db import log_transaction
+            log_transaction(
+                layanan="robux",
+                nominal=ticket.get("total", 0) or 0,
+                item=f"{ticket.get('item_name','-')} ({ticket.get('robux',0)} Robux)",
+                admin_id=ctx.author.id,
+                user_id=ticket.get("user_id"),
+                closed_at=now,
+                durasi_detik=durasi_secs
+            )
+        except Exception as e:
+            print(f"[LOG] Gagal log transaksi robux: {e}")
         delete_robux_ticket(channel_id)
         del self.active_tickets[channel_id]
         import asyncio

@@ -219,6 +219,35 @@ def init_db():
             last_sent         TEXT DEFAULT NULL
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS transaction_log (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            layanan     TEXT NOT NULL,
+            nominal     INTEGER DEFAULT 0,
+            item        TEXT,
+            admin_id    INTEGER,
+            user_id     INTEGER,
+            closed_at   TEXT NOT NULL,
+            durasi_detik INTEGER DEFAULT 0
+        )
+    ''')
     conn.commit()
     conn.close()
     print("[DB] Database diinisialisasi.")
+
+
+def log_transaction(layanan: str, nominal: int = 0, item: str = None,
+                    admin_id: int = None, user_id: int = None,
+                    closed_at=None, durasi_detik: int = 0):
+    import datetime
+    if closed_at is None:
+        closed_at = datetime.datetime.now(datetime.timezone.utc)
+    closed_at_str = closed_at.isoformat() if hasattr(closed_at, 'isoformat') else str(closed_at)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO transaction_log (layanan, nominal, item, admin_id, user_id, closed_at, durasi_detik) VALUES (?,?,?,?,?,?,?)",
+        (layanan, nominal, item, admin_id, user_id, closed_at_str, durasi_detik)
+    )
+    conn.commit()
+    conn.close()

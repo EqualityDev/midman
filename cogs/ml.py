@@ -638,6 +638,23 @@ class MLStore(commands.Cog):
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
 
+        # Log transaksi
+        try:
+            from utils.db import log_transaction
+            opened_at_dt = datetime.datetime.fromisoformat(ticket["opened_at"]) if ticket.get("opened_at") else None
+            durasi = int((closed_at - opened_at_dt).total_seconds()) if opened_at_dt else 0
+            layanan = "ff" if ticket.get("game") == "FF" else "ml"
+            log_transaction(
+                layanan=layanan,
+                nominal=ticket.get("harga", 0) or 0,
+                item=ticket.get("item_label", f"{ticket.get('dm',0)} Diamond"),
+                admin_id=ctx.author.id,
+                user_id=ticket.get("user_id"),
+                closed_at=closed_at,
+                durasi_detik=durasi
+            )
+        except Exception as e:
+            print(f"[LOG] Gagal log transaksi ml: {e}")
         delete_ml_ticket(channel_id)
         del self.active_tickets[channel_id]
         await ctx.channel.delete()

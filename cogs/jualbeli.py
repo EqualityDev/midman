@@ -561,6 +561,24 @@ class JualBeli(commands.Cog):
             except Exception as ex:
                 print(f"[WARNING] JualBeli transcript: {ex}")
 
+        # Log transaksi
+        try:
+            from utils.db import log_transaction
+            import datetime as _dt
+            opened_at_dt = _dt.datetime.fromisoformat(ticket["opened_at"]) if ticket.get("opened_at") else None
+            now_dt = _dt.datetime.now(_dt.timezone.utc)
+            durasi = int((now_dt - opened_at_dt).total_seconds()) if opened_at_dt else 0
+            log_transaction(
+                layanan="jualbeli",
+                nominal=ticket.get("harga", 0) or 0,
+                item=ticket.get("deskripsi", "-"),
+                admin_id=ctx.author.id,
+                user_id=ticket.get("p1_id"),
+                closed_at=now_dt,
+                durasi_detik=durasi
+            )
+        except Exception as e:
+            print(f"[LOG] Gagal log transaksi jualbeli: {e}")
         delete_jb_ticket(ch_id)
         del self.active_tickets[ch_id]
         await asyncio.sleep(5)

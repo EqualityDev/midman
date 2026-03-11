@@ -369,6 +369,22 @@ class Vilog(commands.Cog):
             except Exception as e:
                 print(f"[WARNING] Gagal kirim transcript vilog: {e}")
 
+        # Log transaksi
+        try:
+            from utils.db import log_transaction
+            opened_at_dt = datetime.datetime.fromisoformat(ticket["opened_at"]) if ticket.get("opened_at") else None
+            durasi = int((closed_at - opened_at_dt).total_seconds()) if opened_at_dt else 0
+            log_transaction(
+                layanan="vilog",
+                nominal=nominal_int,
+                item=ticket.get("boost", {}).get("nama", "-"),
+                admin_id=ctx.author.id,
+                user_id=ticket.get("user_id"),
+                closed_at=closed_at,
+                durasi_detik=durasi
+            )
+        except Exception as e:
+            print(f"[LOG] Gagal log transaksi vilog: {e}")
         delete_vilog_ticket(ctx.channel.id)
         del self.active_vilog[ctx.channel.id]
         await ctx.channel.delete()
