@@ -2,7 +2,7 @@ import discord
 import datetime
 import asyncio
 from discord.ext import commands, tasks
-from utils.config import ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID
+from utils.config import ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID, GUILD_ID
 from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
 from utils.db import get_conn
@@ -473,7 +473,7 @@ class MLStore(commands.Cog):
     @tasks.loop(minutes=10)
     async def auto_close_task(self):
         now = datetime.datetime.now(datetime.timezone.utc)
-        guild = self.bot.guilds[0] if self.bot.guilds else None
+        guild = self.bot.get_guild(GUILD_ID)
         if not guild:
             return
         for ch_id, ticket in list(self.active_tickets.items()):
@@ -486,6 +486,8 @@ class MLStore(commands.Cog):
             elapsed = (now - last_dt).total_seconds()
             channel = guild.get_channel(ch_id)
             if elapsed >= 7200:
+                delete_ml_ticket(ch_id)
+                self.active_tickets.pop(ch_id, None)
                 if channel:
                     try:
                         await channel.send(
@@ -497,8 +499,6 @@ class MLStore(commands.Cog):
                         await channel.delete()
                     except Exception:
                         pass
-                delete_ml_ticket(ch_id)
-                self.active_tickets.pop(ch_id, None)
             elif elapsed >= 3600 and not ticket.get("warned"):
                 if channel:
                     try:
@@ -536,6 +536,7 @@ class MLStore(commands.Cog):
             return
         if message.channel.id in self.active_tickets:
             self.active_tickets[message.channel.id]["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            save_ml_ticket(self.active_tickets[message.channel.id])
 
     @commands.command(name="mlcatalog")
     async def mlcatalog(self, ctx):

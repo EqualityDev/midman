@@ -418,6 +418,7 @@ class JualBeli(commands.Cog):
         if message.channel.id in self.active_tickets:
             self.active_tickets[message.channel.id]["last_activity"] = datetime.datetime.now(
                 datetime.timezone.utc).isoformat()
+            save_jb_ticket(self.active_tickets[message.channel.id])
 
     # ─── AUTO CLOSE ──────────────────────────────────────────────────────────
 
@@ -477,6 +478,7 @@ class JualBeli(commands.Cog):
         await self.bot.wait_until_ready()
 
     async def _force_close(self, channel, ticket, alasan: str):
+        delete_jb_ticket(ticket["channel_id"])
         try:
             e = discord.Embed(title="Tiket Ditutup Otomatis", color=COLOR_BATAL)
             e.add_field(name="Alasan", value=alasan, inline=False)
@@ -484,12 +486,9 @@ class JualBeli(commands.Cog):
             e.set_footer(text=STORE_NAME)
             await channel.send(embed=e)
             await asyncio.sleep(3)
-
-            guild = channel.guild
             await channel.delete()
         except Exception as ex:
             print(f"[WARNING] JualBeli auto-close: {ex}")
-        delete_jb_ticket(ticket["channel_id"])
 
     # ─── COMMANDS ────────────────────────────────────────────────────────────
 

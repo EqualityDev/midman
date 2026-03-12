@@ -4,7 +4,7 @@ import asyncio
 from discord.ext import commands, tasks
 from utils.config import (
     ADMIN_ROLE_ID, VILOG_CHANNEL_ID, LOG_CHANNEL_ID,
-    TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID
+    TICKET_CATEGORY_ID, STORE_NAME, ERROR_LOG_CHANNEL_ID, GUILD_ID
 )
 from utils.db import get_conn
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
@@ -166,7 +166,7 @@ class Vilog(commands.Cog):
     @tasks.loop(minutes=10)
     async def auto_close_task(self):
         now = datetime.datetime.now(datetime.timezone.utc)
-        guild = self.bot.guilds[0] if self.bot.guilds else None
+        guild = self.bot.get_guild(GUILD_ID)
         if not guild:
             return
         for ch_id, ticket in list(self.active_vilog.items()):
@@ -179,6 +179,9 @@ class Vilog(commands.Cog):
             elapsed = (now - last_dt).total_seconds()
             channel = guild.get_channel(ch_id)
             if elapsed >= 7200:
+                delete_vilog_ticket(ch_id)
+                if ch_id in self.active_vilog:
+                    del self.active_vilog[ch_id]
                 if channel:
                     try:
                         await channel.send(
@@ -190,8 +193,6 @@ class Vilog(commands.Cog):
                         await channel.delete()
                     except Exception:
                         pass
-                delete_vilog_ticket(ch_id)
-                del self.active_vilog[ch_id]
             elif elapsed >= 3600 and not ticket.get("warned"):
                 if channel:
                     try:
@@ -299,6 +300,7 @@ class Vilog(commands.Cog):
             return
         if message.channel.id in self.active_vilog:
             self.active_vilog[message.channel.id]["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            save_vilog_ticket(self.active_vilog[message.channel.id])
 
     @commands.command(name="selesai")
     async def selesai(self, ctx, *, nominal: str = None):

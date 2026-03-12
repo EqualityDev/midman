@@ -2,7 +2,7 @@ import asyncio
 import discord
 import datetime
 from discord.ext import commands, tasks
-from utils.config import ADMIN_ROLE_ID, ROBUX_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID
+from utils.config import ADMIN_ROLE_ID, ROBUX_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, GUILD_ID
 from utils.db import get_conn
 from utils.robux_db import load_robux_tickets, save_robux_ticket, delete_robux_ticket
 
@@ -234,11 +234,13 @@ class RobuxStore(commands.Cog):
             if last_dt.tzinfo is None:
                 last_dt = last_dt.replace(tzinfo=datetime.timezone.utc)
             elapsed = (now - last_dt).total_seconds()
-            guild = self.bot.guilds[0] if self.bot.guilds else None
+            guild = self.bot.get_guild(GUILD_ID)
             if not guild:
                 continue
             channel = guild.get_channel(ch_id)
             if elapsed >= 7200:
+                delete_robux_ticket(ch_id)
+                self.active_tickets.pop(ch_id, None)
                 if channel:
                     try:
                         await channel.send(
@@ -250,8 +252,6 @@ class RobuxStore(commands.Cog):
                         await channel.delete()
                     except Exception:
                         pass
-                delete_robux_ticket(ch_id)
-                self.active_tickets.pop(ch_id, None)
             elif elapsed >= 3600 and not ticket.get("warned"):
                 if channel:
                     try:
@@ -289,7 +289,7 @@ class RobuxStore(commands.Cog):
 
     async def refresh_catalog(self):
         await self.reload_products()
-        guild = self.bot.guilds[0] if self.bot.guilds else None
+        guild = self.bot.get_guild(GUILD_ID)
         if not guild:
             return
         ch = guild.get_channel(ROBUX_CATALOG_CHANNEL_ID)
