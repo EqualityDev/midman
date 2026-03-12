@@ -107,7 +107,7 @@ class GiveawayCog(commands.Cog):
         await self.bot.wait_until_ready()
         try:
             giveaways = _load_giveaways()
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(datetime.timezone.utc)
             restored = 0
             for msg_id, data in giveaways.items():
                 self.active_giveaways[msg_id] = data
@@ -184,7 +184,7 @@ class GiveawayCog(commands.Cog):
             host = guild.get_member(host_id)
             data = self.active_giveaways.get(message_id, {})
             participants = list(data.get('participants', set()))
-            end_time = data.get('end_time', datetime.datetime.now())
+            end_time = data.get('end_time', datetime.datetime.now(datetime.timezone.utc))
 
             if not participants:
                 await channel.send("Tidak ada peserta giveaway!")
@@ -267,7 +267,7 @@ class GiveawayCog(commands.Cog):
         if pemenang < 1:
             await interaction.response.send_message("Jumlah pemenang minimal 1!", ephemeral=True)
             return
-        end_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
+        end_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=seconds)
         embed = self._build_embed(hadiah, end_time, pemenang, interaction.user, participants=0)
         await interaction.response.send_message("Giveaway dimulai!", ephemeral=True)
         msg = await interaction.channel.send(embed=embed)

@@ -70,7 +70,7 @@ class BroadcastCog(commands.Cog):
                     title=f"📢 Pengumuman {STORE_NAME}",
                     description=pesan_text,
                     color=0x00BFFF,
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(datetime.timezone.utc),
                 )
                 embed.set_author(name=f"Dari: {admin.display_name}", icon_url=admin.display_avatar.url)
                 embed.set_thumbnail(url=THUMBNAIL)

@@ -38,8 +38,9 @@ def init_db():
     ]:
         try:
             c.execute(f'ALTER TABLE tickets ADD COLUMN {col} {defval}')
-        except Exception:
-            pass
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f"[DB] Migration tickets {col}: {e}")
     c.execute('''
         CREATE TABLE IF NOT EXISTS counter (
             id    INTEGER PRIMARY KEY DEFAULT 1,
@@ -71,8 +72,9 @@ def init_db():
     ]:
         try:
             c.execute(f'ALTER TABLE vilog_tickets ADD COLUMN {col} {defval}')
-        except Exception:
-            pass
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f"[DB] Migration vilog_tickets {col}: {e}")
     c.execute('''
         CREATE TABLE IF NOT EXISTS robux_rate (
             id    INTEGER PRIMARY KEY DEFAULT 1,
@@ -106,8 +108,9 @@ def init_db():
     ]:
         try:
             c.execute(f'ALTER TABLE robux_tickets ADD COLUMN {col} {defval}')
-        except Exception:
-            pass
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f"[DB] Migration robux_tickets {col}: {e}")
     c.execute('''
         CREATE TABLE IF NOT EXISTS bot_state (
             key   TEXT PRIMARY KEY,
@@ -139,8 +142,9 @@ def init_db():
     ]:
         try:
             c.execute(f'ALTER TABLE ml_tickets ADD COLUMN {col} {defval}')
-        except Exception:
-            pass
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f"[DB] Migration ml_tickets {col}: {e}")
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS ml_products (
@@ -199,8 +203,9 @@ def init_db():
     ]:
         try:
             c.execute(f'ALTER TABLE jb_tickets ADD COLUMN {col} {defval}')
-        except Exception:
-            pass
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f"[DB] Migration jb_tickets {col}: {e}")
     c.execute('''
         CREATE TABLE IF NOT EXISTS wdp_products (
             id      INTEGER PRIMARY KEY AUTOINCREMENT,

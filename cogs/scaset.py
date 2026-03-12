@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands, tasks
 from utils.config import (
     ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME,
-    TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID
+    TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID, GUILD_ID
 )
 from utils.db import get_conn
 from utils.counter import next_ticket_number
@@ -248,7 +248,7 @@ class ScasetStore(commands.Cog):
         print(f"[ScasetStore] Restored {len(self.active_tickets)} tiket, catalog_msg={self.catalog_message_id}")
 
     async def refresh_catalog(self):
-        guild = self.bot.guilds[0] if self.bot.guilds else None
+        guild = self.bot.get_guild(GUILD_ID)
         if not guild:
             return
         ch = guild.get_channel(CATALOG_CHANNEL_ID)
@@ -298,7 +298,7 @@ class ScasetStore(commands.Cog):
             if diff >= 7200:
                 to_close.append(ch_id)
             elif diff >= 3600 and not ticket.get("warned"):
-                guild = self.bot.guilds[0] if self.bot.guilds else None
+                guild = self.bot.get_guild(GUILD_ID)
                 if guild:
                     ch = guild.get_channel(ch_id)
                     if ch:
@@ -322,9 +322,10 @@ class ScasetStore(commands.Cog):
             ticket = self.active_tickets.pop(ch_id, None)
             if not ticket:
                 continue
-            guild = self.bot.guilds[0] if self.bot.guilds else None
+            guild = self.bot.get_guild(GUILD_ID)
             if guild:
                 ch = guild.get_channel(ch_id)
+                delete_scaset_ticket(ch_id)
                 if ch:
                     try:
                         await ch.send("🔒 Tiket ditutup otomatis karena tidak ada aktivitas selama 2 jam.")
@@ -332,7 +333,6 @@ class ScasetStore(commands.Cog):
                         await ch.delete()
                     except Exception:
                         pass
-            delete_scaset_ticket(ch_id)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

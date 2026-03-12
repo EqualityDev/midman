@@ -140,10 +140,10 @@ class Midman(commands.Cog):
                 data = f.read().strip().split("|")
             os.remove(".update_channel")
             ch_id = int(data[0])
-            ts = float(data[1]) if len(data) >= 2 else datetime.datetime.now().timestamp()
+            ts = float(data[1]) if len(data) >= 2 else __import__("time").time()
             new_hash = data[2] if len(data) >= 3 else "unknown"
             ticket_count = int(data[3]) if len(data) >= 4 else 0
-            elapsed = datetime.datetime.now().timestamp() - ts
+            elapsed = __import__("time").time() - ts
             if elapsed <= 120:
                 await self.bot.wait_until_ready()
                 await asyncio.sleep(3)
@@ -305,8 +305,14 @@ class Midman(commands.Cog):
             royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")
             if royal_role:
                 for m in [ticket.get("pihak1"), ticket.get("pihak2")]:
-                    if m and royal_role not in m.roles:
-                        await m.add_roles(royal_role)
+                    if not m:
+                        continue
+                    member = ctx.guild.get_member(m.id)
+                    if member and royal_role not in member.roles:
+                        try:
+                            await member.add_roles(royal_role)
+                        except Exception as e:
+                            print(f"[ROLE] Gagal assign Royal Customer ke {m.id}: {e}")
         except Exception as e:
             print(f"[ROLE] Gagal assign Royal Customer: {e}")
         del self.active_tickets[ctx.channel.id]
@@ -454,7 +460,7 @@ class Midman(commands.Cog):
             await ctx.send(embed=embed)
 
             with open(".update_channel", "w") as f:
-                f.write(f"{ctx.channel.id}|{datetime.datetime.now().timestamp()}|{new_hash}|{len(self.active_tickets)}")
+                f.write(f"{ctx.channel.id}|{__import__("time").time()}|{new_hash}|{len(self.active_tickets)}")
             await asyncio.sleep(3)
             await self.bot.close()
         else:
