@@ -12,23 +12,7 @@ from utils.transcript import generate as generate_transcript
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 CATALOG_CHANNEL_ID = 1476349829113315489
-COLOR_LAINNYA = 0x5865F2  # Discord blurple
-
-# ── PRODUK DEFAULT ─────────────────────────────────────────────────────────────
-DEFAULT_PRODUCTS = [
-    # Cloud Phone
-    {"id": 1,  "category": "CLOUD PHONE", "name": "REDFINGER VIP 7DAY",   "harga": 20500},
-    {"id": 2,  "category": "CLOUD PHONE", "name": "REDFINGER KVIP 7DAY",  "harga": 37500},
-    {"id": 3,  "category": "CLOUD PHONE", "name": "REDFINGER SVIP 7DAY",  "harga": 42000},
-    {"id": 4,  "category": "CLOUD PHONE", "name": "REDFINGER XVIP 7DAY",  "harga": 102000},
-    {"id": 5,  "category": "CLOUD PHONE", "name": "REDFINGER VIP 30DAY",  "harga": 62000},
-    {"id": 6,  "category": "CLOUD PHONE", "name": "REDFINGER KVIP 30DAY", "harga": 95500},
-    {"id": 7,  "category": "CLOUD PHONE", "name": "REDFINGER SVIP 30DAY", "harga": 102000},
-    {"id": 8,  "category": "CLOUD PHONE", "name": "REDFINGER XVIP 30DAY", "harga": 318000},
-    # Nitro
-    {"id": 9,  "category": "DISCORD NITRO", "name": "NITRO BOOST 1 MONTH", "harga": 25000},
-    {"id": 10, "category": "DISCORD NITRO", "name": "NITRO BOOST 3 MONTH", "harga": 50000},
-]
+COLOR_LAINNYA = 0x5865F2
 
 
 # ── DATABASE ───────────────────────────────────────────────────────────────────
@@ -60,14 +44,23 @@ def _init_db():
             last_activity TEXT
         )
     ''')
-    # Seed produk default jika tabel kosong
+    DEFAULT_PRODUCTS = [
+        (1, "CLOUD PHONE", "REDFINGER VIP 7DAY",   20500),
+        (2, "CLOUD PHONE", "REDFINGER KVIP 7DAY",  37500),
+        (3, "CLOUD PHONE", "REDFINGER SVIP 7DAY",  42000),
+        (4, "CLOUD PHONE", "REDFINGER XVIP 7DAY",  102000),
+        (5, "CLOUD PHONE", "REDFINGER VIP 30DAY",  62000),
+        (6, "CLOUD PHONE", "REDFINGER KVIP 30DAY", 95500),
+        (7, "CLOUD PHONE", "REDFINGER SVIP 30DAY", 102000),
+        (8, "CLOUD PHONE", "REDFINGER XVIP 30DAY", 318000),
+        (9, "DISCORD NITRO", "NITRO BOOST 1 MONTH", 25000),
+        (10,"DISCORD NITRO", "NITRO BOOST 3 MONTH", 50000),
+    ]
     c.execute("SELECT COUNT(*) as cnt FROM lainnya_products")
     if c.fetchone()["cnt"] == 0:
-        for p in DEFAULT_PRODUCTS:
-            c.execute(
-                "INSERT INTO lainnya_products (id, category, name, harga, active) VALUES (?,?,?,?,1)",
-                (p["id"], p["category"], p["name"], p["harga"])
-            )
+        for pid, cat, name, harga in DEFAULT_PRODUCTS:
+            c.execute("INSERT INTO lainnya_products (id,category,name,harga,active) VALUES (?,?,?,?,1)",
+                      (pid, cat, name, harga))
     conn.commit()
     conn.close()
 
@@ -117,6 +110,24 @@ def load_lainnya_tickets():
     return {row["channel_id"]: dict(row) for row in rows}
 
 
+def _get_catalog_msg_id():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT value FROM bot_state WHERE key='lainnya_catalog_msg_id'")
+    row = c.fetchone()
+    conn.close()
+    return int(row["value"]) if row and row["value"] else None
+
+
+def _set_catalog_msg_id(msg_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO bot_state (key,value) VALUES ('lainnya_catalog_msg_id',?)",
+              (str(msg_id),))
+    conn.commit()
+    conn.close()
+
+
 # ── CATALOG EMBED & VIEW ───────────────────────────────────────────────────────
 def build_catalog_embed(products):
     embed = discord.Embed(
@@ -130,56 +141,49 @@ def build_catalog_embed(products):
     categories = {}
     for p in products:
         categories.setdefault(p["category"], []).append(p)
-
     for cat, items in categories.items():
         value = "\n".join(f"• {p['name']} — **Rp {p['harga']:,}**" for p in items)
         embed.add_field(name=cat, value=value, inline=False)
-
-    embed.add_field(
-        name="Pembayaran",
-        value="QRIS • DANA • Bank Transfer",
-        inline=False
-    )
+    embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
     embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Klik tombol untuk order")
     return embed
 
 
 class CategoryButton(discord.ui.Button):
-    def __init__(self, category, products):
+    def __init__(self, category):
         super().__init__(
             label=category,
             style=discord.ButtonStyle.primary,
             custom_id=f"lainnya_cat_{category.replace(' ', '_')}"
         )
         self.category = category
-        self.products = products
 
     async def callback(self, interaction: discord.Interaction):
+        products = load_lainnya_products()
+        items = [p for p in products if p["category"] == self.category]
+        if not items:
+            await interaction.response.send_message("Tidak ada produk aktif di kategori ini.", ephemeral=True)
+            return
         options = [
-            discord.SelectOption(
-                label=p["name"],
-                description=f"Rp {p['harga']:,}",
-                value=str(p["id"])
-            ) for p in self.products
+            discord.SelectOption(label=p["name"], description=f"Rp {p['harga']:,}", value=str(p["id"]))
+            for p in items
         ]
         view = discord.ui.View(timeout=60)
         view.add_item(ItemSelect(options, self.category))
-        await interaction.response.send_message(
-            f"Pilih item **{self.category}**:",
-            view=view,
-            ephemeral=True
-        )
+        await interaction.response.send_message(f"Pilih item **{self.category}**:", view=view, ephemeral=True)
 
 
 class CatalogView(discord.ui.View):
-    def __init__(self, products):
+    def __init__(self):
         super().__init__(timeout=None)
-        categories = {}
-        for p in products:
-            categories.setdefault(p["category"], []).append(p)
-        for cat, items in categories.items():
-            self.add_item(CategoryButton(cat, items))
+
+    def rebuild(self, products):
+        self.clear_items()
+        categories = list(dict.fromkeys(p["category"] for p in products))
+        for cat in categories:
+            self.add_item(CategoryButton(cat))
+        return self
 
 
 class ItemSelect(discord.ui.Select):
@@ -203,15 +207,12 @@ class ItemSelect(discord.ui.Select):
         member = interaction.user
         cog = interaction.client.cogs.get("LainnyaStore")
 
-        # Cek tiket aktif
         for ch_id, t in cog.active_tickets.items():
             if t["user_id"] == member.id:
                 existing = guild.get_channel(ch_id)
                 if existing:
                     await interaction.response.send_message(
-                        f"Kamu masih punya tiket aktif di {existing.mention}!",
-                        ephemeral=True
-                    )
+                        f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True)
                     return
 
         await interaction.response.defer(ephemeral=True)
@@ -226,27 +227,16 @@ class ItemSelect(discord.ui.Select):
         if admin_role:
             overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
-        channel_name = f"order-{member.name}"
         channel = await guild.create_text_channel(
-            name=channel_name,
-            category=cat_channel,
-            overwrites=overwrites,
-        )
+            name=f"order-{member.name}", category=cat_channel, overwrites=overwrites)
 
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         ticket = {
-            "channel_id": channel.id,
-            "user_id": member.id,
-            "item_id": item["id"],
-            "item_name": item["name"],
-            "category": item["category"],
-            "harga": item["harga"],
-            "payment_method": None,
-            "admin_id": None,
-            "opened_at": now,
-            "last_activity": now,
-            "warned": 0,
-            "warn_message_id": None,
+            "channel_id": channel.id, "user_id": member.id,
+            "item_id": item["id"], "item_name": item["name"],
+            "category": item["category"], "harga": item["harga"],
+            "payment_method": None, "admin_id": None,
+            "opened_at": now, "last_activity": now, "warned": 0, "warn_message_id": None,
         }
         cog.active_tickets[channel.id] = ticket
         save_lainnya_ticket(ticket)
@@ -259,28 +249,17 @@ class ItemSelect(discord.ui.Select):
         embed.add_field(name="Member", value=member.mention, inline=True)
         embed.add_field(name="Item", value=item["name"], inline=True)
         embed.add_field(name="Harga", value=f"Rp {item['harga']:,}", inline=True)
-        embed.add_field(
-            name="Cara Bayar",
-            value="Ketik **1** — QRIS  |  **2** — DANA  |  **3** — Bank Transfer",
-            inline=False
-        )
-        embed.add_field(
-            name="Catatan",
-            value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan kamu.",
-            inline=False
-        )
+        embed.add_field(name="Cara Bayar", value="Ketik **1** QRIS | **2** DANA | **3** Bank Transfer", inline=False)
+        embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
 
         admin_mention = admin_role.mention if admin_role else ""
         await channel.send(
-            content=f"{member.mention} {admin_mention}\n"
-                    f"Pesanan baru! Segera konfirmasi metode pembayaran.",
+            content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
             embed=embed
         )
-        await interaction.followup.send(
-            f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True
-        )
+        await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
 
 
 # ── COG ────────────────────────────────────────────────────────────────────────
@@ -289,6 +268,7 @@ class LainnyaStore(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_tickets = {}
+        self.catalog_message_id = None
         _init_db()
         self.auto_close_loop.start()
 
@@ -296,21 +276,48 @@ class LainnyaStore(commands.Cog):
         self.auto_close_loop.cancel()
 
     async def cog_load(self):
-        self.bot.loop.create_task(self._restore_tickets())
+        self.bot.loop.create_task(self._restore())
 
-    async def _restore_tickets(self):
+    async def _restore(self):
         await self.bot.wait_until_ready()
-        tickets = load_lainnya_tickets()
-        for ch_id, t in tickets.items():
-            self.active_tickets[ch_id] = t
-        print(f"[LainnyaStore] Restored {len(tickets)} tiket")
+        self.active_tickets = load_lainnya_tickets()
+        self.catalog_message_id = _get_catalog_msg_id()
+        print(f"[LainnyaStore] Restored {len(self.active_tickets)} tiket, catalog_msg={self.catalog_message_id}")
+
+    async def refresh_catalog(self):
+        products = load_lainnya_products()
+        guild = self.bot.guilds[0] if self.bot.guilds else None
+        if not guild:
+            return
+        ch = guild.get_channel(CATALOG_CHANNEL_ID)
+        if not ch:
+            return
+        embed = build_catalog_embed(products)
+        view = CatalogView().rebuild(products)
+        if self.catalog_message_id:
+            try:
+                msg = await ch.fetch_message(self.catalog_message_id)
+                await msg.edit(embed=embed, view=view)
+                return
+            except Exception:
+                pass
+        # Hapus embed lama dari bot
+        async for msg in ch.history(limit=20):
+            if msg.author == self.bot.user:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+        sent = await ch.send(embed=embed, view=view)
+        self.catalog_message_id = sent.id
+        _set_catalog_msg_id(sent.id)
 
     @tasks.loop(minutes=30)
     async def auto_close_loop(self):
         await self.bot.wait_until_ready()
         now = datetime.datetime.now(datetime.timezone.utc)
         to_close = []
-        for ch_id, ticket in self.active_tickets.items():
+        for ch_id, ticket in list(self.active_tickets.items()):
             last = datetime.datetime.fromisoformat(ticket["last_activity"])
             if last.tzinfo is None:
                 last = last.replace(tzinfo=datetime.timezone.utc)
@@ -323,17 +330,23 @@ class LainnyaStore(commands.Cog):
                     ch = guild.get_channel(ch_id)
                     if ch:
                         try:
-                            msg = await ch.send(
-                                "⚠️ Tiket ini akan otomatis ditutup dalam **1 jam** jika tidak ada aktivitas.\n"
-                                "Segera konfirmasi pembayaran atau hubungi admin."
-                            )
+                            user = guild.get_member(ticket["user_id"])
+                            warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
+                            warn_embed.add_field(name="\u200b", value=(
+                                "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
+                                "Segera selesaikan pembayaran atau hubungi admin.\n\n"
+                                "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                            ), inline=False)
+                            warn_embed.set_thumbnail(url=THUMBNAIL)
+                            warn_embed.set_footer(text=STORE_NAME)
+                            msg = await ch.send(content=user.mention if user else "", embed=warn_embed)
                             ticket["warned"] = 1
                             ticket["warn_message_id"] = msg.id
                             save_lainnya_ticket(ticket)
                         except Exception:
                             pass
         for ch_id in to_close:
-            ticket = self.active_tickets.get(ch_id)
+            ticket = self.active_tickets.pop(ch_id, None)
             if not ticket:
                 continue
             guild = self.bot.guilds[0] if self.bot.guilds else None
@@ -347,7 +360,6 @@ class LainnyaStore(commands.Cog):
                     except Exception:
                         pass
             delete_lainnya_ticket(ch_id)
-            del self.active_tickets[ch_id]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -358,8 +370,6 @@ class LainnyaStore(commands.Cog):
             return
         ticket = self.active_tickets[ch_id]
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-        # Pilih metode bayar
         if ticket.get("payment_method") is None and message.content.strip() in ["1", "2", "3"]:
             methods = {"1": "QRIS", "2": "DANA", "3": "Bank Transfer"}
             ticket["payment_method"] = methods[message.content.strip()]
@@ -373,16 +383,15 @@ class LainnyaStore(commands.Cog):
     async def kirim_katalog(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
-        products = load_lainnya_products()
-        embed = build_catalog_embed(products)
-        view = CatalogView(products)
-        ch = ctx.guild.get_channel(CATALOG_CHANNEL_ID)
-        if ch:
-            await ch.send(embed=embed, view=view)
-            await ctx.send("✅ Katalog berhasil dikirim!", delete_after=5)
-        else:
-            await ctx.send("❌ Channel katalog tidak ditemukan!", delete_after=5)
+        await ctx.message.delete()
+        await self.refresh_catalog()
+        await ctx.send("✅ Katalog berhasil dikirim!", delete_after=5)
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LainnyaStore(bot))
+    # Persistent view — tombol tetap bisa diklik setelah restart
+    products = load_lainnya_products()
+    view = CatalogView().rebuild(products)
+    bot.add_view(view)
+    print("Cog LainnyaStore siap.")

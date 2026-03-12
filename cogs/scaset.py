@@ -79,28 +79,36 @@ def load_scaset_tickets():
     return result
 
 
-# ── EMBED TIKET ────────────────────────────────────────────────────────────────
+def _get_catalog_msg_id():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT value FROM bot_state WHERE key='scaset_catalog_msg_id'")
+    row = c.fetchone()
+    conn.close()
+    return int(row["value"]) if row and row["value"] else None
+
+
+def _set_catalog_msg_id(msg_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO bot_state (key,value) VALUES ('scaset_catalog_msg_id',?)",
+              (str(msg_id),))
+    conn.commit()
+    conn.close()
+
+
+# ── EMBED ──────────────────────────────────────────────────────────────────────
 def build_ticket_embed(ticket: dict, member, admin=None):
     items = ticket.get("items", [])
     subtotal = sum(i.get("harga", 0) for i in items)
-
     embed = discord.Embed(
         title=f"SC/ASET GAME — {STORE_NAME}",
         color=COLOR_SCASET,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    embed.add_field(
-        name="Admin",
-        value=admin.mention if admin else "Menunggu admin...",
-        inline=True
-    )
-    embed.add_field(
-        name="Member",
-        value=member.mention if member else str(ticket["user_id"]),
-        inline=True
-    )
+    embed.add_field(name="Admin", value=admin.mention if admin else "Menunggu admin...", inline=True)
+    embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
     embed.add_field(name="\u200b", value="\u200b", inline=False)
-
     if items:
         for i, item in enumerate(items, 1):
             embed.add_field(
@@ -111,7 +119,6 @@ def build_ticket_embed(ticket: dict, member, admin=None):
         embed.add_field(name="Subtotal", value=f"**Rp {subtotal:,}**", inline=False)
     else:
         embed.add_field(name="Item", value="*Belum ada item — admin gunakan `!additem`*", inline=False)
-
     embed.add_field(
         name="Metode Bayar",
         value=ticket.get("payment_method") or "*Menunggu konfirmasi member...*",
@@ -123,41 +130,34 @@ def build_ticket_embed(ticket: dict, member, admin=None):
 
 
 def build_admin_guide_embed():
-    embed = discord.Embed(
-        title="📋 Panduan Admin — SC/Aset Game",
-        color=0x2ECC71
-    )
+    embed = discord.Embed(title="📋 Panduan Admin — SC/Aset Game", color=0x2ECC71)
     embed.add_field(
         name="Tambah Item",
-        value="`!additem <nama> <qty> <harga_total>`\n"
-              "Contoh: `!additem Batu Evo 3 15000`\n"
-              "Contoh: `!additem Secret Tumbal 1 5000`",
+        value="`!additem <nama> <qty> <harga_total>`\nContoh: `!additem Batu Evo 3 15000`",
         inline=False
     )
     embed.add_field(
         name="Hapus Item",
-        value="`!delitem <nomor>`\n"
-              "Contoh: `!delitem 1` — hapus item pertama",
+        value="`!delitem <nomor>`\nContoh: `!delitem 1`",
         inline=False
     )
     embed.add_field(
         name="Tutup Tiket",
-        value="`!done` — tutup tiket sukses\n"
-              "`!cancel` — batalkan tiket",
+        value="`!done` — tutup tiket sukses\n`!cancel [alasan]` — batalkan tiket",
         inline=False
     )
     embed.set_footer(text="Embed tiket otomatis update setiap perubahan item")
     return embed
 
 
-# ── CATALOG VIEW ───────────────────────────────────────────────────────────────
-class ScasetButton(discord.ui.Button):
+# ── CATALOG VIEW (persistent) ──────────────────────────────────────────────────
+class ScasetOrderButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
             label="SC TB / ASET GAME",
             style=discord.ButtonStyle.success,
             emoji="🎮",
-            custom_id="scaset_order"
+            custom_id="scaset_order_btn"
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -170,9 +170,7 @@ class ScasetButton(discord.ui.Button):
                 existing = guild.get_channel(ch_id)
                 if existing:
                     await interaction.response.send_message(
-                        f"Kamu masih punya tiket aktif di {existing.mention}!",
-                        ephemeral=True
-                    )
+                        f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True)
                     return
 
         await interaction.response.defer(ephemeral=True)
@@ -188,23 +186,14 @@ class ScasetButton(discord.ui.Button):
             overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         channel = await guild.create_text_channel(
-            name=f"scaset-{member.name}",
-            category=cat_channel,
-            overwrites=overwrites,
-        )
+            name=f"scaset-{member.name}", category=cat_channel, overwrites=overwrites)
 
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         ticket = {
-            "channel_id": channel.id,
-            "user_id": member.id,
-            "payment_method": None,
-            "items": [],
-            "admin_id": None,
-            "embed_message_id": None,
-            "opened_at": now,
-            "last_activity": now,
-            "warned": 0,
-            "warn_message_id": None,
+            "channel_id": channel.id, "user_id": member.id,
+            "payment_method": None, "items": [], "admin_id": None,
+            "embed_message_id": None, "opened_at": now, "last_activity": now,
+            "warned": 0, "warn_message_id": None,
         }
         cog.active_tickets[channel.id] = ticket
         save_scaset_ticket(ticket)
@@ -224,18 +213,14 @@ class ScasetButton(discord.ui.Button):
         )
         ticket["embed_message_id"] = msg.id
         save_scaset_ticket(ticket)
-
-        # Admin guide
         await channel.send(embed=build_admin_guide_embed())
-        await interaction.followup.send(
-            f"Tiket kamu dibuat di {channel.mention}!", ephemeral=True
-        )
+        await interaction.followup.send(f"Tiket kamu dibuat di {channel.mention}!", ephemeral=True)
 
 
 class ScasetCatalogView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(ScasetButton())
+        self.add_item(ScasetOrderButton())
 
 
 # ── COG ────────────────────────────────────────────────────────────────────────
@@ -244,6 +229,7 @@ class ScasetStore(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_tickets = {}
+        self.catalog_message_id = None
         _init_db()
         self.auto_close_loop.start()
 
@@ -251,21 +237,57 @@ class ScasetStore(commands.Cog):
         self.auto_close_loop.cancel()
 
     async def cog_load(self):
-        self.bot.loop.create_task(self._restore_tickets())
+        self.bot.loop.create_task(self._restore())
 
-    async def _restore_tickets(self):
+    async def _restore(self):
         await self.bot.wait_until_ready()
-        tickets = load_scaset_tickets()
-        for ch_id, t in tickets.items():
-            self.active_tickets[ch_id] = t
-        print(f"[ScasetStore] Restored {len(tickets)} tiket")
+        self.active_tickets = load_scaset_tickets()
+        self.catalog_message_id = _get_catalog_msg_id()
+        print(f"[ScasetStore] Restored {len(self.active_tickets)} tiket, catalog_msg={self.catalog_message_id}")
+
+    async def refresh_catalog(self):
+        guild = self.bot.guilds[0] if self.bot.guilds else None
+        if not guild:
+            return
+        ch = guild.get_channel(CATALOG_CHANNEL_ID)
+        if not ch:
+            return
+        embed = discord.Embed(
+            title=f"SC TB / ASET GAME — {STORE_NAME}",
+            description=(
+                "Jual beli item, aset game, SC TB, dan kebutuhan quest/misi/experience.\n\n"
+                "**Harga:** Rp 300 – Rp 700 / item *(tergantung jenis item)*\n\n"
+                "Klik tombol di bawah untuk membuka tiket order."
+            ),
+            color=COLOR_SCASET
+        )
+        embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=f"{STORE_NAME} • Stock terbatas")
+        view = ScasetCatalogView()
+        if self.catalog_message_id:
+            try:
+                msg = await ch.fetch_message(self.catalog_message_id)
+                await msg.edit(embed=embed, view=view)
+                return
+            except Exception:
+                pass
+        async for msg in ch.history(limit=20):
+            if msg.author == self.bot.user:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+        sent = await ch.send(embed=embed, view=view)
+        self.catalog_message_id = sent.id
+        _set_catalog_msg_id(sent.id)
 
     @tasks.loop(minutes=30)
     async def auto_close_loop(self):
         await self.bot.wait_until_ready()
         now = datetime.datetime.now(datetime.timezone.utc)
         to_close = []
-        for ch_id, ticket in self.active_tickets.items():
+        for ch_id, ticket in list(self.active_tickets.items()):
             last = datetime.datetime.fromisoformat(ticket["last_activity"])
             if last.tzinfo is None:
                 last = last.replace(tzinfo=datetime.timezone.utc)
@@ -278,9 +300,16 @@ class ScasetStore(commands.Cog):
                     ch = guild.get_channel(ch_id)
                     if ch:
                         try:
-                            msg = await ch.send(
-                                "⚠️ Tiket akan otomatis ditutup dalam **1 jam** jika tidak ada aktivitas."
-                            )
+                            user = guild.get_member(ticket["user_id"])
+                            warn_embed = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
+                            warn_embed.add_field(name="\u200b", value=(
+                                "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
+                                "Segera selesaikan atau hubungi admin.\n\n"
+                                "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                            ), inline=False)
+                            warn_embed.set_thumbnail(url=THUMBNAIL)
+                            warn_embed.set_footer(text=STORE_NAME)
+                            msg = await ch.send(content=user.mention if user else "", embed=warn_embed)
                             ticket["warned"] = 1
                             ticket["warn_message_id"] = msg.id
                             save_scaset_ticket(ticket)
@@ -311,13 +340,10 @@ class ScasetStore(commands.Cog):
             return
         ticket = self.active_tickets[ch_id]
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-        # Pilih metode bayar
         if ticket.get("payment_method") is None and message.content.strip() in ["1", "2", "3"]:
             methods = {"1": "QRIS", "2": "DANA", "3": "Bank Transfer"}
             ticket["payment_method"] = methods[message.content.strip()]
             save_scaset_ticket(ticket)
-            # Update embed
             await self._update_embed(message.channel, ticket)
             await message.channel.send(
                 f"✅ Metode pembayaran: **{ticket['payment_method']}**\n"
@@ -345,18 +371,15 @@ class ScasetStore(commands.Cog):
             return
         if not nama or not qty or not harga:
             await ctx.send(
-                "Format: `!additem <nama> <qty> <harga_total>`\n"
-                "Contoh: `!additem Batu Evo 3 15000`",
+                "Format: `!additem <nama> <qty> <harga_total>`\nContoh: `!additem Batu Evo 3 15000`",
                 delete_after=8
             )
             return
-
         ticket = self.active_tickets[ch_id]
         ticket["admin_id"] = ctx.author.id
         ticket["items"].append({"nama": nama, "qty": qty, "harga": harga})
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         save_scaset_ticket(ticket)
-
         await ctx.message.delete()
         await self._update_embed(ctx.channel, ticket)
 
@@ -370,15 +393,13 @@ class ScasetStore(commands.Cog):
         ticket = self.active_tickets[ch_id]
         if not nomor or nomor < 1 or nomor > len(ticket["items"]):
             await ctx.send(
-                f"Nomor item tidak valid. Gunakan `!delitem <nomor>` (1–{len(ticket['items'])})",
+                f"Nomor tidak valid. Gunakan `!delitem <nomor>` (1–{len(ticket['items'])})",
                 delete_after=8
             )
             return
-
         removed = ticket["items"].pop(nomor - 1)
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         save_scaset_ticket(ticket)
-
         await ctx.message.delete()
         await self._update_embed(ctx.channel, ticket)
         await ctx.channel.send(f"🗑️ Item **{removed['nama']}** dihapus.", delete_after=5)
@@ -387,26 +408,12 @@ class ScasetStore(commands.Cog):
     async def kirim_katalog(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
-        embed = discord.Embed(
-            title=f"SC TB / ASET GAME — {STORE_NAME}",
-            description=(
-                "Jual beli item, aset game, SC TB, dan kebutuhan quest/misi/experience.\n\n"
-                "**Harga:** Rp 300 – Rp 700 / item *(tergantung jenis item)*\n\n"
-                "Klik tombol di bawah untuk membuka tiket order."
-            ),
-            color=COLOR_SCASET
-        )
-        embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
-        embed.set_thumbnail(url=THUMBNAIL)
-        embed.set_footer(text=f"{STORE_NAME} • Stock terbatas")
-        view = ScasetCatalogView()
-        ch = ctx.guild.get_channel(CATALOG_CHANNEL_ID)
-        if ch:
-            await ch.send(embed=embed, view=view)
-            await ctx.send("✅ Katalog SC/Aset berhasil dikirim!", delete_after=5)
-        else:
-            await ctx.send("❌ Channel katalog tidak ditemukan!", delete_after=5)
+        await ctx.message.delete()
+        await self.refresh_catalog()
+        await ctx.send("✅ Katalog SC/Aset berhasil dikirim!", delete_after=5)
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ScasetStore(bot))
+    bot.add_view(ScasetCatalogView())
+    print("Cog ScasetStore siap.")
