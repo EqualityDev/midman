@@ -1290,12 +1290,13 @@ def page_stats():
 
     conn.close()
 
-    label_map = {"midman":"Midman Trade","vilog":"Vilog","robux":"Robux","ml":"ML","ff":"Free Fire","jualbeli":"Jual Beli"}
+    label_map = {"midman":"Midman Trade","vilog":"Vilog","robux":"Robux","ml":"ML","ff":"Free Fire","jualbeli":"Jual Beli","cloudphone":"Cloud Phone","nitro":"Discord Nitro","scaset":"SC/Aset Game"}
 
     # Stat cards
     layanan_list = [
         ("midman","💼","#7c5cbf"),("vilog","⚡","#c9a84c"),("robux","🎮","#E91E63"),
-        ("ml","💎","#3498DB"),("ff","🔥","#FF6B35"),("jualbeli","🤝","#4dbb8a")
+        ("ml","💎","#3498DB"),("ff","🔥","#FF6B35"),("jualbeli","🤝","#4dbb8a"),
+        ("cloudphone","📱","#00BFFF"),("nitro","💜","#5865F2"),("scaset","🎮","#F0A500")
     ]
     stat_cards = ""
     for key, ico, color in layanan_list:
