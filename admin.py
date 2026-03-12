@@ -1039,7 +1039,37 @@ def _ensure_autopost_table():
             message TEXT NOT NULL,
             interval_minutes INTEGER NOT NULL DEFAULT 60,
             active INTEGER NOT NULL DEFAULT 1,
-            last_sent TEXT DEFAULT NULL
+            last_sent TEXT DEFAULT NULL,
+            scheduled_time TEXT DEFAULT NULL,
+            use_embed INTEGER NOT NULL DEFAULT 0,
+            embed_title TEXT DEFAULT NULL,
+            embed_color TEXT DEFAULT NULL,
+            next_send TEXT DEFAULT NULL
+        )
+    """)
+    # Migrasi kolom baru jika belum ada
+    for col, defval in [
+        ("scheduled_time", "TEXT DEFAULT NULL"),
+        ("use_embed", "INTEGER NOT NULL DEFAULT 0"),
+        ("embed_title", "TEXT DEFAULT NULL"),
+        ("embed_color", "TEXT DEFAULT NULL"),
+        ("next_send", "TEXT DEFAULT NULL"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE autopost_tasks ADD COLUMN {col} {defval}")
+        except Exception as e:
+            if "duplicate column" not in str(e).lower():
+                print(f"[DB] Migration autopost_tasks {col}: {e}")
+    # Tabel log
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS autopost_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            task_label TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            note TEXT DEFAULT NULL,
+            sent_at TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -1053,43 +1083,73 @@ _ensure_autopost_table()
 def page_autopost():
     conn = get_conn()
     tasks = conn.execute("SELECT * FROM autopost_tasks ORDER BY id DESC").fetchall()
+    logs  = conn.execute(
+        "SELECT * FROM autopost_log ORDER BY id DESC LIMIT 100"
+    ).fetchall()
     conn.close()
+
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+
     rows = ""
     for t in tasks:
         status = "<span style='color:#2ECC71'>Aktif</span>" if t["active"] else "<span style='color:#E74C3C'>Nonaktif</span>"
-        last = t["last_sent"] or "-"
+        last   = t["last_sent"] or "-"
+        nxt    = t["next_send"] or "-"
+        mode   = f"Jam {t['scheduled_time']}" if t["scheduled_time"] else f"{t['interval_minutes']} menit"
+        embed_badge = "<span style='color:#5865F2;font-size:11px'>embed</span>" if t["use_embed"] else "<span style='color:#888;font-size:11px'>teks</span>"
+        msg_preview = (t["message"] or "")[:60] + ("..." if len(t["message"] or "") > 60 else "")
         rows += f"""<tr>
             <td>{t['id']}</td>
             <td>{t['label']}</td>
             <td><code>{t['channel_id']}</code></td>
-            <td style='max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{t['message']}</td>
-            <td>{t['interval_minutes']} menit</td>
+            <td style='max-width:200px'>{msg_preview}<br>{embed_badge}</td>
+            <td>{mode}</td>
             <td>{status}</td>
             <td style='font-size:12px'>{last}</td>
+            <td style='font-size:12px'>{nxt}</td>
             <td>
-                <form method='post' action='/autopost/toggle/{t['id']}' style='display:inline'>
-                    <button class='btn {"btn-danger" if t["active"] else "btn-success"}' style='padding:4px 10px;font-size:12px'>
-                        {"Nonaktifkan" if t["active"] else "Aktifkan"}
+                <form method='post' action='/autopost/test/{t["id"]}' style='display:inline'>
+                    <button class='btn btn-warning' style='padding:4px 8px;font-size:12px'>▶ Test</button>
+                </form>
+                <form method='post' action='/autopost/toggle/{t["id"]}' style='display:inline'>
+                    <button class='btn {"btn-danger" if t["active"] else "btn-success"}' style='padding:4px 8px;font-size:12px'>
+                        {"Nonaktif" if t["active"] else "Aktif"}
                     </button>
                 </form>
-                <button class='btn btn-warning' style='padding:4px 10px;font-size:12px'
-                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]})'>
+                <button class='btn btn-warning' style='padding:4px 8px;font-size:12px'
+                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]},"{t["scheduled_time"] or ""}",{t["use_embed"]},"{t["embed_title"] or ""}","{t["embed_color"] or "#5865F2"}')'>
                     Edit
                 </button>
                 <form method='post' action='/autopost/delete/{t["id"]}' style='display:inline'
                     onsubmit='return confirm("Hapus task ini?")'>
-                    <button class='btn btn-danger' style='padding:4px 10px;font-size:12px'>Hapus</button>
+                    <button class='btn btn-danger' style='padding:4px 8px;font-size:12px'>Hapus</button>
                 </form>
             </td>
         </tr>"""
+
     if not rows:
-        rows = "<tr><td colspan='8' style='text-align:center;color:#888'>Belum ada task autopost.</td></tr>"
+        rows = "<tr><td colspan='9' style='text-align:center;color:#888'>Belum ada task autopost.</td></tr>"
+
+    # Log rows
+    log_rows = ""
+    for l in logs:
+        color = "#2ECC71" if l["status"] == "sukses" else "#E74C3C"
+        log_rows += f"""<tr>
+            <td style='font-size:12px'>{l['sent_at']}</td>
+            <td>{l['task_label']}</td>
+            <td><code>{l['channel_id']}</code></td>
+            <td><span style='color:{color}'>{l['status']}</span></td>
+            <td style='font-size:12px;color:#aaa'>{l['note'] or '-'}</td>
+        </tr>"""
+    if not log_rows:
+        log_rows = "<tr><td colspan='5' style='text-align:center;color:#888'>Belum ada riwayat.</td></tr>"
 
     content = f"""
     <div class='card'>
         <h2>Autopost</h2>
-        <p style='color:#aaa;font-size:13px'>Pesan dikirim otomatis ke channel Discord dengan interval tertentu menggunakan user token.</p>
-        <button class='btn btn-success' onclick="document.getElementById('addForm').style.display='block'">+ Tambah Task</button>
+        <p style='color:#aaa;font-size:13px'>Kirim pesan otomatis ke channel Discord. Bisa pakai interval menit atau jadwal jam tertentu.</p>
+        <button class='btn btn-success' onclick="document.getElementById('addForm').style.display='block';this.style.display='none'">+ Tambah Task</button>
     </div>
 
     <div class='card' id='addForm' style='display:none'>
@@ -1105,14 +1165,41 @@ def page_autopost():
             </div>
             <div class='form-group'>
                 <label>Pesan</label>
-                <textarea name='message' class='form-control' rows='5' placeholder='Isi pesan yang akan dikirim...' required></textarea>
+                <textarea name='message' class='form-control' rows='5' placeholder='Isi pesan...' required></textarea>
             </div>
             <div class='form-group'>
+                <label>Mode pengiriman</label>
+                <select name='mode' class='form-control' onchange='toggleMode(this.value,"add")'>
+                    <option value='interval'>Interval (setiap N menit)</option>
+                    <option value='schedule'>Jadwal jam tertentu (setiap hari)</option>
+                </select>
+            </div>
+            <div id='add_interval' class='form-group'>
                 <label>Interval (menit)</label>
-                <input type='number' name='interval_minutes' class='form-control' value='60' min='1' required>
+                <input type='number' name='interval_minutes' class='form-control' value='60' min='1'>
+            </div>
+            <div id='add_schedule' class='form-group' style='display:none'>
+                <label>Jam kirim (format HH:MM, contoh 09:00)</label>
+                <input type='text' name='scheduled_time' class='form-control' placeholder='09:00'>
+            </div>
+            <div class='form-group'>
+                <label style='display:flex;align-items:center;gap:8px'>
+                    <input type='checkbox' name='use_embed' value='1' onchange='toggleEmbed(this,"add")'>
+                    Kirim sebagai Embed Discord
+                </label>
+            </div>
+            <div id='add_embed_opts' style='display:none'>
+                <div class='form-group'>
+                    <label>Judul Embed</label>
+                    <input type='text' name='embed_title' class='form-control' placeholder='Judul embed...'>
+                </div>
+                <div class='form-group'>
+                    <label>Warna Embed</label>
+                    <input type='color' name='embed_color' class='form-control' value='#5865F2' style='height:40px'>
+                </div>
             </div>
             <button type='submit' class='btn btn-success'>Simpan</button>
-            <button type='button' class='btn' onclick="document.getElementById('addForm').style.display='none'">Batal</button>
+            <button type='button' class='btn' onclick="document.getElementById('addForm').style.display='none';document.querySelector('.btn-success').style.display=''">Batal</button>
         </form>
     </div>
 
@@ -1133,8 +1220,35 @@ def page_autopost():
                 <textarea name='message' id='editMessage' class='form-control' rows='5' required></textarea>
             </div>
             <div class='form-group'>
+                <label>Mode pengiriman</label>
+                <select name='mode' id='editMode' class='form-control' onchange='toggleMode(this.value,"edit")'>
+                    <option value='interval'>Interval (setiap N menit)</option>
+                    <option value='schedule'>Jadwal jam tertentu (setiap hari)</option>
+                </select>
+            </div>
+            <div id='edit_interval' class='form-group'>
                 <label>Interval (menit)</label>
-                <input type='number' name='interval_minutes' id='editInterval' class='form-control' min='1' required>
+                <input type='number' name='interval_minutes' id='editInterval' class='form-control' min='1'>
+            </div>
+            <div id='edit_schedule' class='form-group' style='display:none'>
+                <label>Jam kirim (HH:MM)</label>
+                <input type='text' name='scheduled_time' id='editSchedule' class='form-control'>
+            </div>
+            <div class='form-group'>
+                <label style='display:flex;align-items:center;gap:8px'>
+                    <input type='checkbox' name='use_embed' id='editUseEmbed' value='1' onchange='toggleEmbed(this,"edit")'>
+                    Kirim sebagai Embed Discord
+                </label>
+            </div>
+            <div id='edit_embed_opts' style='display:none'>
+                <div class='form-group'>
+                    <label>Judul Embed</label>
+                    <input type='text' name='embed_title' id='editEmbedTitle' class='form-control'>
+                </div>
+                <div class='form-group'>
+                    <label>Warna Embed</label>
+                    <input type='color' name='embed_color' id='editEmbedColor' class='form-control' style='height:40px'>
+                </div>
             </div>
             <button type='submit' class='btn btn-success'>Simpan</button>
             <button type='button' class='btn' onclick="document.getElementById('editForm').style.display='none'">Batal</button>
@@ -1147,20 +1261,48 @@ def page_autopost():
             <table>
                 <thead><tr>
                     <th>ID</th><th>Label</th><th>Channel ID</th><th>Pesan</th>
-                    <th>Interval</th><th>Status</th><th>Terakhir Kirim</th><th>Aksi</th>
+                    <th>Jadwal</th><th>Status</th><th>Terakhir Kirim</th><th>Berikutnya</th><th>Aksi</th>
                 </tr></thead>
                 <tbody>{rows}</tbody>
             </table>
         </div>
     </div>
 
+    <div class='card'>
+        <h3>Riwayat Kirim (100 terakhir)</h3>
+        <div style='overflow-x:auto'>
+            <table>
+                <thead><tr>
+                    <th>Waktu</th><th>Label</th><th>Channel</th><th>Status</th><th>Keterangan</th>
+                </tr></thead>
+                <tbody>{log_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
-    function openEdit(id, label, channel, message, interval) {{
+    function toggleMode(val, prefix) {{
+        document.getElementById(prefix+'_interval').style.display = val==='interval' ? '' : 'none';
+        document.getElementById(prefix+'_schedule').style.display = val==='schedule' ? '' : 'none';
+    }}
+    function toggleEmbed(cb, prefix) {{
+        document.getElementById(prefix+'_embed_opts').style.display = cb.checked ? '' : 'none';
+    }}
+    function openEdit(id, label, channel, message, interval, schedule, useEmbed, embedTitle, embedColor) {{
         document.getElementById('editId').value = id;
         document.getElementById('editLabel').value = label;
         document.getElementById('editChannel').value = channel;
         document.getElementById('editMessage').value = message;
         document.getElementById('editInterval').value = interval;
+        document.getElementById('editSchedule').value = schedule;
+        document.getElementById('editEmbedTitle').value = embedTitle;
+        document.getElementById('editEmbedColor').value = embedColor || '#5865F2';
+        var useEmb = useEmbed == 1;
+        document.getElementById('editUseEmbed').checked = useEmb;
+        document.getElementById('edit_embed_opts').style.display = useEmb ? '' : 'none';
+        var mode = schedule ? 'schedule' : 'interval';
+        document.getElementById('editMode').value = mode;
+        toggleMode(mode, 'edit');
         document.getElementById('editForm').style.display = 'block';
         document.getElementById('editForm').scrollIntoView({{behavior:'smooth'}});
     }}
@@ -1172,17 +1314,37 @@ def page_autopost():
 @app.route("/autopost/add", methods=["POST"])
 @login_required
 def autopost_add():
-    label = request.form.get("label", "").strip()
-    channel_id = request.form.get("channel_id", "").strip()
-    message = request.form.get("message", "").strip()
-    interval = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    import datetime as _dt
+    label        = request.form.get("label", "").strip()
+    channel_id   = request.form.get("channel_id", "").strip()
+    message      = request.form.get("message", "").strip()
+    mode         = request.form.get("mode", "interval")
+    interval     = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    sched_time   = request.form.get("scheduled_time", "").strip() or None
+    use_embed    = 1 if request.form.get("use_embed") else 0
+    embed_title  = request.form.get("embed_title", "").strip() or None
+    embed_color  = request.form.get("embed_color", "#5865F2").strip() or "#5865F2"
+    if mode == "schedule":
+        interval = 1440  # default 1 hari jika pakai schedule
     if not label or not channel_id or not message:
         flash("Semua field wajib diisi.", "error")
         return redirect(url_for("page_autopost"))
+    # Hitung next_send
+    now = _dt.datetime.now(_dt.timezone.utc)
+    if sched_time:
+        try:
+            h, m = map(int, sched_time.split(":"))
+            nxt = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            if nxt <= now:
+                nxt += _dt.timedelta(days=1)
+        except Exception:
+            nxt = now + _dt.timedelta(minutes=interval)
+    else:
+        nxt = now + _dt.timedelta(minutes=interval)
     conn = get_conn()
     conn.execute(
-        "INSERT INTO autopost_tasks (label, channel_id, message, interval_minutes, active) VALUES (?,?,?,?,1)",
-        (label, channel_id, message, interval)
+        "INSERT INTO autopost_tasks (label, channel_id, message, interval_minutes, active, scheduled_time, use_embed, embed_title, embed_color, next_send) VALUES (?,?,?,?,1,?,?,?,?,?)",
+        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat())
     )
     conn.commit(); conn.close()
     flash(f"Task '{label}' berhasil ditambahkan.", "success")
@@ -1192,18 +1354,37 @@ def autopost_add():
 @app.route("/autopost/edit", methods=["POST"])
 @login_required
 def autopost_edit():
-    tid = safe_int(request.form.get("id"))
-    label = request.form.get("label", "").strip()
-    channel_id = request.form.get("channel_id", "").strip()
-    message = request.form.get("message", "").strip()
-    interval = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    import datetime as _dt
+    tid          = safe_int(request.form.get("id"))
+    label        = request.form.get("label", "").strip()
+    channel_id   = request.form.get("channel_id", "").strip()
+    message      = request.form.get("message", "").strip()
+    mode         = request.form.get("mode", "interval")
+    interval     = safe_int(request.form.get("interval_minutes"), min_val=1) or 60
+    sched_time   = request.form.get("scheduled_time", "").strip() or None
+    use_embed    = 1 if request.form.get("use_embed") else 0
+    embed_title  = request.form.get("embed_title", "").strip() or None
+    embed_color  = request.form.get("embed_color", "#5865F2").strip() or "#5865F2"
+    if mode == "schedule":
+        interval = 1440
     if not tid or not label or not channel_id or not message:
         flash("Semua field wajib diisi.", "error")
         return redirect(url_for("page_autopost"))
+    now = _dt.datetime.now(_dt.timezone.utc)
+    if sched_time:
+        try:
+            h, m = map(int, sched_time.split(":"))
+            nxt = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            if nxt <= now:
+                nxt += _dt.timedelta(days=1)
+        except Exception:
+            nxt = now + _dt.timedelta(minutes=interval)
+    else:
+        nxt = now + _dt.timedelta(minutes=interval)
     conn = get_conn()
     conn.execute(
-        "UPDATE autopost_tasks SET label=?, channel_id=?, message=?, interval_minutes=? WHERE id=?",
-        (label, channel_id, message, interval, tid)
+        "UPDATE autopost_tasks SET label=?, channel_id=?, message=?, interval_minutes=?, scheduled_time=?, use_embed=?, embed_title=?, embed_color=?, next_send=? WHERE id=?",
+        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat(), tid)
     )
     conn.commit(); conn.close()
     flash("Task berhasil diupdate.", "success")
@@ -1227,10 +1408,37 @@ def autopost_toggle(tid):
 def autopost_delete(tid):
     conn = get_conn()
     conn.execute("DELETE FROM autopost_tasks WHERE id=?", (tid,))
+    conn.execute("DELETE FROM autopost_log WHERE task_id=?", (tid,))
     conn.commit(); conn.close()
     flash("Task berhasil dihapus.", "success")
     return redirect(url_for("page_autopost"))
 
+
+@app.route("/autopost/test/<int:tid>", methods=["POST"])
+@login_required
+def autopost_test(tid):
+    import datetime as _dt
+    conn = get_conn()
+    task = conn.execute("SELECT * FROM autopost_tasks WHERE id=?", (tid,)).fetchone()
+    conn.close()
+    if not task:
+        flash("Task tidak ditemukan.", "error")
+        return redirect(url_for("page_autopost"))
+    # Kirim via bot menggunakan shared queue atau file flag
+    import json, os
+    test_file = os.path.join(os.path.dirname(__file__), ".autopost_test")
+    with open(test_file, "w") as f:
+        json.dump({
+            "task_id": task["id"],
+            "label": task["label"],
+            "channel_id": task["channel_id"],
+            "message": task["message"],
+            "use_embed": task["use_embed"],
+            "embed_title": task["embed_title"],
+            "embed_color": task["embed_color"],
+        }, f)
+    flash(f"Test kirim untuk '{task['label']}' telah dijadwalkan. Bot akan mengirim dalam beberapa detik.", "success")
+    return redirect(url_for("page_autopost"))
 
 
 # ── STATISTIK ─────────────────────────────────────────────────────────────────
