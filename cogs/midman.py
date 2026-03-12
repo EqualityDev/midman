@@ -162,7 +162,7 @@ class Midman(commands.Cog):
                         value=f"{ticket_count} tiket ✅" if ticket_count else "Tidak ada tiket aktif",
                         inline=True
                     )
-                    embed.set_thumbnail(url=THUMBNAIL)
+                    embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     embed.set_footer(text=STORE_NAME)
                     await ch.send(embed=embed)
 
@@ -456,7 +456,7 @@ class Midman(commands.Cog):
                 inline=False
             )
             embed.set_footer(text=f"{STORE_NAME} · Bot akan restart dalam 3 detik...")
-            embed.set_thumbnail(url=THUMBNAIL)
+            embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
             await ctx.send(embed=embed)
 
             with open(".update_channel", "w") as f:
