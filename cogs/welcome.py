@@ -140,10 +140,30 @@ class WelcomeCog(commands.Cog):
         if not channel:
             return
         member_count = sum(1 for m in member.guild.members if not m.bot)
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc)
+        joined = member.joined_at
+        if joined:
+            delta = now - joined
+            days = delta.days
+            if days < 1:
+                hours = delta.seconds // 3600
+                durasi_str = f"{hours} jam"
+            elif days < 30:
+                durasi_str = f"{days} hari"
+            elif days < 365:
+                months = days // 30
+                durasi_str = f"{months} bulan"
+            else:
+                years = days // 365
+                sisa = (days % 365) // 30
+                durasi_str = f"{years} tahun {sisa} bulan" if sisa else f"{years} tahun"
+        else:
+            durasi_str = "tidak diketahui"
         embed = discord.Embed(
-            title="Member Keluar",
+            title=f"{member.display_name} telah meninggalkan server. 🍃",
             description=(
-                f"**{member.name}** telah meninggalkan server.\n\n"
+                f"Bergabung selama **{durasi_str}** — semoga sampai jumpa lagi.\n"
                 f"Total member saat ini: **{member_count}**"
             ),
             color=0x808080,
@@ -170,11 +190,10 @@ class WelcomeCog(commands.Cog):
         guild = member.guild
         member_count = sum(1 for m in guild.members if not m.bot)
         embed = discord.Embed(
-            title=f"Selamat Datang di {guild.name}! 👋",
+            title=f"Selamat datang, {member.display_name}! 👋",
             description=(
-                f"Halo, {member.mention}!\n\n"
-                f"Selamat datang di **{guild.name}**.\n"
-                f"Kamu adalah member ke-**{member_count}**."
+                f"Kamu adalah member ke-**{member_count}** di {STORE_NAME}.\n\n"
+                f"Senang kamu bergabung bersama kami. Jangan lupa baca server rules ya!"
             ),
             color=0x00BFFF,
         )
@@ -202,10 +221,11 @@ class WelcomeCog(commands.Cog):
         if not channel:
             return
         embed = discord.Embed(
-            title="🚀 Server Boost!",
+            title="🚀 Server di-boost!",
             description=(
-                f"**{member.mention}** baru saja boost server ini!\n\n"
-                f"Terima kasih atas dukungan kamu kepada **{member.guild.name}**! 💜"
+                f"**{member.mention}** baru saja boost {STORE_NAME}!\n\n"
+                f"Terima kasih atas dukunganmu untuk komunitas ini — kontribusimu sangat berarti bagi kami. "
+                f"Semoga kamu betah dan terus bersama kami! 🥳"
             ),
             color=0xFF73FA,
         )
