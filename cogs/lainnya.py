@@ -30,20 +30,27 @@ def _init_db():
     ''')
     c.execute('''
         CREATE TABLE IF NOT EXISTS lainnya_tickets (
-            channel_id    INTEGER PRIMARY KEY,
-            user_id       INTEGER,
-            item_id       INTEGER,
-            item_name     TEXT,
-            category      TEXT,
-            harga         INTEGER,
-            payment_method TEXT,
-            admin_id      INTEGER,
-            opened_at     TEXT,
-            warned        INTEGER DEFAULT 0,
+            channel_id      INTEGER PRIMARY KEY,
+            user_id         INTEGER,
+            item_id         INTEGER,
+            item_name       TEXT,
+            category        TEXT,
+            harga           INTEGER,
+            payment_method  TEXT,
+            admin_id        INTEGER,
+            embed_message_id INTEGER,
+            opened_at       TEXT,
+            warned          INTEGER DEFAULT 0,
             warn_message_id INTEGER,
-            last_activity TEXT
+            last_activity   TEXT
         )
     ''')
+    # Migration
+    try:
+        c.execute("ALTER TABLE lainnya_tickets ADD COLUMN embed_message_id INTEGER")
+        conn.commit()
+    except Exception:
+        pass
     DEFAULT_PRODUCTS = [
         (1, "CLOUD PHONE", "REDFINGER VIP 7DAY",   20500),
         (2, "CLOUD PHONE", "REDFINGER KVIP 7DAY",  37500),
@@ -80,12 +87,13 @@ def save_lainnya_ticket(ticket: dict):
     c.execute('''
         INSERT OR REPLACE INTO lainnya_tickets
         (channel_id, user_id, item_id, item_name, category, harga, payment_method,
-         admin_id, opened_at, warned, warn_message_id, last_activity)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+         admin_id, embed_message_id, opened_at, warned, warn_message_id, last_activity)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     ''', (
         ticket["channel_id"], ticket["user_id"], ticket.get("item_id"),
         ticket.get("item_name"), ticket.get("category"), ticket.get("harga"),
         ticket.get("payment_method"), ticket.get("admin_id"),
+        ticket.get("embed_message_id"),
         ticket.get("opened_at"), ticket.get("warned", 0),
         ticket.get("warn_message_id"), ticket.get("last_activity"),
     ))
@@ -236,6 +244,7 @@ class ItemSelect(discord.ui.Select):
             "item_id": item["id"], "item_name": item["name"],
             "category": item["category"], "harga": item["harga"],
             "payment_method": None, "admin_id": None,
+            "embed_message_id": None,
             "opened_at": now, "last_activity": now, "warned": 0, "warn_message_id": None,
         }
         cog.active_tickets[channel.id] = ticket
@@ -249,16 +258,18 @@ class ItemSelect(discord.ui.Select):
         embed.add_field(name="Member", value=member.mention, inline=True)
         embed.add_field(name="Item", value=item["name"], inline=True)
         embed.add_field(name="Harga", value=f"Rp {item['harga']:,}", inline=True)
-        embed.add_field(name="Cara Bayar", value="Ketik **1** QRIS | **2** DANA | **3** Bank Transfer", inline=False)
+        embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
         embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
 
         admin_mention = admin_role.mention if admin_role else ""
-        await channel.send(
+        msg = await channel.send(
             content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
             embed=embed
         )
+        ticket["embed_message_id"] = msg.id
+        save_lainnya_ticket(ticket)
         await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
 
 
@@ -361,6 +372,32 @@ class LainnyaStore(commands.Cog):
                         pass
             delete_lainnya_ticket(ch_id)
 
+    async def _update_embed(self, channel, ticket):
+        try:
+            guild = channel.guild
+            member = guild.get_member(ticket["user_id"])
+            embed = discord.Embed(
+                title=f"ORDER {ticket.get('category', '')} — {STORE_NAME}",
+                color=COLOR_LAINNYA,
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
+            )
+            embed.add_field(name="Member", value=member.mention if member else str(ticket["user_id"]), inline=True)
+            embed.add_field(name="Item", value=ticket.get("item_name", "-"), inline=True)
+            embed.add_field(name="Harga", value=f"Rp {ticket.get('harga', 0):,}", inline=True)
+            embed.add_field(
+                name="Metode Bayar",
+                value=ticket.get("payment_method") or "*Menunggu konfirmasi member...*",
+                inline=False
+            )
+            embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
+            embed.set_thumbnail(url=THUMBNAIL)
+            embed.set_footer(text=STORE_NAME)
+            if ticket.get("embed_message_id"):
+                msg = await channel.fetch_message(ticket["embed_message_id"])
+                await msg.edit(embed=embed)
+        except Exception as e:
+            print(f"[LainnyaStore] Update embed error: {e}")
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
@@ -369,11 +406,14 @@ class LainnyaStore(commands.Cog):
         if ch_id not in self.active_tickets:
             return
         ticket = self.active_tickets[ch_id]
+        # Fix 3: simpan last_activity ke DB
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        save_lainnya_ticket(ticket)
         if ticket.get("payment_method") is None and message.content.strip() in ["1", "2", "3"]:
             methods = {"1": "QRIS", "2": "DANA", "3": "Bank Transfer"}
             ticket["payment_method"] = methods[message.content.strip()]
             save_lainnya_ticket(ticket)
+            await self._update_embed(message.channel, ticket)
             await message.channel.send(
                 f"✅ Metode pembayaran: **{ticket['payment_method']}**\n"
                 f"Silakan lakukan pembayaran sebesar **Rp {ticket['harga']:,}** dan kirim bukti transfer."

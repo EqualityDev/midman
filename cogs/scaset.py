@@ -340,6 +340,7 @@ class ScasetStore(commands.Cog):
             return
         ticket = self.active_tickets[ch_id]
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        save_scaset_ticket(ticket)
         if ticket.get("payment_method") is None and message.content.strip() in ["1", "2", "3"]:
             methods = {"1": "QRIS", "2": "DANA", "3": "Bank Transfer"}
             ticket["payment_method"] = methods[message.content.strip()]
@@ -363,17 +364,39 @@ class ScasetStore(commands.Cog):
             print(f"[ScasetStore] Update embed error: {e}")
 
     @commands.command(name="additem")
-    async def add_item(self, ctx, nama: str = None, qty: int = None, harga: int = None):
+    async def add_item(self, ctx, *, args: str = None):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
         ch_id = ctx.channel.id
         if ch_id not in self.active_tickets:
             return
-        if not nama or not qty or not harga:
+        # Format: !additem <nama multi kata> <qty> <harga>
+        # Parse 2 angka terakhir sebagai qty dan harga, sisanya adalah nama
+        if not args:
             await ctx.send(
                 "Format: `!additem <nama> <qty> <harga_total>`\nContoh: `!additem Batu Evo 3 15000`",
                 delete_after=8
             )
+            return
+        parts = args.strip().split()
+        if len(parts) < 3:
+            await ctx.send(
+                "Format: `!additem <nama> <qty> <harga_total>`\nContoh: `!additem Batu Evo 3 15000`",
+                delete_after=8
+            )
+            return
+        try:
+            harga = int(parts[-1])
+            qty = int(parts[-2])
+            nama = " ".join(parts[:-2])
+        except ValueError:
+            await ctx.send(
+                "Qty dan harga harus berupa angka.\nContoh: `!additem Batu Evo 3 15000`",
+                delete_after=8
+            )
+            return
+        if not nama:
+            await ctx.send("Nama item tidak boleh kosong!", delete_after=8)
             return
         ticket = self.active_tickets[ch_id]
         ticket["admin_id"] = ctx.author.id
