@@ -4,7 +4,7 @@ import datetime
 from discord.ext import commands, tasks
 from utils.config import GUILD_ID
 
-VOICE_CHANNEL_ID = 1477832806871728349
+VOICE_CHANNEL_ID = 1476351297375440957
 
 
 class VoiceStandbyCog(commands.Cog):
