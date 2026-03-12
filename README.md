@@ -1,6 +1,6 @@
 # Midman Bot — Cellyn Store Community
 
-Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), AI customer service, selfroles, autopost, dan admin panel berbasis web.
+Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), Cloud Phone, Discord Nitro, SC/Aset Game, AI customer service, selfroles, giveaway, autopost, welcome, dan admin panel berbasis web.
 
 ---
 
@@ -11,10 +11,19 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Vilog** — boost server Roblox via login dengan pilihan paket
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
 - **ML & FF Topup** — topup diamond Mobile Legends, Free Fire, dan Weekly Diamond Pass (WDP)
+- **Cloud Phone & Discord Nitro** — order Redfinger cloud phone dan Discord Nitro via tiket
+- **SC TB / Aset Game** — jual beli item game, aset, dan kebutuhan quest/misi; admin input item + harga dinamis per tiket
+- **Giveaway** — slash command giveaway dengan timer, auto-end, reroll, dan persistent setelah restart
+- **Welcome** — welcome/leave/boost notif dengan GIF, auto-assign role Customer saat member join
+- **Broadcast** — kirim pengumuman ke channel dengan modal preview, cooldown per admin
+- **Auto React** — auto react emoji ke pesan di channel tertentu atau semua pesan admin
+- **Server Stats** — voice channel nama otomatis update jumlah member
 - **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API (rotasi hingga 5 API key)
 - **Selfroles** — self-assignable roles via Discord
 - **Autopost** — kirim pesan promosi/pengumuman ke channel manapun secara otomatis berdasarkan interval
-- **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Vilog dan task autopost via browser dari mana saja
+- **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Vilog/Lainnya, autopost, dan statistik transaksi via browser
+- **Statistik Transaksi** — dashboard grafik 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
+- **Royal Customer** — auto-assign role setelah transaksi sukses di semua layanan
 - **Auto-restart** — bot restart otomatis jika crash (max 5x)
 - **Warning & Auto-close** — tiket tidak aktif 1 jam dapat peringatan, 2 jam ditutup otomatis
 - **Notifikasi URL Admin** — URL Cloudflare Tunnel dikirim ke channel admin setiap bot online
@@ -126,7 +135,9 @@ Akses: buka URL yang dikirim bot di channel error log → login dengan `ADMIN_PA
 - **FF** — tambah, edit, hapus produk Free Fire
 - **Robux** — tambah, edit, nonaktifkan/aktifkan, hapus item + tambah kategori baru
 - **Vilog** — tambah, edit, nonaktifkan/aktifkan, hapus paket boost
+- **Lainnya** — tambah, edit, nonaktifkan/aktifkan, hapus produk Cloud Phone & Discord Nitro + tambah kategori baru
 - **Autopost** — tambah, edit, hapus, aktifkan/nonaktifkan task autopost
+- **Statistik** — grafik transaksi 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
 
 Perubahan produk via web langsung berlaku ke bot tanpa restart.
 
@@ -185,6 +196,41 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 | `!mlselesai` | Konfirmasi topup selesai |
 | `!mlbatal [alasan]` | Batalkan tiket ML/FF |
 
+### Cloud Phone & Discord Nitro
+| Command | Fungsi |
+|---|---|
+| `!lainnya` | Kirim embed katalog Cloud Phone & Nitro |
+| `!done` | Tutup tiket sukses |
+| `!cancel [alasan]` | Batalkan tiket |
+
+### SC TB / Aset Game
+| Command | Fungsi |
+|---|---|
+| `!aset` | Kirim embed katalog SC/Aset Game |
+| `!additem <nama> <qty> <harga>` | Tambah item ke tiket (admin) |
+| `!delitem <nomor>` | Hapus item dari tiket (admin) |
+| `!done` | Tutup tiket sukses |
+| `!cancel [alasan]` | Batalkan tiket |
+
+### Giveaway
+| Command | Fungsi |
+|---|---|
+| `/giveaway` | Buat giveaway baru |
+| `/giveaway_end` | Akhiri giveaway lebih awal |
+| `/giveaway_reroll` | Reroll pemenang |
+| `/giveaway_list` | Lihat giveaway aktif |
+
+### Welcome & Tools
+| Command | Fungsi |
+|---|---|
+| `/setwelcome` | Atur channel/GIF welcome, boost notif, atau nonaktifkan |
+| `/broadcast` | Kirim pengumuman ke channel (modal preview) |
+| `/setreact` | Set auto react di channel untuk pesan admin |
+| `/setreactall` | Set auto react untuk semua user di channel |
+| `/reactlist` | Lihat daftar channel auto react |
+| `/setstatschannel` | Set voice channel untuk stats member |
+| `/unsetstatschannel` | Nonaktifkan stats channel |
+
 ### Lainnya
 | Command | Fungsi |
 |---|---|
@@ -194,7 +240,7 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 | `!ping` | Cek latency |
 | `!info` | Info bot |
 
-> Semua command kecuali `!open` hanya bisa digunakan oleh role admin.
+> Semua command prefix kecuali `!open` hanya bisa digunakan oleh role admin.
 
 ---
 
@@ -236,6 +282,21 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 3. Bayar via QRIS
 4. Admin proses topup, ketik `!mlselesai`
 
+### Cloud Phone & Discord Nitro
+1. Member klik kategori di channel lainnya
+2. Pilih item dari dropdown
+3. Tiket terbuka, member ketik **1/2/3** untuk pilih metode bayar
+4. Bayar sesuai nominal, kirim bukti transfer
+5. Admin proses, ketik `!done` untuk tutup tiket
+
+### SC TB / Aset Game
+1. Member klik tombol di channel lainnya
+2. Tiket terbuka, member ketik **1/2/3** untuk pilih metode bayar
+3. Member beritahu admin item yang dibutuhkan
+4. Admin input item: `!additem <nama> <qty> <harga>`
+5. Embed tiket otomatis update dengan daftar item + subtotal
+6. Admin ketik `!done` setelah item terkirim
+
 ---
 
 ## Struktur File
@@ -251,7 +312,7 @@ midman/
 ├── .env.example
 ├── utils/
 │   ├── config.py         # Semua env variable
-│   ├── db.py             # init_db() + semua tabel SQLite
+│   ├── db.py             # init_db() + semua tabel SQLite + log_transaction()
 │   ├── counter.py        # Auto-increment nomor tiket
 │   ├── transcript.py     # Generate HTML transcript
 │   ├── fee.py            # Kalkulator fee midman
@@ -264,12 +325,18 @@ midman/
     ├── vilog.py          # Boost via login
     ├── robux.py          # Robux store
     ├── ml.py             # Topup ML, FF & WDP
+    ├── lainnya.py        # Cloud Phone & Discord Nitro
+    ├── scaset.py         # SC TB / Aset Game
+    ├── orders.py         # Shared !done & !cancel untuk lainnya + scaset
+    ├── giveaway.py       # Giveaway slash commands
+    ├── welcome.py        # Welcome/leave/boost notif + auto role Customer
+    ├── broadcast.py      # Broadcast pengumuman dengan cooldown
+    ├── auto_react.py     # Auto react emoji per channel
+    ├── server_stats.py   # Voice channel stats member count
     ├── ai_chat.py        # AI customer service (Groq, rotasi 5 key)
     ├── selfroles.py      # Self-assignable roles
     ├── testimoni.py      # Auto-reply channel testimoni
-    ├── nickname_enforcer.py  # Auto-enforce suffix nama
-    ├── views.py          # Persistent views & embeds
-    └── modals.py         # Modal forms
+    └── nickname_enforcer.py  # Auto-enforce suffix nama
 ```
 
 ---
@@ -278,12 +345,13 @@ midman/
 
 SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash start.sh`.
 
-**Tabel produk** (di-seed dari `seed.py`):
+**Tabel produk:**
 - `ml_products` — produk Mobile Legends
 - `wdp_products` — paket Weekly Diamond Pass
 - `ff_products` — produk Free Fire
 - `robux_products` — item Robux per kategori
 - `vilog_boosts` — paket boost vilog
+- `lainnya_products` — produk Cloud Phone & Discord Nitro
 
 **Tabel transaksi:**
 - `tickets` — midman trade
@@ -291,23 +359,29 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `vilog_tickets` — tiket vilog
 - `robux_tickets` — tiket robux
 - `ml_tickets` — tiket ML & FF
+- `lainnya_tickets` — tiket Cloud Phone & Nitro
+- `scaset_tickets` — tiket SC/Aset Game
+- `transaction_log` — log semua transaksi sukses (untuk statistik)
 - `robux_rate` — rate Robux saat ini
-- `bot_state` — state bot (embed message ID, dll)
 
 **Tabel lainnya:**
 - `autopost_tasks` — task autopost (label, channel ID, pesan, interval, status)
+- `giveaways` — giveaway aktif
+- `auto_react` — channel auto react
+- `bot_state` — state bot (embed message ID catalog, welcome settings, broadcast cooldown, dll)
 
 ---
 
 ## Cara Tambah Layanan Baru
 
-1. Buat `cogs/namalayanan.py` — ikuti pola cog yang sudah ada (tiket, modal, auto-close, warning, persistent view, log, transcript)
+1. Buat `cogs/namalayanan.py` — ikuti pola cog yang sudah ada (tiket, modal, auto-close, warning, persistent view, log, transcript, Royal Customer)
 2. Tambah tabel di `utils/db.py`
 3. Tambah data produk di `seed.py` (jika ada)
 4. Tambah halaman di `admin.py` (jika ada produk yang perlu dikelola)
 5. Daftarkan di `main.py` — `await bot.load_extension("cogs.namalayanan")`
 6. Tambah prefix di `!cmd` di `cogs/midman.py`
 7. Update system prompt AI di `cogs/ai_chat.py`
+8. Update `README.md`
 
 ---
 
