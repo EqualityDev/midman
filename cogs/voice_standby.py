@@ -24,12 +24,6 @@ class VoiceStandbyCog(commands.Cog):
     def cog_unload(self):
         self.reconnect_loop.cancel()
 
-    def _get_voice_client(self):
-        guild = self.bot.get_guild(GUILD_ID)
-        if not guild:
-            return None
-        return guild.voice_client
-
     @tasks.loop(seconds=30)
     async def reconnect_loop(self):
         if self._reconnecting:
@@ -47,21 +41,24 @@ class VoiceStandbyCog(commands.Cog):
 
             vc = guild.voice_client
 
-            # Sudah connect di channel yang benar
+            # Sudah connect di channel yang benar dan masih playing
             if vc and vc.is_connected() and vc.channel.id == VOICE_CHANNEL_ID:
                 if not vc.is_playing():
                     vc.play(SilenceAudio(), after=None)
                 return
 
-            # Disconnect dulu kalau di channel lain
-            if vc and vc.is_connected():
-                await vc.disconnect(force=True)
-                await asyncio.sleep(1)
+            # Force disconnect semua voice client yang ada (mati maupun hidup)
+            if vc:
+                try:
+                    await vc.disconnect(force=True)
+                except Exception:
+                    pass
+                await asyncio.sleep(2)
 
+            # Connect ulang
             vc = await channel.connect(self_deaf=True, self_mute=True)
             await asyncio.sleep(1)
-            if not vc.is_playing():
-                vc.play(SilenceAudio(), after=None)
+            vc.play(SilenceAudio(), after=None)
             print(f"[VOICE] Terhubung ke '{channel.name}'")
 
         except Exception as e:
@@ -72,7 +69,7 @@ class VoiceStandbyCog(commands.Cog):
     @reconnect_loop.before_loop
     async def before_reconnect(self):
         await self.bot.wait_until_ready()
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
 
 
 async def setup(bot: commands.Bot):
