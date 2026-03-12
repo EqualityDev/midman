@@ -303,6 +303,7 @@ def render_page(content, **ctx):
     {_a("Robux Store", "/robux", ico_robux, "page_robux")}
     {_a("Vilog", "/vilog", ico_vilog, "page_vilog")}
     <div class="nav-section">Tools</div>
+    {_a("Lainnya", "/lainnya", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>', "page_lainnya")}
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
     {_a("Statistik", "/stats", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', "page_stats")}
   </nav>
@@ -1421,6 +1422,191 @@ new Chart(document.getElementById('chart30'), {{
 }});
 </script>"""
     return render_page(content)
+
+
+# ── LAINNYA (Cloud Phone & Nitro) ─────────────────────────────────────────────
+@app.route("/lainnya")
+def page_lainnya():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, category, name, harga, active FROM lainnya_products ORDER BY category, id")
+    products = [dict(r) for r in c.fetchall()]
+    conn.close()
+
+    # Group by category
+    categories = {}
+    for p in products:
+        categories.setdefault(p["category"], []).append(p)
+
+    cat_html = ""
+    for cat, items in categories.items():
+        rows = ""
+        for p in items:
+            status = "Aktif" if p["active"] else "Nonaktif"
+            status_badge = f'<span style="color:{"#4dbb8a" if p["active"] else "#e74c3c"};font-size:.8rem;">{status}</span>'
+            rows += f"""
+            <tr>
+              <td>{p["id"]}</td>
+              <td>{p["name"]}</td>
+              <td>Rp {p["harga"]:,}</td>
+              <td>{status_badge}</td>
+              <td>
+                <div style="display:flex;gap:.4rem;">
+                  <a href="/lainnya/edit/{p["id"]}" class="btn-sm btn-primary">Edit</a>
+                  <a href="/lainnya/toggle/{p["id"]}" class="btn-sm {"btn-warn" if p["active"] else "btn-success"}">{"Nonaktifkan" if p["active"] else "Aktifkan"}</a>
+                  <a href="/lainnya/delete/{p["id"]}" class="btn-sm btn-danger" onclick="return confirm('Hapus item ini?')">Hapus</a>
+                </div>
+              </td>
+            </tr>"""
+        cat_html += f"""
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-header"><span class="card-title">{cat}</span></div>
+          <table>
+            <thead><tr><th>ID</th><th>Nama</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody>{rows}</tbody>
+          </table>
+        </div>"""
+
+    content = f"""
+<div class="page-header">
+  <div class="page-title">Lainnya<small>Kelola produk Cloud Phone & Discord Nitro</small></div>
+</div>
+
+<!-- Tambah Produk -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header"><span class="card-title">➕ Tambah Produk</span></div>
+  <div class="card-body">
+    <form method="POST" action="/lainnya/add" style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:.75rem;align-items:end;">
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Kategori</label>
+        <input name="category" placeholder="Contoh: CLOUD PHONE" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Nama Item</label>
+        <input name="name" placeholder="Contoh: REDFINGER VIP 7DAY" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Harga (Rp)</label>
+        <input name="harga" type="number" placeholder="20500" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;font-size:.9rem;">
+      </div>
+      <button type="submit" class="btn-primary" style="padding:.5rem 1rem;height:fit-content;margin-top:auto;">Tambah</button>
+    </form>
+  </div>
+</div>
+
+<!-- Daftar Produk -->
+{cat_html if cat_html else '<div class="card"><div class="card-body empty">Belum ada produk</div></div>'}
+"""
+    return render_page(content)
+
+
+@app.route("/lainnya/add", methods=["POST"])
+def lainnya_add():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    category = request.form.get("category", "").strip().upper()
+    name = request.form.get("name", "").strip().upper()
+    harga = request.form.get("harga", "0").strip()
+    if not category or not name or not harga:
+        flash("Semua field wajib diisi!", "error")
+        return redirect(url_for("page_lainnya"))
+    try:
+        harga_int = int(harga)
+    except ValueError:
+        flash("Harga harus berupa angka!", "error")
+        return redirect(url_for("page_lainnya"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("INSERT INTO lainnya_products (category, name, harga, active) VALUES (?,?,?,1)",
+              (category, name, harga_int))
+    conn.commit()
+    conn.close()
+    flash(f"Produk {name} berhasil ditambahkan!", "success")
+    return redirect(url_for("page_lainnya"))
+
+
+@app.route("/lainnya/edit/<int:pid>", methods=["GET", "POST"])
+def lainnya_edit(pid):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+    if request.method == "POST":
+        category = request.form.get("category", "").strip().upper()
+        name = request.form.get("name", "").strip().upper()
+        harga = request.form.get("harga", "0").strip()
+        try:
+            harga_int = int(harga)
+        except ValueError:
+            harga_int = 0
+        c.execute("UPDATE lainnya_products SET category=?, name=?, harga=? WHERE id=?",
+                  (category, name, harga_int, pid))
+        conn.commit()
+        conn.close()
+        flash("Produk berhasil diupdate!", "success")
+        return redirect(url_for("page_lainnya"))
+    c.execute("SELECT * FROM lainnya_products WHERE id=?", (pid,))
+    p = dict(c.fetchone())
+    conn.close()
+    content = f"""
+<div class="page-header">
+  <div class="page-title">Edit Produk<small>{p["name"]}</small></div>
+</div>
+<div class="card" style="max-width:500px;">
+  <div class="card-body">
+    <form method="POST" style="display:flex;flex-direction:column;gap:1rem;">
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Kategori</label>
+        <input name="category" value="{p["category"]}" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Nama Item</label>
+        <input name="name" value="{p["name"]}" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#6a7a95;display:block;margin-bottom:.3rem;">Harga (Rp)</label>
+        <input name="harga" type="number" value="{p["harga"]}" style="width:100%;padding:.5rem .75rem;background:#131622;border:1px solid #1e2435;border-radius:6px;color:#e2e8f0;">
+      </div>
+      <div style="display:flex;gap:.75rem;">
+        <button type="submit" class="btn-primary">Simpan</button>
+        <a href="/lainnya" class="btn-sm" style="padding:.5rem 1rem;background:#1e2435;border-radius:6px;color:#e2e8f0;text-decoration:none;">Batal</a>
+      </div>
+    </form>
+  </div>
+</div>"""
+    return render_page(content)
+
+
+@app.route("/lainnya/toggle/<int:pid>")
+def lainnya_toggle(pid):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE lainnya_products SET active = 1 - active WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("page_lainnya"))
+
+
+@app.route("/lainnya/delete/<int:pid>")
+def lainnya_delete(pid):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    from utils.db import get_conn
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM lainnya_products WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    flash("Produk berhasil dihapus!", "success")
+    return redirect(url_for("page_lainnya"))
 
 if __name__ == "__main__":
     port = int(os.environ.get("ADMIN_PORT", 5000))
