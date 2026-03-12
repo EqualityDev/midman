@@ -89,7 +89,7 @@ async def on_ready():
 
         embed = discord.Embed(
 
-            title="🌐 Admin Panel Online Password Cellin123",
+            title="🌐 Admin Panel Online Password Cellyn123",
 
             description=f"Admin panel dapat diakses di:\n**{cf_url}**",
 
