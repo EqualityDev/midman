@@ -272,12 +272,13 @@ class ScasetStore(commands.Cog):
                 return
             except Exception:
                 pass
-        async for msg in ch.history(limit=20):
-            if msg.author == self.bot.user:
-                try:
-                    await msg.delete()
-                except Exception:
-                    pass
+        # Hanya hapus embed milik cog ini, bukan semua pesan bot
+        if self.catalog_message_id:
+            try:
+                old_msg = await ch.fetch_message(self.catalog_message_id)
+                await old_msg.delete()
+            except Exception:
+                pass
         sent = await ch.send(embed=embed, view=view)
         self.catalog_message_id = sent.id
         _set_catalog_msg_id(sent.id)
