@@ -140,14 +140,31 @@ class Midman(commands.Cog):
                 data = f.read().strip().split("|")
             os.remove(".update_channel")
             ch_id = int(data[0])
-            ts = float(data[1]) if len(data) == 2 else datetime.datetime.now().timestamp()
+            ts = float(data[1]) if len(data) >= 2 else datetime.datetime.now().timestamp()
+            new_hash = data[2] if len(data) >= 3 else "unknown"
+            ticket_count = int(data[3]) if len(data) >= 4 else 0
             elapsed = datetime.datetime.now().timestamp() - ts
             if elapsed <= 120:
                 await self.bot.wait_until_ready()
                 await asyncio.sleep(3)
                 ch = self.bot.get_channel(ch_id)
                 if ch:
-                    await ch.send("Bot berhasil restart dan online kembali!")
+                    embed = discord.Embed(
+                        title="✅ Bot Online Kembali",
+                        description="Update berhasil diterapkan. Bot siap melayani.",
+                        color=0x57F287,
+                        timestamp=datetime.datetime.now(datetime.timezone.utc)
+                    )
+                    embed.add_field(name="Versi", value=f"`{new_hash}`", inline=True)
+                    embed.add_field(name="Waktu Restart", value=f"{int(elapsed)} detik", inline=True)
+                    embed.add_field(
+                        name="Tiket Dipulihkan",
+                        value=f"{ticket_count} tiket ✅" if ticket_count else "Tidak ada tiket aktif",
+                        inline=True
+                    )
+                    embed.set_thumbnail(url=THUMBNAIL)
+                    embed.set_footer(text=STORE_NAME)
+                    await ch.send(embed=embed)
 
     @commands.command(name="open")
     async def open_cmd(self, ctx):
@@ -349,13 +366,13 @@ class Midman(commands.Cog):
                 await confirm_msg.edit(content="Update dibatalkan.")
                 return
 
-        await ctx.send("Mengunduh update dari GitHub...")
         # Backup DB sebelum update
         try:
             from utils.backup import do_backup
             await do_backup(self.bot, BACKUP_CHANNEL_ID)
         except Exception as _be:
             print(f"[UPDATE] Backup sebelum update gagal: {_be}")
+
         # Simpan commit hash sebelum pull
         hash_proc = await asyncio.create_subprocess_shell(
             "git rev-parse HEAD",
@@ -364,15 +381,16 @@ class Midman(commands.Cog):
         )
         hash_out, _ = await hash_proc.communicate()
         old_hash = hash_out.decode().strip()
+
         proc = await asyncio.create_subprocess_shell(
             "git stash && git pull origin main",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await proc.communicate()
-        output = stdout.decode() or stderr.decode()
-        await ctx.send(f"```\n{output[:1900]}\n```")
+
         if proc.returncode == 0:
+            # Ambil changelog
             log_proc = await asyncio.create_subprocess_shell(
                 f"git log {old_hash}..HEAD --oneline --no-merges",
                 stdout=asyncio.subprocess.PIPE,
@@ -380,17 +398,75 @@ class Midman(commands.Cog):
             )
             log_out, _ = await log_proc.communicate()
             changelog = log_out.decode().strip()
+
+            # Ambil versi baru
+            new_hash_proc = await asyncio.create_subprocess_shell(
+                "git rev-parse --short HEAD",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            new_hash_out, _ = await new_hash_proc.communicate()
+            new_hash = new_hash_out.decode().strip()
+            old_hash_short = old_hash[:7]
+
+            # Format changelog
             if changelog:
-                await ctx.send(f"**Changelog:**\n```\n{changelog[:1500]}\n```")
+                lines = changelog.strip().splitlines()
+                formatted = "\n".join(f"`{line[:7]}` {line[8:]}" for line in lines[:15])
+                commit_count = len(lines)
             else:
-                await ctx.send("Tidak ada commit baru.")
-            await ctx.send("Update selesai! Bot akan restart dalam 3 detik...")
+                formatted = "*Tidak ada commit baru*"
+                commit_count = 0
+
+            # Embed 1 — update berhasil + changelog
+            embed = discord.Embed(
+                title="⬆️ Update Berhasil",
+                color=0x5865F2,
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
+            )
+            embed.add_field(
+                name="Versi",
+                value=f"`{old_hash_short}` → `{new_hash}`",
+                inline=True
+            )
+            embed.add_field(
+                name="Commit Baru",
+                value=str(commit_count),
+                inline=True
+            )
+            embed.add_field(
+                name="Tiket Aktif",
+                value=f"{len(self.active_tickets)} tiket (akan dipulihkan otomatis)",
+                inline=True
+            )
+            embed.add_field(
+                name="Changelog",
+                value=formatted[:1000] if formatted else "*Tidak ada perubahan*",
+                inline=False
+            )
+            embed.add_field(
+                name="DB Backup",
+                value="✅ Tersimpan sebelum update",
+                inline=False
+            )
+            embed.set_footer(text=f"{STORE_NAME} · Bot akan restart dalam 3 detik...")
+            embed.set_thumbnail(url=THUMBNAIL)
+            await ctx.send(embed=embed)
+
             with open(".update_channel", "w") as f:
-                f.write(str(ctx.channel.id))
+                f.write(f"{ctx.channel.id}|{datetime.datetime.now().timestamp()}|{new_hash}|{len(self.active_tickets)}")
             await asyncio.sleep(3)
             await self.bot.close()
         else:
-            await ctx.send("Update gagal! Cek log di atas.")
+            error_output = (stdout.decode() or stderr.decode())[:1500]
+            embed = discord.Embed(
+                title="❌ Update Gagal",
+                description=f"```\n{error_output}\n```",
+                color=0xED4245,
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
+            )
+            embed.set_footer(text=STORE_NAME)
+            await ctx.send(embed=embed)
 
     @commands.command(name="info")
     async def info(self, ctx):
