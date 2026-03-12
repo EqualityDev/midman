@@ -7,9 +7,8 @@ VOICE_CHANNEL_ID = 1476351297375440957
 
 
 class SilenceAudio(discord.AudioSource):
-    """Audio source yang memutar keheningan agar bot tidak di-disconnect."""
     def read(self):
-        return b'\xf8\xff\xfe'  # Opus silence frame
+        return b'\xf8\xff\xfe'
 
     def is_opus(self):
         return True
@@ -18,18 +17,25 @@ class SilenceAudio(discord.AudioSource):
 class VoiceStandbyCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.voice_client = None
+        self._reconnecting = False
         self.reconnect_loop.start()
         print("Cog VoiceStandby siap.")
 
     def cog_unload(self):
         self.reconnect_loop.cancel()
-        if self.voice_client:
-            asyncio.create_task(self.voice_client.disconnect(force=True))
 
-    @tasks.loop(seconds=20)
+    def _get_voice_client(self):
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return None
+        return guild.voice_client
+
+    @tasks.loop(seconds=30)
     async def reconnect_loop(self):
+        if self._reconnecting:
+            return
         try:
+            self._reconnecting = True
             guild = self.bot.get_guild(GUILD_ID)
             if not guild:
                 return
@@ -39,42 +45,34 @@ class VoiceStandbyCog(commands.Cog):
                 print("[VOICE] Channel tidak ditemukan.")
                 return
 
-            # Jika sudah connect dan masih connected
-            if self.voice_client and self.voice_client.is_connected():
-                # Pastikan silence tetap diputar
-                if not self.voice_client.is_playing():
-                    self.voice_client.play(SilenceAudio(), after=None)
+            vc = guild.voice_client
+
+            # Sudah connect di channel yang benar
+            if vc and vc.is_connected() and vc.channel.id == VOICE_CHANNEL_ID:
+                if not vc.is_playing():
+                    vc.play(SilenceAudio(), after=None)
                 return
 
-            # Reconnect
-            if self.voice_client:
-                try:
-                    await self.voice_client.disconnect(force=True)
-                except Exception:
-                    pass
+            # Disconnect dulu kalau di channel lain
+            if vc and vc.is_connected():
+                await vc.disconnect(force=True)
+                await asyncio.sleep(1)
 
-            self.voice_client = await channel.connect(self_deaf=True, self_mute=True)
-            self.voice_client.play(SilenceAudio(), after=None)
+            vc = await channel.connect(self_deaf=True, self_mute=True)
+            await asyncio.sleep(1)
+            if not vc.is_playing():
+                vc.play(SilenceAudio(), after=None)
             print(f"[VOICE] Terhubung ke '{channel.name}'")
 
         except Exception as e:
             print(f"[VOICE] Error: {e}")
+        finally:
+            self._reconnecting = False
 
     @reconnect_loop.before_loop
     async def before_reconnect(self):
         await self.bot.wait_until_ready()
         await asyncio.sleep(5)
-
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        """Reconnect segera jika bot di-disconnect."""
-        if member.id != self.bot.user.id:
-            return
-        if before.channel and not after.channel:
-            print("[VOICE] Bot di-disconnect, reconnecting...")
-            self.voice_client = None
-            await asyncio.sleep(2)
-            await self.reconnect_loop()
 
 
 async def setup(bot: commands.Bot):
