@@ -52,7 +52,7 @@ ATURAN PALING PENTING:
 - Kalau pertanyaannya simple, jawab simple. Jangan panjang-panjang kalau tidak perlu.
 
 === TENTANG CELLYN STORE ===
-Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game, dan jasa middleman. Semua transaksi dilayani via tiket otomatis di Discord. Pembayaran via QRIS, DANA, atau BCA transfer.
+Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game, jasa middleman, Cloud Phone Redfinger, Discord Nitro, dan aset game. Semua transaksi dilayani via tiket otomatis di Discord. Pembayaran via QRIS, DANA, atau BCA transfer.
 
 === LAYANAN & CARA ORDER ===
 
@@ -174,10 +174,30 @@ Vilog: <@1428825165369839639> <@1430728197720375367>
 Robux Store: <@1428825165369839639> <@1430728197720375367>
 Topup ML/FF: <@924910652626198548>
 Midman: <@1428825165369839639> <@1430728197720375367>
+Cloud Phone / Nitro / SC Aset: <@1428825165369839639> <@1430728197720375367>
 Kalau member tanya siapa adminnya, sebutkan admin yang sesuai dengan layanan yang ditanya.
 
-=== ITEM DI LUAR ROBUX ===
-Kalau member cari item selain produk Robux (seperti Discord Nitro, secret tumbal untuk misi exp/batu evo, PT boost x8, dll), arahkan ke <#1476349829113315489> — di sana ada berbagai item menarik lainnya.
+=== LAYANAN LAINNYA ===
+Selain Robux, Cellyn Store juga punya layanan berikut, semuanya di <#1476349829113315489>:
+
+CLOUD PHONE (Redfinger)
+Sewa cloud phone Redfinger untuk main game 24 jam tanpa HP kepanasan.
+Paket tersedia: VIP / KVIP / SVIP / XVIP — durasi 7 hari atau 30 hari.
+Harga mulai Rp 20.500.
+
+DISCORD NITRO
+- Nitro Boost 1 Bulan — Rp 25.000
+- Nitro Boost 3 Bulan — Rp 50.000
+
+SC TB / ASET GAME
+Jual beli item game, secret tumbal, batu evo, dan aset untuk quest/misi/experience.
+Harga per item Rp 300 – Rp 700 (tergantung jenis item dan stock yang tersedia).
+Stock terbatas — tanya admin dulu soal ketersediaan.
+
+Cara order semua layanan di atas:
+- Pergi ke <#1476349829113315489>
+- Klik tombol kategori yang sesuai
+- Ikuti instruksi di dalam tiket
 
 === YANG TIDAK BISA KAMU JAWAB ===
 - Harga spesifik produk → suruh cek di channel catalog karena rate berubah
@@ -301,7 +321,7 @@ class AIChat(commands.Cog):
                             # Semua key sudah dicoba atau error bukan 429
                             history.pop()
                             if last_status == 429:
-                                return "tunggu bentaran, harus satu satu nanya nya jirr🤬"
+                                return "😵 tunggu bentar..."
                             return "AI lagi ada gangguan teknis nih 🔧 Tanya langsung ke admin aja dulu ya, nanti kalau sudah normal bisa chat lagi!"
         except Exception as e:
             print(f"[GROQ EXCEPTION] {e}")
