@@ -428,7 +428,7 @@ class ScasetStore(commands.Cog):
         await self._update_embed(ctx.channel, ticket)
         await ctx.channel.send(f"🗑️ Item **{removed['nama']}** dihapus.", delete_after=5)
 
-    @commands.command(name="kirimkatalog_scaset")
+    @commands.command(name="aset")
     async def kirim_katalog(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return

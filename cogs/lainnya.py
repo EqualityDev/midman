@@ -420,7 +420,7 @@ class LainnyaStore(commands.Cog):
                 f"Silakan lakukan pembayaran sebesar **Rp {ticket['harga']:,}** dan kirim bukti transfer."
             )
 
-    @commands.command(name="kirimkatalog_lainnya")
+    @commands.command(name="lainnya")
     async def kirim_katalog(self, ctx):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
