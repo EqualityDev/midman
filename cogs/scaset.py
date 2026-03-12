@@ -124,6 +124,15 @@ def build_ticket_embed(ticket: dict, member, admin=None):
         value=ticket.get("payment_method") or "*Menunggu konfirmasi member...*",
         inline=False
     )
+    embed.add_field(
+        name="Instruksi",
+        value=(
+            "**1.** Ketik `1` QRIS · `2` DANA · `3` Bank Transfer\n"
+            "**2.** Beritahu admin item yang ingin dibeli\n"
+            "Admin akan informasikan stok dan harga."
+        ),
+        inline=False
+    )
     embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=STORE_NAME)
     return embed
@@ -201,14 +210,7 @@ class ScasetOrderButton(discord.ui.Button):
         embed = build_ticket_embed(ticket, member)
         admin_mention = admin_role.mention if admin_role else ""
         msg = await channel.send(
-            content=(
-                f"{member.mention} {admin_mention}\n"
-                f"Tiket SC/Aset Game dibuka!\n\n"
-                f"**{member.display_name}**, silakan:\n"
-                f"1. Pilih metode bayar: ketik **1** QRIS | **2** DANA | **3** Bank Transfer\n"
-                f"2. Beritahu admin item apa yang ingin kamu beli\n\n"
-                f"Admin akan menginformasikan ketersediaan stock dan harga."
-            ),
+            content=f"{member.mention} {admin_mention}",
             embed=embed
         )
         ticket["embed_message_id"] = msg.id
