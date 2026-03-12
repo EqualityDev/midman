@@ -170,6 +170,7 @@ Nominal transfer sesuai yang tertera di tiket. Kirim bukti bayar di dalam tiket.
 Arahkan ke channel testimoni <#1476349920758992897> — biar mereka lihat sendiri ulasan dari pembeli sebelumnya. Jangan maksa, cukup kasih tau channel-nya.
 
 === TIM ADMIN ===
+Saat menyebut admin, SELALU gunakan format <@ID> persis seperti di bawah ini, jangan tulis angka ID-nya saja:
 Vilog: <@1428825165369839639> <@1430728197720375367>
 Robux Store: <@1428825165369839639> <@1430728197720375367>
 Topup ML/FF: <@924910652626198548>
@@ -190,7 +191,7 @@ DISCORD NITRO
 - Nitro Boost 3 Bulan — Rp 50.000
 
 SC TB / ASET GAME
-Jual beli item game, secret tumbal, batu evo, dan aset untuk quest/misi/experience.
+Jual beli item game, SCTB/secret tumbal, batu evo, dan aset untuk quest/misi/experience.
 Harga per item Rp 300 – Rp 700 (tergantung jenis item dan stock yang tersedia).
 Stock terbatas — tanya admin dulu soal ketersediaan.
 
