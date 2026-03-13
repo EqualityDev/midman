@@ -305,6 +305,7 @@ def render_page(content, **ctx):
     <div class="nav-section">Tools</div>
     {_a("Lainnya", "/lainnya", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>', "page_lainnya")}
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
+    {_a("QRIS", "/qr", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/></svg>', "page_qr")}
     {_a("Statistik", "/stats", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', "page_stats")}
   </nav>
   <div class="sidebar-footer">
@@ -1773,6 +1774,101 @@ def lainnya_delete(pid):
     conn.close()
     flash("Produk berhasil dihapus!", "success")
     return redirect(url_for("page_lainnya"))
+
+
+# ── QR SLOTS ───────────────────────────────────────────────────────────────────
+@app.route("/qr")
+@login_required
+def page_qr():
+    conn = get_conn()
+    conn.execute("""CREATE TABLE IF NOT EXISTS qr_slots (
+        slot INTEGER PRIMARY KEY, label TEXT NOT NULL DEFAULT '',
+        url TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1
+    )""")
+    for i in range(1, 11):
+        conn.execute("INSERT OR IGNORE INTO qr_slots (slot, label, url) VALUES (?,?,?)",
+                     (i, f"QRIS {i}", ""))
+    conn.commit()
+    slots = conn.execute("SELECT * FROM qr_slots ORDER BY slot").fetchall()
+    conn.close()
+
+    rows = "".join(f"""<tr>
+      <td style="color:var(--muted);font-weight:600">!qr{s['slot']}</td>
+      <td>{s['label']}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.85rem">{s['url'] or '<span style="color:#555">Belum diset</span>'}</td>
+      <td>{'<img src="'+s['url']+'" style="height:48px;border-radius:6px">' if s['url'] else ''}</td>
+      <td><span style="color:{'var(--success)' if s['active'] else 'var(--danger)'};font-size:.85rem">{'Aktif' if s['active'] else 'Nonaktif'}</span></td>
+      <td><div style="display:flex;gap:.4rem">
+        <button class="btn btn-ghost btn-sm" onclick="openEditQR({s['slot']},'{s['label']}','{s['url']}')">Edit</button>
+        <form method="post" action="/qr/toggle/{s['slot']}" style="display:inline">
+          <button class="btn btn-sm {'btn-danger' if s['active'] else 'btn-success'}">{'Nonaktifkan' if s['active'] else 'Aktifkan'}</button>
+        </form>
+      </div></td>
+    </tr>""" for s in slots)
+
+    content = f"""
+<div class="page-header">
+  <div class="page-title">QRIS Slots <small>!qr1 — !qr{len(slots)}</small></div>
+</div>
+<div class="card"><table>
+  <thead><tr><th>Command</th><th>Label</th><th>URL Gambar</th><th>Preview</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{rows}</tbody>
+</table></div>
+<div class="modal-overlay" id="modal-edit-qr"><div class="modal">
+  <div class="modal-title">Edit Slot QRIS</div>
+  <form method="post" action="/qr/edit">
+    <input type="hidden" name="slot" id="edit-qr-slot">
+    <div class="form-group"><label>Label</label>
+      <input type="text" name="label" id="edit-qr-label" placeholder="contoh: QRIS Admin 1" required>
+    </div>
+    <div class="form-group" style="margin-top:1rem"><label>URL Gambar QR</label>
+      <input type="text" name="url" id="edit-qr-url" placeholder="https://i.imgur.com/xxx.png">
+      <small style="color:var(--muted)">Upload gambar ke Imgur/ImgBB lalu paste URL-nya di sini</small>
+    </div>
+    <div class="form-actions" style="margin-top:1.5rem">
+      <button type="submit" class="btn btn-primary">Simpan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-qr')">Batal</button>
+    </div>
+  </form>
+</div></div>
+<script>
+function openEditQR(slot, label, url) {{
+  document.getElementById('edit-qr-slot').value = slot;
+  document.getElementById('edit-qr-label').value = label;
+  document.getElementById('edit-qr-url').value = url;
+  openModal('modal-edit-qr');
+}}
+</script>"""
+    return render_page(content)
+
+
+@app.route("/qr/edit", methods=["POST"])
+@login_required
+def qr_edit():
+    slot = safe_int(request.form.get("slot"), min_val=1)
+    label = request.form.get("label", "").strip()
+    url = request.form.get("url", "").strip()
+    if not slot or not label:
+        flash("Input tidak valid.", "error")
+        return redirect(url_for("page_qr"))
+    conn = get_conn()
+    conn.execute("UPDATE qr_slots SET label=?, url=? WHERE slot=?", (label, url, slot))
+    conn.commit()
+    conn.close()
+    flash(f"Slot !qr{slot} berhasil diupdate.", "success")
+    return redirect(url_for("page_qr"))
+
+
+@app.route("/qr/toggle/<int:slot>", methods=["POST"])
+@login_required
+def qr_toggle(slot):
+    conn = get_conn()
+    conn.execute("UPDATE qr_slots SET active = 1 - active WHERE slot=?", (slot,))
+    conn.commit()
+    conn.close()
+    flash(f"Status slot !qr{slot} diubah.", "success")
+    return redirect(url_for("page_qr"))
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("ADMIN_PORT", 5000))
