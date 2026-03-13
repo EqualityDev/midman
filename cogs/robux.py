@@ -18,6 +18,22 @@ def load_robux_products():
 
 PRODUCTS = load_robux_products()
 
+def load_categories():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT category FROM robux_products WHERE active = 1 ORDER BY category")
+    rows = c.fetchall()
+    conn.close()
+    return [r["category"] for r in rows]
+
+CATEGORY_COLORS = {
+    "GAMEPASS": 0x5865F2,
+    "CRATE":    0x2ECC71,
+    "BOOST":    0xE91E63,
+    "LIMITED":  0xF1C40F,
+}
+DEFAULT_COLOR = 0x99AAB5
+
 def get_rate():
     conn = get_conn()
     c = conn.cursor()
@@ -52,13 +68,7 @@ def build_catalog_embed(rate):
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
 
-    categories = ["GAMEPASS", "CRATE", "BOOST", "LIMITED"]
-    labels = {
-        "GAMEPASS": "GAMEPASS",
-        "CRATE":    "CRATE",
-        "BOOST":    "BOOST",
-        "LIMITED":  "LIMITED ITEM",
-    }
+    categories = load_categories()
 
     for cat in categories:
         items = [p for p in PRODUCTS if p["category"] == cat]
@@ -66,7 +76,7 @@ def build_catalog_embed(rate):
         for item in items:
             harga_str = harga(item["robux"], rate)
             value += f"`ID:{item['id']:02d}` {item['name']} ({item['robux']} Robux) — **{harga_str}**\n"
-        embed.add_field(name=labels[cat], value=value, inline=False)
+        embed.add_field(name=cat, value=value or "Tidak ada item aktif", inline=False)
 
     embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Harga dapat berubah sewaktu-waktu")
@@ -75,10 +85,10 @@ def build_catalog_embed(rate):
 class CategoryView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(CategoryButton("GAMEPASS", 0x5865F2))
-        self.add_item(CategoryButton("CRATE", 0x2ECC71))
-        self.add_item(CategoryButton("BOOST", 0xE91E63))
-        self.add_item(CategoryButton("LIMITED", 0xF1C40F))
+        categories = load_categories()
+        for cat in categories:
+            color = CATEGORY_COLORS.get(cat, DEFAULT_COLOR)
+            self.add_item(CategoryButton(cat, color))
 
 class CategoryButton(discord.ui.Button):
     def __init__(self, category, color):
@@ -90,7 +100,8 @@ class CategoryButton(discord.ui.Button):
         self.category = category
 
     async def callback(self, interaction: discord.Interaction):
-        items = [p for p in PRODUCTS if p["category"] == self.category]
+        fresh = load_robux_products()
+        items = [p for p in fresh if p["category"] == self.category]
         rate = get_rate()
         options = []
         for item in items:
