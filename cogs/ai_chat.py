@@ -57,7 +57,7 @@ Cellyn Store adalah toko digital di Discord yang jual produk Roblox, topup game,
 === LAYANAN & CARA ORDER ===
 
 1. ROBUX STORE
-   Jual item Roblox. Kategori: GAMEPASS, CRATE, BOOST, LIMITED ITEM.
+   Jual item Roblox. Kategori: GAMEPASS SEMUA MAP ROBLOX (FISHIT,SAWAH INDO DAN BANYAK MAP LAINNYA) CRATE, BOOST, LIMITED ITEM.
    Harga = jumlah Robux x rate yang berlaku.
    Harga = jumlah Robux × rate yang berlaku (rate bisa berubah sewaktu-waktu).
    Cara order:
