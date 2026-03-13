@@ -144,6 +144,7 @@ async def main():
         await bot.load_extension("cogs.scaset")
         await bot.load_extension("cogs.orders")
         await bot.load_extension("cogs.autopost")
+        await bot.load_extension("cogs.qr")
 
         await bot.start(TOKEN)
 
