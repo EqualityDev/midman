@@ -411,346 +411,304 @@ def index():
 </div>"""
     return render_page(content)
 
-
-# ── ML ─────────────────────────────────────────────────────────────────────────
+# ── ML / GAMES ─────────────────────────────────────────────────────────────────
 @app.route("/ml")
 @login_required
 def page_ml():
     conn = get_conn()
-    # Safe migration: buat tabel wdp_products kalau belum ada
-    conn.execute("""CREATE TABLE IF NOT EXISTS wdp_products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        qty INTEGER NOT NULL,
-        label TEXT NOT NULL,
-        harga INTEGER NOT NULL
-    )""")
-    # Seed data default kalau kosong
-    if conn.execute("SELECT COUNT(*) FROM wdp_products").fetchone()[0] == 0:
-        conn.executemany("INSERT INTO wdp_products (qty, label, harga) VALUES (?,?,?)", [
-            (1, "1x Weekly Diamond Pass", 29000),
-            (2, "2x Weekly Diamond Pass", 57000),
-            (3, "3x Weekly Diamond Pass", 86000),
-        ])
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS games ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, "
+        "name TEXT NOT NULL, color INTEGER DEFAULT 3407872, "
+        "needs_server INTEGER DEFAULT 0, id_label TEXT DEFAULT 'Player ID', "
+        "active INTEGER DEFAULT 1)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS game_products ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, game_code TEXT NOT NULL, "
+        "label TEXT NOT NULL, dm INTEGER NOT NULL DEFAULT 0, "
+        "harga INTEGER NOT NULL, active INTEGER DEFAULT 1)"
+    )
     conn.commit()
-    products = conn.execute("SELECT * FROM ml_products ORDER BY dm").fetchall()
-    wdp_products = conn.execute("SELECT * FROM wdp_products ORDER BY qty").fetchall()
+    games = conn.execute("SELECT * FROM games ORDER BY id").fetchall()
+    selected_game = request.args.get("game", games[0]["code"] if games else "")
+    products = conn.execute(
+        "SELECT * FROM game_products WHERE game_code=? ORDER BY dm, id", (selected_game,)
+    ).fetchall() if selected_game else []
     conn.close()
+
+    game_tabs = "".join(
+        f'<a href="/ml?game={g["code"]}" class="btn {"btn-primary" if g["code"]==selected_game else "btn-ghost"} btn-sm">{g["name"]}</a>'
+        for g in games
+    )
     rows = "".join(f"""<tr>
       <td style="color:var(--muted)">{i+1}</td>
-      <td><span class="badge badge-ml">{p['dm']} DM</span></td>
+      <td>{p['label']}</td>
+      <td style="color:var(--muted)">{p['dm']}</td>
       <td>Rp {p['harga']:,}</td>
+      <td><span style="color:{'var(--success)' if p['active'] else 'var(--danger)'};font-size:.8rem;">{'Aktif' if p['active'] else 'Nonaktif'}</span></td>
       <td><div style="display:flex;gap:.5rem;">
-        <button class="btn btn-ghost btn-sm" onclick="openEditML({p['id']},{p['dm']},{p['harga']})">Edit</button>
-        <form method="post" action="/ml/delete/{p['id']}" style="display:inline;" onsubmit="return confirm('Hapus produk ini?')">
+        <button class="btn btn-ghost btn-sm" onclick="openEditProd({p['id']},'{p['label'].replace(chr(39), chr(92)+chr(39))}',{p['dm']},{p['harga']})">Edit</button>
+        <form method="post" action="/ml/product/toggle/{p['id']}?game={selected_game}" style="display:inline;">
+          <button type="submit" class="btn btn-sm {'btn-danger' if p['active'] else 'btn-success'}">{'Nonaktifkan' if p['active'] else 'Aktifkan'}</button>
+        </form>
+        <form method="post" action="/ml/product/delete/{p['id']}?game={selected_game}" style="display:inline;" onsubmit="return confirm('Hapus produk ini?')">
           <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
         </form>
       </div></td>
-    </tr>""" for i, p in enumerate(products)) or '<tr><td colspan="4" class="empty">Belum ada produk ML</td></tr>'
+    </tr>""" for i, p in enumerate(products)) or f'<tr><td colspan="6" class="empty">Belum ada produk untuk {selected_game}</td></tr>'
+
+    game_rows = "".join(f"""<tr>
+      <td style="color:var(--muted)">{i+1}</td>
+      <td><span class="badge badge-ml">{g['code']}</span></td>
+      <td>{g['name']}</td>
+      <td>{'Ya' if g['needs_server'] else 'Tidak'}</td>
+      <td>{g['id_label']}</td>
+      <td><span style="color:{'var(--success)' if g['active'] else 'var(--danger)'};font-size:.8rem;">{'Aktif' if g['active'] else 'Nonaktif'}</span></td>
+      <td><div style="display:flex;gap:.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditGame({g['id']},'{g['code']}','{g['name'].replace(chr(39),chr(92)+chr(39))}',{g['needs_server']},'{g['id_label'].replace(chr(39),chr(92)+chr(39))}')">Edit</button>
+        <form method="post" action="/ml/game/toggle/{g['id']}" style="display:inline;">
+          <button type="submit" class="btn btn-sm {'btn-danger' if g['active'] else 'btn-success'}">{'Nonaktifkan' if g['active'] else 'Aktifkan'}</button>
+        </form>
+      </div></td>
+    </tr>""" for i, g in enumerate(games)) or '<tr><td colspan="7" class="empty">Belum ada game</td></tr>'
+
+    game_opts = "".join(
+        f'<option value="{g["code"]}" {"selected" if g["code"]==selected_game else ""}>{g["name"]}</option>'
+        for g in games
+    )
     content = f"""
 <div class="page-header">
-  <div class="page-title">Mobile Legends <small>{len(products)} produk</small></div>
-  <button class="btn btn-primary" onclick="openModal('modal-add-ml')">+ Tambah Produk</button>
+  <div class="page-title">Topup Game <small>{len(games)} game</small></div>
+  <button class="btn btn-primary" onclick="openModal('modal-add-game')">+ Tambah Game</button>
 </div>
-<div class="card"><table>
-  <thead><tr><th>#</th><th>Diamond (DM)</th><th>Harga</th><th>Aksi</th></tr></thead>
-  <tbody>{rows}</tbody>
+<div class="card" style="margin-bottom:1.5rem;"><table>
+  <thead><tr><th>#</th><th>Kode</th><th>Nama</th><th>Server ID?</th><th>Label ID</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{game_rows}</tbody>
 </table></div>
 <div class="page-header" style="margin-top:2rem;">
-  <div class="page-title" style="font-size:1.2rem;">Weekly Diamond Pass <small>Harga WDP</small></div>
-  <button class="btn btn-primary" onclick="openModal('modal-add-wdp')">+ Tambah WDP</button>
+  <div class="page-title">Produk <small>filter per game</small></div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">{game_tabs}
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-prod')">+ Tambah Produk</button>
+  </div>
 </div>
 <div class="card"><table>
-  <thead><tr><th>#</th><th>Label</th><th>Qty Pass</th><th>Harga</th><th>Aksi</th></tr></thead>
-  <tbody>WDP_ROWS_PLACEHOLDER</tbody>
+  <thead><tr><th>#</th><th>Label</th><th>DM/Qty</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{rows}</tbody>
 </table></div>
-<div class="modal-overlay" id="modal-add-wdp"><div class="modal">
-  <div class="modal-title">Tambah Paket WDP</div>
-  <form method="post" action="/ml/wdp/add">
-    <div class="form-grid">
-      <div class="form-group"><label>Label</label><input type="text" name="label" placeholder="contoh: 1x Weekly Diamond Pass" required></div>
-      <div class="form-grid form-grid-2">
-        <div class="form-group"><label>Qty Pass</label><input type="number" name="qty" placeholder="contoh: 1" min="1" required></div>
-        <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" placeholder="contoh: 29000" min="1" required></div>
-      </div>
+<div class="modal-overlay" id="modal-add-game"><div class="modal">
+  <div class="modal-title">Tambah Game</div>
+  <form method="post" action="/ml/game/add">
+    <div class="form-grid form-grid-2">
+      <div class="form-group"><label>Kode Game</label><input type="text" name="code" placeholder="contoh: PUBG" required></div>
+      <div class="form-group"><label>Nama Game</label><input type="text" name="name" placeholder="contoh: PUBG Mobile" required></div>
+    </div>
+    <div class="form-grid form-grid-2" style="margin-top:1rem;">
+      <div class="form-group"><label>Label ID Player</label><input type="text" name="id_label" placeholder="contoh: Player ID PUBG" required></div>
+      <div class="form-group"><label>Butuh Server ID?</label><select name="needs_server"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
     </div>
     <div class="form-actions" style="margin-top:1.5rem;">
       <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-wdp')">Batal</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-game')">Batal</button>
     </div>
   </form>
 </div></div>
-<div class="modal-overlay" id="modal-edit-wdp"><div class="modal">
-  <div class="modal-title">Edit Paket WDP</div>
-  <form method="post" action="/ml/wdp/edit">
-    <input type="hidden" name="id" id="edit-wdp-id">
-    <div class="form-grid">
-      <div class="form-group"><label>Label</label><input type="text" name="label" id="edit-wdp-label" required></div>
-      <div class="form-grid form-grid-2">
-        <div class="form-group"><label>Qty Pass</label><input type="number" name="qty" id="edit-wdp-qty" min="1" required></div>
-        <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" id="edit-wdp-harga" min="1" required></div>
-      </div>
+<div class="modal-overlay" id="modal-edit-game"><div class="modal">
+  <div class="modal-title">Edit Game</div>
+  <form method="post" action="/ml/game/edit">
+    <input type="hidden" name="id" id="edit-game-id">
+    <div class="form-grid form-grid-2">
+      <div class="form-group"><label>Kode Game</label><input type="text" name="code" id="edit-game-code" required></div>
+      <div class="form-group"><label>Nama Game</label><input type="text" name="name" id="edit-game-name" required></div>
+    </div>
+    <div class="form-grid form-grid-2" style="margin-top:1rem;">
+      <div class="form-group"><label>Label ID Player</label><input type="text" name="id_label" id="edit-game-idlabel" required></div>
+      <div class="form-group"><label>Butuh Server ID?</label><select name="needs_server" id="edit-game-server"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
     </div>
     <div class="form-actions" style="margin-top:1.5rem;">
       <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-wdp')">Batal</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-game')">Batal</button>
+    </div>
+  </form>
+</div></div>
+<div class="modal-overlay" id="modal-add-prod"><div class="modal">
+  <div class="modal-title">Tambah Produk</div>
+  <form method="post" action="/ml/product/add?game={selected_game}">
+    <div class="form-group"><label>Game</label><select name="game_code">{game_opts}</select></div>
+    <div class="form-group" style="margin-top:1rem;"><label>Label Produk</label><input type="text" name="label" placeholder="contoh: 86 Diamond" required></div>
+    <div class="form-grid form-grid-2" style="margin-top:1rem;">
+      <div class="form-group"><label>DM / Qty</label><input type="number" name="dm" placeholder="contoh: 86" min="0" required></div>
+      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" placeholder="contoh: 15000" min="1" required></div>
+    </div>
+    <div class="form-actions" style="margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Simpan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-prod')">Batal</button>
+    </div>
+  </form>
+</div></div>
+<div class="modal-overlay" id="modal-edit-prod"><div class="modal">
+  <div class="modal-title">Edit Produk</div>
+  <form method="post" action="/ml/product/edit?game={selected_game}">
+    <input type="hidden" name="id" id="edit-prod-id">
+    <div class="form-group"><label>Label Produk</label><input type="text" name="label" id="edit-prod-label" required></div>
+    <div class="form-grid form-grid-2" style="margin-top:1rem;">
+      <div class="form-group"><label>DM / Qty</label><input type="number" name="dm" id="edit-prod-dm" min="0" required></div>
+      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" id="edit-prod-harga" min="1" required></div>
+    </div>
+    <div class="form-actions" style="margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Simpan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-prod')">Batal</button>
     </div>
   </form>
 </div></div>
 <script>
-function openEditWDP(id,label,qty,harga){{
-  document.getElementById('edit-wdp-id').value=id;
-  document.getElementById('edit-wdp-label').value=label;
-  document.getElementById('edit-wdp-qty').value=qty;
-  document.getElementById('edit-wdp-harga').value=harga;
-  openModal('modal-edit-wdp');
+function openEditGame(id,code,name,needs,idlabel){{
+  document.getElementById('edit-game-id').value=id;
+  document.getElementById('edit-game-code').value=code;
+  document.getElementById('edit-game-name').value=name;
+  document.getElementById('edit-game-idlabel').value=idlabel;
+  document.getElementById('edit-game-server').value=needs;
+  openModal('modal-edit-game');
 }}
-</script>
-<div class="modal-overlay" id="modal-add-ml"><div class="modal">
-  <div class="modal-title">Tambah Produk ML</div>
-  <form method="post" action="/ml/add">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Diamond (DM)</label><input type="number" name="dm" placeholder="contoh: 150" min="1" required></div>
-      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" placeholder="contoh: 35000" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-ml')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<div class="modal-overlay" id="modal-edit-ml"><div class="modal">
-  <div class="modal-title">Edit Produk ML</div>
-  <form method="post" action="/ml/edit">
-    <input type="hidden" name="id" id="edit-ml-id">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Diamond (DM)</label><input type="number" name="dm" id="edit-ml-dm" min="1" required></div>
-      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" id="edit-ml-harga" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-ml')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<script>
-function openEditML(id,dm,harga){{
-  document.getElementById('edit-ml-id').value=id;
-  document.getElementById('edit-ml-dm').value=dm;
-  document.getElementById('edit-ml-harga').value=harga;
-  openModal('modal-edit-ml');
+function openEditProd(id,label,dm,harga){{
+  document.getElementById('edit-prod-id').value=id;
+  document.getElementById('edit-prod-label').value=label;
+  document.getElementById('edit-prod-dm').value=dm;
+  document.getElementById('edit-prod-harga').value=harga;
+  openModal('modal-edit-prod');
 }}
 </script>"""
-    wdp_rows = "".join(f"""<tr>
-      <td style="color:var(--muted)">{i+1}</td>
-      <td><span class="badge badge-ml">{p['label']}</span></td>
-      <td>{p['qty']}x</td>
-      <td>Rp {p['harga']:,}</td>
-      <td><div style="display:flex;gap:.5rem;">
-        <button class="btn btn-ghost btn-sm" onclick="openEditWDP({p['id']},'{p['label']}',{p['qty']},{p['harga']})">Edit</button>
-        <form method="post" action="/ml/wdp/delete/{p['id']}" style="display:inline;" onsubmit="return confirm('Hapus paket WDP ini?')">
-          <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-        </form>
-      </div></td>
-    </tr>""" for i, p in enumerate(wdp_products)) or '<tr><td colspan="5" class="empty">Belum ada paket WDP</td></tr>'
-    content = content.replace("WDP_ROWS_PLACEHOLDER", wdp_rows)
     return render_page(content)
 
 
-@app.route("/ml/add", methods=["POST"])
+@app.route("/ml/game/add", methods=["POST"])
 @login_required
-def ml_add():
-    dm = safe_int(request.form.get("dm"), min_val=1)
-    harga = safe_int(request.form.get("harga"), min_val=1)
-    if dm is None or harga is None:
-        flash("Input tidak valid. DM dan Harga harus angka positif.", "error")
+def ml_game_add():
+    code = request.form.get("code", "").strip().upper()
+    name = request.form.get("name", "").strip()
+    id_label = request.form.get("id_label", "Player ID").strip()
+    needs_server = 1 if request.form.get("needs_server") == "1" else 0
+    if not code or not name:
+        flash("Kode dan nama game wajib diisi.", "error")
         return redirect(url_for("page_ml"))
     conn = get_conn()
-    if conn.execute("SELECT id FROM ml_products WHERE dm=?", (dm,)).fetchone():
-        flash(f"Produk {dm} DM sudah ada. Gunakan Edit untuk mengubah harga.", "error")
-        conn.close(); return redirect(url_for("page_ml"))
-    conn.execute("INSERT INTO ml_products (dm, harga) VALUES (?,?)", (dm, harga))
-    conn.commit(); conn.close()
-    flash(f"Produk {dm} DM berhasil ditambahkan.", "success")
+    try:
+        conn.execute(
+            "INSERT INTO games (code, name, needs_server, id_label) VALUES (?,?,?,?)",
+            (code, name, needs_server, id_label)
+        )
+        conn.commit()
+        flash(f"Game {name} berhasil ditambahkan.", "success")
+    except Exception:
+        flash(f"Kode game {code} sudah ada.", "error")
+    conn.close()
     return redirect(url_for("page_ml"))
 
 
-@app.route("/ml/edit", methods=["POST"])
+@app.route("/ml/game/edit", methods=["POST"])
 @login_required
-def ml_edit():
-    pid = safe_int(request.form.get("id"), min_val=1)
-    dm = safe_int(request.form.get("dm"), min_val=1)
-    harga = safe_int(request.form.get("harga"), min_val=1)
-    if None in (pid, dm, harga):
+def ml_game_edit():
+    gid = safe_int(request.form.get("id"), min_val=1)
+    code = request.form.get("code", "").strip().upper()
+    name = request.form.get("name", "").strip()
+    id_label = request.form.get("id_label", "Player ID").strip()
+    needs_server = 1 if request.form.get("needs_server") == "1" else 0
+    if not gid or not code or not name:
         flash("Input tidak valid.", "error")
         return redirect(url_for("page_ml"))
     conn = get_conn()
-    conn.execute("UPDATE ml_products SET dm=?, harga=? WHERE id=?", (dm, harga, pid))
-    conn.commit(); conn.close()
-    flash("Produk ML berhasil diupdate.", "success")
+    conn.execute(
+        "UPDATE games SET code=?, name=?, needs_server=?, id_label=? WHERE id=?",
+        (code, name, needs_server, id_label, gid)
+    )
+    conn.commit()
+    conn.close()
+    flash("Game berhasil diupdate.", "success")
     return redirect(url_for("page_ml"))
 
 
-@app.route("/ml/delete/<int:pid>", methods=["POST"])
+@app.route("/ml/game/toggle/<int:gid>", methods=["POST"])
 @login_required
-def ml_delete(pid):
+def ml_game_toggle(gid):
     conn = get_conn()
-    conn.execute("DELETE FROM ml_products WHERE id=?", (pid,))
-    conn.commit(); conn.close()
-    flash("Produk ML berhasil dihapus.", "success")
+    conn.execute("UPDATE games SET active = 1 - active WHERE id=?", (gid,))
+    conn.commit()
+    conn.close()
+    flash("Status game diubah.", "success")
     return redirect(url_for("page_ml"))
 
 
-# ── WDP ────────────────────────────────────────────────────────────────────────
-@app.route("/ml/wdp/add", methods=["POST"])
+@app.route("/ml/product/add", methods=["POST"])
 @login_required
-def wdp_add():
-    qty = safe_int(request.form.get("qty"), min_val=1)
+def ml_product_add():
+    game_code = request.form.get("game_code", "").strip().upper()
     label = request.form.get("label", "").strip()
+    dm = safe_int(request.form.get("dm"), min_val=0)
     harga = safe_int(request.form.get("harga"), min_val=1)
-    if qty is None or not label or harga is None:
+    if not game_code or not label or dm is None or harga is None:
         flash("Input tidak valid.", "error")
-        return redirect(url_for("page_ml"))
+        return redirect(url_for("page_ml", game=game_code))
     conn = get_conn()
-    conn.execute("INSERT INTO wdp_products (qty, label, harga) VALUES (?,?,?)", (qty, label, harga))
-    conn.commit(); conn.close()
-    flash(f"Paket WDP {label} berhasil ditambahkan.", "success")
-    return redirect(url_for("page_ml"))
+    conn.execute(
+        "INSERT INTO game_products (game_code, label, dm, harga) VALUES (?,?,?,?)",
+        (game_code, label, dm, harga)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"Produk {label} berhasil ditambahkan.", "success")
+    return redirect(url_for("page_ml", game=game_code))
 
 
-@app.route("/ml/wdp/edit", methods=["POST"])
+@app.route("/ml/product/edit", methods=["POST"])
 @login_required
-def wdp_edit():
+def ml_product_edit():
     pid = safe_int(request.form.get("id"), min_val=1)
-    qty = safe_int(request.form.get("qty"), min_val=1)
     label = request.form.get("label", "").strip()
+    dm = safe_int(request.form.get("dm"), min_val=0)
     harga = safe_int(request.form.get("harga"), min_val=1)
-    if None in (pid, qty, harga) or not label:
+    game_code = request.args.get("game", "")
+    if not pid or not label or dm is None or harga is None:
         flash("Input tidak valid.", "error")
-        return redirect(url_for("page_ml"))
+        return redirect(url_for("page_ml", game=game_code))
     conn = get_conn()
-    conn.execute("UPDATE wdp_products SET qty=?, label=?, harga=? WHERE id=?", (qty, label, harga, pid))
-    conn.commit(); conn.close()
-    flash("Paket WDP berhasil diupdate.", "success")
-    return redirect(url_for("page_ml"))
+    conn.execute(
+        "UPDATE game_products SET label=?, dm=?, harga=? WHERE id=?", (label, dm, harga, pid)
+    )
+    conn.commit()
+    conn.close()
+    flash("Produk berhasil diupdate.", "success")
+    return redirect(url_for("page_ml", game=game_code))
 
 
-@app.route("/ml/wdp/delete/<int:pid>", methods=["POST"])
+@app.route("/ml/product/toggle/<int:pid>", methods=["POST"])
 @login_required
-def wdp_delete(pid):
+def ml_product_toggle(pid):
+    game_code = request.args.get("game", "")
     conn = get_conn()
-    conn.execute("DELETE FROM wdp_products WHERE id=?", (pid,))
-    conn.commit(); conn.close()
-    flash("Paket WDP berhasil dihapus.", "success")
-    return redirect(url_for("page_ml"))
+    conn.execute("UPDATE game_products SET active = 1 - active WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    flash("Status produk diubah.", "success")
+    return redirect(url_for("page_ml", game=game_code))
 
 
-# ── FF ─────────────────────────────────────────────────────────────────────────
+@app.route("/ml/product/delete/<int:pid>", methods=["POST"])
+@login_required
+def ml_product_delete(pid):
+    game_code = request.args.get("game", "")
+    conn = get_conn()
+    conn.execute("DELETE FROM game_products WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    flash("Produk berhasil dihapus.", "success")
+    return redirect(url_for("page_ml", game=game_code))
+
+
+# Redirect /ff ke /ml untuk backwards compatibility
 @app.route("/ff")
 @login_required
 def page_ff():
-    conn = get_conn()
-    products = conn.execute("SELECT * FROM ff_products ORDER BY dm").fetchall()
-    conn.close()
-    rows = "".join(f"""<tr>
-      <td style="color:var(--muted)">{i+1}</td>
-      <td><span class="badge badge-ff">{p['dm']} DM</span></td>
-      <td>Rp {p['harga']:,}</td>
-      <td><div style="display:flex;gap:.5rem;">
-        <button class="btn btn-ghost btn-sm" onclick="openEditFF({p['id']},{p['dm']},{p['harga']})">Edit</button>
-        <form method="post" action="/ff/delete/{p['id']}" style="display:inline;" onsubmit="return confirm('Hapus produk ini?')">
-          <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-        </form>
-      </div></td>
-    </tr>""" for i, p in enumerate(products)) or '<tr><td colspan="4" class="empty">Belum ada produk FF</td></tr>'
-    content = f"""
-<div class="page-header">
-  <div class="page-title">Free Fire <small>{len(products)} produk</small></div>
-  <button class="btn btn-primary" onclick="openModal('modal-add-ff')">+ Tambah Produk</button>
-</div>
-<div class="card"><table>
-  <thead><tr><th>#</th><th>Diamond (DM)</th><th>Harga</th><th>Aksi</th></tr></thead>
-  <tbody>{rows}</tbody>
-</table></div>
-<div class="modal-overlay" id="modal-add-ff"><div class="modal">
-  <div class="modal-title">Tambah Produk FF</div>
-  <form method="post" action="/ff/add">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Diamond (DM)</label><input type="number" name="dm" placeholder="contoh: 100" min="1" required></div>
-      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" placeholder="contoh: 12000" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-ff')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<div class="modal-overlay" id="modal-edit-ff"><div class="modal">
-  <div class="modal-title">Edit Produk FF</div>
-  <form method="post" action="/ff/edit">
-    <input type="hidden" name="id" id="edit-ff-id">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Diamond (DM)</label><input type="number" name="dm" id="edit-ff-dm" min="1" required></div>
-      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" id="edit-ff-harga" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-ff')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<script>
-function openEditFF(id,dm,harga){{
-  document.getElementById('edit-ff-id').value=id;
-  document.getElementById('edit-ff-dm').value=dm;
-  document.getElementById('edit-ff-harga').value=harga;
-  openModal('modal-edit-ff');
-}}
-</script>"""
-    return render_page(content)
-
-
-@app.route("/ff/add", methods=["POST"])
-@login_required
-def ff_add():
-    dm = safe_int(request.form.get("dm"), min_val=1)
-    harga = safe_int(request.form.get("harga"), min_val=1)
-    if dm is None or harga is None:
-        flash("Input tidak valid. DM dan Harga harus angka positif.", "error")
-        return redirect(url_for("page_ff"))
-    conn = get_conn()
-    if conn.execute("SELECT id FROM ff_products WHERE dm=?", (dm,)).fetchone():
-        flash(f"Produk {dm} DM FF sudah ada. Gunakan Edit.", "error")
-        conn.close(); return redirect(url_for("page_ff"))
-    conn.execute("INSERT INTO ff_products (dm, harga) VALUES (?,?)", (dm, harga))
-    conn.commit(); conn.close()
-    flash(f"Produk {dm} DM FF berhasil ditambahkan.", "success")
-    return redirect(url_for("page_ff"))
-
-
-@app.route("/ff/edit", methods=["POST"])
-@login_required
-def ff_edit():
-    pid = safe_int(request.form.get("id"), min_val=1)
-    dm = safe_int(request.form.get("dm"), min_val=1)
-    harga = safe_int(request.form.get("harga"), min_val=1)
-    if None in (pid, dm, harga):
-        flash("Input tidak valid.", "error")
-        return redirect(url_for("page_ff"))
-    conn = get_conn()
-    conn.execute("UPDATE ff_products SET dm=?, harga=? WHERE id=?", (dm, harga, pid))
-    conn.commit(); conn.close()
-    flash("Produk FF berhasil diupdate.", "success")
-    return redirect(url_for("page_ff"))
-
-
-@app.route("/ff/delete/<int:pid>", methods=["POST"])
-@login_required
-def ff_delete(pid):
-    conn = get_conn()
-    conn.execute("DELETE FROM ff_products WHERE id=?", (pid,))
-    conn.commit(); conn.close()
-    flash("Produk FF berhasil dihapus.", "success")
-    return redirect(url_for("page_ff"))
+    return redirect(url_for("page_ml", game="FF"))
 
 
 # ── ROBUX ──────────────────────────────────────────────────────────────────────
