@@ -1076,7 +1076,7 @@ def page_autopost():
                     </button>
                 </form>
                 <button class='btn btn-warning' style='padding:4px 8px;font-size:12px'
-                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]},"{t["scheduled_time"] or ""}",{t["use_embed"]},"{t["embed_title"] or ""}","{t["embed_color"] or "#5865F2"}')'>
+                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]},"{t["scheduled_time"] or ""}",{t["use_embed"]},"{t["embed_title"] or ""}","{t["embed_color"] or "#5865F2"}")'>
                     Edit
                 </button>
                 <form method='post' action='/autopost/delete/{t["id"]}' style='display:inline'
