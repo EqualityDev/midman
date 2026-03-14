@@ -169,18 +169,24 @@ class CategoryButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         print("[DEBUG] CategoryButton clicked")
-        products = load_lainnya_products()
-        items = [p for p in products if p["category"] == self.category]
-        if not items:
-            await interaction.response.send_message("Tidak ada produk aktif di kategori ini.", ephemeral=True)
-            return
-        options = [
-            discord.SelectOption(label=p["name"], description=f"Rp {p['harga']:,}", value=str(p["id"]))
-            for p in items
-        ]
-        view = discord.ui.View(timeout=60)
-        view.add_item(ItemSelect(options, self.category))
-        await interaction.response.send_message(f"Pilih item **{self.category}**:", view=view, ephemeral=True)
+        try:
+            products = load_lainnya_products()
+            items = [p for p in products if p["category"] == self.category]
+            print(f"[DEBUG] items: {len(items)}")
+            if not items:
+                await interaction.response.send_message("Tidak ada produk aktif di kategori ini.", ephemeral=True)
+                return
+            options = [
+                discord.SelectOption(label=p["name"], description=f"Rp {p['harga']:,}", value=str(p["id"]))
+                for p in items
+            ]
+            view = discord.ui.View(timeout=60)
+            view.add_item(ItemSelect(options, self.category))
+            await interaction.response.send_message(f"Pilih item **{self.category}**:", view=view, ephemeral=True)
+            print("[DEBUG] send_message done")
+        except Exception as e:
+            print(f"[DEBUG] ERROR: {e}")
+            import traceback; traceback.print_exc()
 
 
 class CatalogView(discord.ui.View):
