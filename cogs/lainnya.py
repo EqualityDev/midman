@@ -168,6 +168,7 @@ class CategoryButton(discord.ui.Button):
         self.category = category
 
     async def callback(self, interaction: discord.Interaction):
+        print("[DEBUG] CategoryButton clicked")
         products = load_lainnya_products()
         items = [p for p in products if p["category"] == self.category]
         if not items:
