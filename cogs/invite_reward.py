@@ -197,9 +197,8 @@ class InviteRewardView(discord.ui.View):
             embed.add_field(name="Link", value=f"**{invite_url}**", inline=False)
             embed.add_field(
                 name="⚠️ Penting",
-                value=("Gunakan link **ini** untuk mengajak teman.
-"
-                "Jangan gunakan link server umum karena tidak akan tercatat!"),
+                value="Gunakan link **ini** untuk mengajak teman.\n"
+                "Jangan gunakan link server umum karena tidak akan tercatat!",
                 inline=False
             )
             embed.set_footer(text=STORE_NAME)
