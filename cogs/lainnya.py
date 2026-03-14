@@ -299,7 +299,7 @@ class ItemSelect(discord.ui.Select):
                 inline=False
             )
             view = LainnyaConfirmView(item=item)
-            await interaction.response.edit_message(content=None, embed=embed, view=view)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         else:
             # Flow lama — langsung buka tiket
             guild = interaction.guild
