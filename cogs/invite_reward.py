@@ -2,6 +2,7 @@ import discord
 import datetime
 import asyncio
 from discord.ext import commands
+from discord.ext import tasks
 from utils.config import (
     ADMIN_ROLE_ID, STORE_NAME, TICKET_CATEGORY_ID,
     GUILD_ID, LOG_CHANNEL_ID
@@ -13,6 +14,8 @@ ROBUX_PER_INVITE = 5
 INVITE_REWARD_CHANNEL_ID = 1482464579085799435
 INVITES_CHANNEL_ID = 1482498306692223138
 MAX_CLAIM_PER_DAY = 500
+MIN_STAY_DAYS = 3
+MIN_ACCOUNT_AGE_DAYS = 30
 
 TUTORIAL_GAMEPASS = """
 📹 **Tutorial Video:** https://vt.tiktok.com/ZSua68EBn/
@@ -21,7 +24,7 @@ TUTORIAL_GAMEPASS = """
 1. Buka [roblox.com](https://www.roblox.com) → **Create**
 2. Pilih game kamu → klik **⋯** → **Create Game Pass**
 3. Upload gambar, isi nama gamepass
-4. Set harga sesuai tabel di bawah → **Save** → copy link gamepass
+4. Set harga sesuai tabel → **Save** → copy link gamepass
 
 **Mobile:**
 1. Buka Roblox app → tap profil → **Create**
@@ -29,21 +32,16 @@ TUTORIAL_GAMEPASS = """
 3. Isi detail, set harga sesuai tabel → **Save** → copy link
 """
 
-HARGA_GAMEPASS = """
-⚠️ **Gamepass kena potongan 30% dari Roblox!**
-Pasang harga gamepass lebih tinggi agar Robux yang kamu terima sesuai:
-
-| Robux Ingin Diterima | Harga Gamepass |
-|---|---|
-| 5 Robux | 8 Robux |
-| 10 Robux | 15 Robux |
-| 15 Robux | 22 Robux |
-| 20 Robux | 29 Robux |
-| 25 Robux | 36 Robux |
-| 50 Robux | 72 Robux |
-| 100 Robux | 143 Robux |
-
-Rumus: **Harga Gamepass = Robux ÷ 0.7** (lalu bulatkan ke atas)
+SKK = f"""
+**1.** Setiap 1 invite valid = **{ROBUX_PER_INVITE} Robux**
+**2.** Invite valid setelah member stay **{MIN_STAY_DAYS} hari** di server
+**3.** Invite hangus jika member keluar sebelum {MIN_STAY_DAYS} hari
+**4.** Akun Discord yang diundang harus berumur minimal **{MIN_ACCOUNT_AGE_DAYS} hari**
+**5.** Dilarang mengundang akun sendiri / akun palsu / bot
+**6.** Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari
+**7.** Kecurangan & manipulasi = **diskualifikasi permanen**
+**8.** Keputusan admin bersifat **final**
+**9.** Tanggal event: **TBA** (akan diumumkan segera)
 """
 
 
@@ -59,17 +57,31 @@ def _init_db():
             invitee_id  INTEGER NOT NULL,
             invite_code TEXT,
             joined_at   TEXT NOT NULL,
-            valid       INTEGER DEFAULT 1
+            valid       INTEGER DEFAULT 0,
+            pending     INTEGER DEFAULT 1
         )
     """)
+    for col, defval in [("valid", "INTEGER DEFAULT 0"), ("pending", "INTEGER DEFAULT 1")]:
+        try:
+            c.execute(f"ALTER TABLE invite_tracking ADD COLUMN {col} {defval}")
+        except Exception as e:
+            if "duplicate column" not in str(e).lower():
+                print(f"[InviteReward] Migration {col}: {e}")
     c.execute("""
         CREATE TABLE IF NOT EXISTS invite_balance (
-            user_id     INTEGER PRIMARY KEY,
-            total_invites INTEGER DEFAULT 0,
-            robux_balance INTEGER DEFAULT 0,
-            total_claimed INTEGER DEFAULT 0
+            user_id         INTEGER PRIMARY KEY,
+            total_invites   INTEGER DEFAULT 0,
+            robux_balance   INTEGER DEFAULT 0,
+            total_claimed   INTEGER DEFAULT 0,
+            pending_invites INTEGER DEFAULT 0
         )
     """)
+    for col, defval in [("pending_invites", "INTEGER DEFAULT 0")]:
+        try:
+            c.execute(f"ALTER TABLE invite_balance ADD COLUMN {col} {defval}")
+        except Exception as e:
+            if "duplicate column" not in str(e).lower():
+                print(f"[InviteReward] Migration balance {col}: {e}")
     c.execute("""
         CREATE TABLE IF NOT EXISTS invite_claims (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,36 +102,83 @@ def _init_db():
 def get_balance(user_id: int) -> dict:
     conn = get_conn()
     row = conn.execute(
-        "SELECT total_invites, robux_balance, total_claimed FROM invite_balance WHERE user_id=?",
+        "SELECT total_invites, robux_balance, total_claimed, pending_invites FROM invite_balance WHERE user_id=?",
         (user_id,)
     ).fetchone()
     conn.close()
     if row:
-        return {"total_invites": row[0], "robux_balance": row[1], "total_claimed": row[2]}
-    return {"total_invites": 0, "robux_balance": 0, "total_claimed": 0}
+        return {
+            "total_invites": row[0] or 0,
+            "robux_balance": row[1] or 0,
+            "total_claimed": row[2] or 0,
+            "pending_invites": row[3] or 0,
+        }
+    return {"total_invites": 0, "robux_balance": 0, "total_claimed": 0, "pending_invites": 0}
 
 
-def add_invite(inviter_id: int, invitee_id: int, invite_code: str):
+def add_pending_invite(inviter_id: int, invitee_id: int, invite_code: str):
     conn = get_conn()
     c = conn.cursor()
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     c.execute(
-        "INSERT INTO invite_tracking (inviter_id, invitee_id, invite_code, joined_at) VALUES (?,?,?,?)",
+        "INSERT INTO invite_tracking (inviter_id, invitee_id, invite_code, joined_at, valid, pending) VALUES (?,?,?,?,0,1)",
         (inviter_id, invitee_id, invite_code, now)
     )
     c.execute("""
-        INSERT INTO invite_balance (user_id, total_invites, robux_balance, total_claimed)
-        VALUES (?, 1, ?, 0)
-        ON CONFLICT(user_id) DO UPDATE SET
-            total_invites = total_invites + 1,
-            robux_balance = robux_balance + ?
-    """, (inviter_id, ROBUX_PER_INVITE, ROBUX_PER_INVITE))
+        INSERT INTO invite_balance (user_id, total_invites, robux_balance, total_claimed, pending_invites)
+        VALUES (?, 0, 0, 0, 1)
+        ON CONFLICT(user_id) DO UPDATE SET pending_invites = pending_invites + 1
+    """, (inviter_id,))
     conn.commit()
     conn.close()
 
 
-def remove_invite(invitee_id: int):
-    """Kurangi balance inviter kalau invitee keluar server."""
+def validate_invite(invitee_id: int):
+    conn = get_conn()
+    c = conn.cursor()
+    row = c.execute(
+        "SELECT id, inviter_id FROM invite_tracking WHERE invitee_id=? AND pending=1 ORDER BY id DESC LIMIT 1",
+        (invitee_id,)
+    ).fetchone()
+    if row:
+        c.execute("UPDATE invite_tracking SET valid=1, pending=0 WHERE id=?", (row[0],))
+        c.execute("""
+            UPDATE invite_balance SET
+                total_invites = total_invites + 1,
+                robux_balance = robux_balance + ?,
+                pending_invites = MAX(0, pending_invites - 1)
+            WHERE user_id=?
+        """, (ROBUX_PER_INVITE, row[1]))
+        conn.commit()
+        conn.close()
+        return row[1]
+    conn.close()
+    return None
+
+
+def cancel_pending_invite(invitee_id: int):
+    conn = get_conn()
+    c = conn.cursor()
+    row = c.execute(
+        "SELECT inviter_id FROM invite_tracking WHERE invitee_id=? AND pending=1 ORDER BY id DESC LIMIT 1",
+        (invitee_id,)
+    ).fetchone()
+    if row:
+        c.execute(
+            "UPDATE invite_tracking SET valid=0, pending=0 WHERE invitee_id=? AND pending=1",
+            (invitee_id,)
+        )
+        c.execute("""
+            UPDATE invite_balance SET
+                pending_invites = MAX(0, pending_invites - 1)
+            WHERE user_id=?
+        """, (row[0],))
+        conn.commit()
+    conn.close()
+    return row[0] if row else None
+
+
+def remove_valid_invite(invitee_id: int):
     conn = get_conn()
     c = conn.cursor()
     row = c.execute(
@@ -127,7 +186,6 @@ def remove_invite(invitee_id: int):
         (invitee_id,)
     ).fetchone()
     if row:
-        inviter_id = row[0]
         c.execute(
             "UPDATE invite_tracking SET valid=0 WHERE invitee_id=? AND valid=1",
             (invitee_id,)
@@ -137,7 +195,7 @@ def remove_invite(invitee_id: int):
                 total_invites = MAX(0, total_invites - 1),
                 robux_balance = MAX(0, robux_balance - ?)
             WHERE user_id=?
-        """, (ROBUX_PER_INVITE, inviter_id))
+        """, (ROBUX_PER_INVITE, row[0]))
         conn.commit()
     conn.close()
     return row[0] if row else None
@@ -186,6 +244,15 @@ def load_claims():
     return {row["channel_id"]: dict(row) for row in rows}
 
 
+def get_pending_invites():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, inviter_id, invitee_id, joined_at FROM invite_tracking WHERE pending=1"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 # ── VIEWS ─────────────────────────────────────────────────────────────────────
 
 class InviteRewardView(discord.ui.View):
@@ -212,8 +279,10 @@ class InviteRewardView(discord.ui.View):
             embed.add_field(name="Link", value=f"**{invite_url}**", inline=False)
             embed.add_field(
                 name="⚠️ Penting",
-                value="Gunakan link **ini** untuk mengajak teman.\n"
-                "Jangan gunakan link server umum karena tidak akan tercatat!",
+                value=(
+                    "Gunakan link **ini** untuk mengajak teman.\n"
+                    "Jangan gunakan link server umum karena tidak akan tercatat!"
+                ),
                 inline=False
             )
             embed.set_footer(text=STORE_NAME)
@@ -229,12 +298,17 @@ class InviteRewardView(discord.ui.View):
             color=0xF1C40F,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
-        embed.add_field(name="Total Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
+        embed.add_field(name="Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
         embed.add_field(name="Saldo Robux", value=f"**{bal['robux_balance']}** Robux", inline=True)
         embed.add_field(name="Total Dicairkan", value=f"**{bal['total_claimed']}** Robux", inline=True)
+        embed.add_field(name="Pending (belum 3 hari)", value=f"**{bal['pending_invites']}** orang", inline=True)
         embed.add_field(
             name="ℹ️ Info",
-            value=f"Setiap 1 invite valid = **{ROBUX_PER_INVITE} Robux**\nInvite dihitung tidak valid jika member keluar server.",
+            value=(
+                f"Setiap 1 invite valid = **{ROBUX_PER_INVITE} Robux**\n"
+                f"Invite pending valid setelah **{MIN_STAY_DAYS} hari**\n"
+                f"Invite hangus jika member keluar sebelum {MIN_STAY_DAYS} hari"
+            ),
             inline=False
         )
         embed.set_thumbnail(url=THUMBNAIL)
@@ -250,12 +324,13 @@ class InviteRewardView(discord.ui.View):
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         embed.add_field(name="Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
+        embed.add_field(name="Pending", value=f"**{bal['pending_invites']}** orang", inline=True)
         embed.add_field(name="Saldo Robux", value=f"**{bal['robux_balance']}** Robux", inline=True)
         embed.add_field(
             name="ℹ️ Info",
             value=(
-                f"Invite kamu sudah otomatis dikonversi ke Robux.\n"
-                f"**1 invite = {ROBUX_PER_INVITE} Robux**\n\n"
+                f"Invite otomatis dikonversi ke Robux setelah **{MIN_STAY_DAYS} hari**.\n"
+                f"**1 invite valid = {ROBUX_PER_INVITE} Robux**\n\n"
                 f"Untuk mencairkan, klik tombol **Pencairan Balance**."
             ),
             inline=False
@@ -293,7 +368,7 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
         link = self.gamepass_link.value.strip()
         if "roblox.com" not in link:
             await interaction.response.send_message(
-                "Link gamepass tidak valid! Harus berupa link Roblox gamepass.",
+                "Link tidak valid! Harus berupa link dari roblox.com.",
                 ephemeral=True
             )
             return
@@ -302,7 +377,6 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
         member = interaction.user
         cog = interaction.client.cogs.get("InviteReward")
 
-        # Cek tiket aktif
         for ch_id, t in cog.active_claims.items():
             if t["user_id"] == member.id:
                 existing = guild.get_channel(ch_id)
@@ -352,13 +426,13 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
         embed.add_field(name="Jumlah Robux", value=f"**{self.robux_balance} Robux**", inline=True)
         embed.add_field(name="Link Gamepass", value=link, inline=False)
         embed.add_field(
-            name="Instruksi Admin",
+            name="📋 Instruksi Admin",
             value=(
-                f"1. Buka link gamepass di atas\n"
-                f"2. Pastikan harganya **{self.robux_balance} Robux**\n"
-                f"3. Beli gamepass tersebut\n"
-                f"4. Ketik `!claimeselesai` setelah selesai\n"
-                f"5. Ketik `!claimbatal [alasan]` jika ada masalah"
+                "1. Buka link gamepass di atas\n"
+                "2. Pastikan harganya sesuai saldo member\n"
+                "3. Beli gamepass tersebut\n"
+                "4. Ketik `!claimeselesai` setelah selesai\n"
+                "5. Ketik `!claimbatal [alasan]` jika ada masalah"
             ),
             inline=False
         )
@@ -379,6 +453,10 @@ class InviteReward(commands.Cog):
         self.invite_cache = {}
         self.active_claims = load_claims()
         self.catalog_message_id = None
+        self.validate_pending_task.start()
+
+    def cog_unload(self):
+        self.validate_pending_task.cancel()
 
     async def cog_load(self):
         self.bot.loop.create_task(self._wait_and_cache())
@@ -397,21 +475,50 @@ class InviteReward(commands.Cog):
         except Exception as e:
             print(f"[InviteReward] Gagal cache invites: {e}")
 
+    @tasks.loop(hours=6)
+    async def validate_pending_task(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return
+        pending = get_pending_invites()
+        for inv in pending:
+            joined_at = datetime.datetime.fromisoformat(inv["joined_at"])
+            if joined_at.tzinfo is None:
+                joined_at = joined_at.replace(tzinfo=datetime.timezone.utc)
+            days_stayed = (now - joined_at).total_seconds() / 86400
+            if days_stayed >= MIN_STAY_DAYS:
+                member = guild.get_member(inv["invitee_id"])
+                if member:
+                    inviter_id = validate_invite(inv["invitee_id"])
+                    if inviter_id:
+                        print(f"[InviteReward] Invite valid: {inv['invitee_id']} diinvite oleh {inviter_id} (+{ROBUX_PER_INVITE} Robux)")
+                else:
+                    cancel_pending_invite(inv["invitee_id"])
+
+    @validate_pending_task.before_loop
+    async def before_validate(self):
+        await self.bot.wait_until_ready()
+
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        print(f"[DEBUG] on_member_join: {member} guild={member.guild.id} expected={GUILD_ID}")
         if member.guild.id != GUILD_ID:
-            print("[DEBUG] guild mismatch, skip")
             return
         try:
+            account_age = (datetime.datetime.now(datetime.timezone.utc) - member.created_at).days
+            if account_age < MIN_ACCOUNT_AGE_DAYS:
+                print(f"[InviteReward] {member} akun terlalu baru ({account_age} hari), skip")
+                await self._cache_invites()
+                return
+
             invites_after = await member.guild.invites()
             for invite in invites_after:
                 uses_before = self.invite_cache.get(invite.code, 0)
                 if invite.uses > uses_before:
                     inviter = invite.inviter
                     if inviter and inviter.id != member.id:
-                        add_invite(inviter.id, member.id, invite.code)
-                        print(f"[InviteReward] {member} diinvite oleh {inviter} (+{ROBUX_PER_INVITE} Robux)")
+                        add_pending_invite(inviter.id, member.id, invite.code)
+                        print(f"[InviteReward] {member} diinvite oleh {inviter} (pending {MIN_STAY_DAYS} hari)")
                     break
             self.invite_cache = {inv.code: inv.uses for inv in invites_after}
         except Exception as e:
@@ -422,7 +529,8 @@ class InviteReward(commands.Cog):
         if member.guild.id != GUILD_ID:
             return
         try:
-            inviter_id = remove_invite(member.id)
+            cancel_pending_invite(member.id)
+            inviter_id = remove_valid_invite(member.id)
             if inviter_id:
                 print(f"[InviteReward] {member} keluar, invite {inviter_id} dikurangi")
             await self._cache_invites()
@@ -452,9 +560,10 @@ class InviteReward(commands.Cog):
             color=0xF1C40F,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
-        embed.add_field(name="Total Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
+        embed.add_field(name="Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
         embed.add_field(name="Saldo Robux", value=f"**{bal['robux_balance']}** Robux", inline=True)
         embed.add_field(name="Total Dicairkan", value=f"**{bal['total_claimed']}** Robux", inline=True)
+        embed.add_field(name="Pending (belum 3 hari)", value=f"**{bal['pending_invites']}** orang", inline=True)
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
@@ -473,27 +582,22 @@ class InviteReward(commands.Cog):
         invites_ch = ctx.guild.get_channel(INVITES_CHANNEL_ID)
         invites_mention = invites_ch.mention if invites_ch else "#invite-stats"
 
-        # Embed 1 — Info utama + tutorial
         embed1 = discord.Embed(
             title="🎉 Invite Reward — Cellyn Store",
             description=(
                 f"Ajak teman ke server dan dapatkan **Robux gratis!**\n\n"
                 f"💎 **{ROBUX_PER_INVITE} Robux** per 1 invite yang valid\n"
-                f"✅ Invite dihitung valid jika member tetap di server\n"
-                f"❌ Invite hangus jika member keluar server\n"
+                f"✅ Invite valid setelah member stay **{MIN_STAY_DAYS} hari**\n"
+                f"❌ Invite hangus jika member keluar sebelum {MIN_STAY_DAYS} hari\n"
+                f"🔞 Akun Discord harus berumur minimal **{MIN_ACCOUNT_AGE_DAYS} hari**\n"
                 f"📊 Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari"
             ),
             color=0xF1C40F
         )
-        embed1.add_field(
-            name="📋 Tutorial Membuat Gamepass",
-            value=TUTORIAL_GAMEPASS,
-            inline=False
-        )
+        embed1.add_field(name="📋 Tutorial Membuat Gamepass", value=TUTORIAL_GAMEPASS, inline=False)
         embed1.set_thumbnail(url=THUMBNAIL)
         embed1.set_footer(text=STORE_NAME)
 
-        # Embed 2 — Tabel harga + cara klaim + tombol
         embed2 = discord.Embed(color=0xF1C40F)
         embed2.add_field(
             name="💸 Tabel Harga Gamepass (Potongan 30% Roblox)",
@@ -515,10 +619,11 @@ class InviteReward(commands.Cog):
         embed2.add_field(
             name="💰 Cara Klaim Robux",
             value=(
-                "1. Buat gamepass dengan harga sesuai tabel\n"
-                "2. Klik **🔗 Dapatkan Invite Link** → share ke teman\n"
-                "3. Klik **💰 Pencairan Balance** → paste link gamepass\n"
-                "4. Admin beli gamepass → Robux masuk ke akunmu! 🎉"
+                "1. Klik **🔗 Dapatkan Invite Link** → share ke teman\n"
+                "2. Tunggu **3 hari** setelah teman join → invite otomatis valid\n"
+                "3. Buat gamepass dengan harga sesuai tabel di atas\n"
+                "4. Klik **💰 Pencairan Balance** → paste link gamepass\n"
+                "5. Admin beli gamepass → Robux masuk ke akunmu! 🎉"
             ),
             inline=False
         )
@@ -527,6 +632,7 @@ class InviteReward(commands.Cog):
             value=f"Ketik `/invites` di {invites_mention} untuk lihat jumlah invite & saldo Robuxmu!",
             inline=False
         )
+        embed2.add_field(name="📜 Syarat & Ketentuan", value=SKK, inline=False)
         embed2.add_field(
             name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             value=(
@@ -562,9 +668,7 @@ class InviteReward(commands.Cog):
             return
         ticket = self.active_claims[channel_id]
         member = ctx.guild.get_member(ticket["user_id"])
-
         deduct_balance(ticket["user_id"], ticket["robux_amount"])
-
         now = datetime.datetime.now(datetime.timezone.utc)
         ticket["status"] = "selesai"
         ticket["admin_id"] = ctx.author.id
@@ -573,11 +677,7 @@ class InviteReward(commands.Cog):
 
         log_ch = ctx.guild.get_channel(LOG_CHANNEL_ID)
         if log_ch:
-            log_embed = discord.Embed(
-                title="💰 PENCAIRAN INVITE REWARD SUKSES",
-                color=0xF1C40F,
-                timestamp=now
-            )
+            log_embed = discord.Embed(title="💰 PENCAIRAN INVITE REWARD SUKSES", color=0xF1C40F, timestamp=now)
             log_embed.add_field(name="Admin", value=f"{ctx.author.mention}\n`{ctx.author.id}`", inline=False)
             log_embed.add_field(name="Member", value=f"{member.mention if member else ticket['user_id']}", inline=False)
             log_embed.add_field(name="Jumlah", value=f"**{ticket['robux_amount']} Robux**", inline=False)
@@ -587,7 +687,7 @@ class InviteReward(commands.Cog):
             await log_ch.send(embed=log_embed)
 
         await ctx.send(
-            f"{member.mention if member else ''} Pencairan **{ticket['robux_amount']} Robux** berhasil diproses! "
+            f"{member.mention if member else ''} Pencairan **{ticket['robux_amount']} Robux** berhasil! "
             f"Terima kasih telah mengundang teman ke {STORE_NAME}! Tiket ditutup dalam 5 detik."
         )
         await asyncio.sleep(5)
@@ -606,17 +706,14 @@ class InviteReward(commands.Cog):
             return
         ticket = self.active_claims[channel_id]
         member = ctx.guild.get_member(ticket["user_id"])
-
         embed = discord.Embed(title="❌ PENCAIRAN DIBATALKAN", color=0xE74C3C)
         embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         embed.add_field(name="Alasan", value=alasan, inline=False)
         embed.add_field(name="", value="Tiket ditutup dalam 5 detik.", inline=False)
         embed.set_footer(text=STORE_NAME)
-
         mentions = member.mention if member else ""
         await ctx.send(content=mentions if mentions else None, embed=embed)
         await asyncio.sleep(5)
-
         ticket["status"] = "batal"
         ticket["closed_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         save_claim(ticket)
