@@ -11,24 +11,39 @@ from utils.db import get_conn
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 ROBUX_PER_INVITE = 5
 INVITE_REWARD_CHANNEL_ID = 1482464579085799435
+INVITES_CHANNEL_ID = 1482498306692223138
+MAX_CLAIM_PER_DAY = 400
 
 TUTORIAL_GAMEPASS = """
-**Cara Membuat Gamepass di Roblox:**
+📹 **Tutorial Video:** https://vt.tiktok.com/ZSua68EBn/
 
 **PC:**
 1. Buka [roblox.com](https://www.roblox.com) → **Create**
 2. Pilih game kamu → klik **⋯** → **Create Game Pass**
-3. Upload gambar, isi nama, set harga sesuai saldo Robux kamu
-4. Klik **Save** → copy link gamepass
+3. Upload gambar, isi nama gamepass
+4. Set harga sesuai tabel di bawah → **Save** → copy link gamepass
 
 **Mobile:**
 1. Buka Roblox app → tap profil → **Create**
 2. Pilih game → **Game Passes** → **+**
-3. Isi detail & harga → **Save**
-4. Copy link gamepass
+3. Isi detail, set harga sesuai tabel → **Save** → copy link
+"""
 
-> ⚠️ Pastikan harga gamepass **sama persis** dengan saldo Robux kamu!
-> Contoh: saldo 15 Robux → buat gamepass seharga **15 Robux**
+HARGA_GAMEPASS = """
+⚠️ **Gamepass kena potongan 30% dari Roblox!**
+Pasang harga gamepass lebih tinggi agar Robux yang kamu terima sesuai:
+
+| Robux Ingin Diterima | Harga Gamepass |
+|---|---|
+| 5 Robux | 8 Robux |
+| 10 Robux | 15 Robux |
+| 15 Robux | 22 Robux |
+| 20 Robux | 29 Robux |
+| 25 Robux | 36 Robux |
+| 50 Robux | 72 Robux |
+| 100 Robux | 143 Robux |
+
+Rumus: **Harga Gamepass = Robux ÷ 0.7** (lalu bulatkan ke atas)
 """
 
 
@@ -424,18 +439,26 @@ class InviteReward(commands.Cog):
 
     @discord.app_commands.command(name="invites", description="Cek jumlah invite dan saldo Robux kamu")
     async def invites_cmd(self, interaction: discord.Interaction):
+        if interaction.channel_id != INVITES_CHANNEL_ID:
+            ch = interaction.guild.get_channel(INVITES_CHANNEL_ID)
+            mention = ch.mention if ch else "channel invite"
+            await interaction.response.send_message(
+                f"Gunakan command ini di {mention}!", ephemeral=True
+            )
+            return
         bal = get_balance(interaction.user.id)
         embed = discord.Embed(
-            title="🏆 Invite Stats",
+            title=f"🏆 Invite Stats — {interaction.user.display_name}",
             color=0xF1C40F,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         embed.add_field(name="Total Invite Valid", value=f"**{bal['total_invites']}** orang", inline=True)
         embed.add_field(name="Saldo Robux", value=f"**{bal['robux_balance']}** Robux", inline=True)
         embed.add_field(name="Total Dicairkan", value=f"**{bal['total_claimed']}** Robux", inline=True)
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @commands.command(name="invitereward")
     async def send_embed(self, ctx):
