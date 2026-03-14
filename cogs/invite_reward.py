@@ -177,7 +177,36 @@ class InviteRewardView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="🏆 Check Balance", style=discord.ButtonStyle.secondary, custom_id="invite_check_balance")
+    @discord.ui.button(label="🔗 Dapatkan Invite Link", style=discord.ButtonStyle.primary, custom_id="invite_get_link", row=0)
+    async def get_invite_link(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+        member = interaction.user
+        try:
+            invites = await guild.invites()
+            existing = next((inv for inv in invites if inv.inviter and inv.inviter.id == member.id), None)
+            if existing:
+                invite_url = existing.url
+            else:
+                ch = guild.get_channel(INVITE_REWARD_CHANNEL_ID)
+                if not ch:
+                    await interaction.response.send_message("Channel tidak ditemukan!", ephemeral=True)
+                    return
+                new_invite = await ch.create_invite(max_age=0, max_uses=0, unique=True, reason=f"Invite Reward - {member}")
+                invite_url = new_invite.url
+            embed = discord.Embed(title="🔗 Invite Link Kamu", color=0xF1C40F)
+            embed.add_field(name="Link", value=f"**{invite_url}**", inline=False)
+            embed.add_field(
+                name="⚠️ Penting",
+                value="Gunakan link **ini** untuk mengajak teman.
+Jangan gunakan link server umum karena tidak akan tercatat!",
+                inline=False
+            )
+            embed.set_footer(text=STORE_NAME)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"Gagal membuat invite link: {e}", ephemeral=True)
+
+    @discord.ui.button(label="🏆 Check Balance", style=discord.ButtonStyle.secondary, custom_id="invite_check_balance", row=1)
     async def check_balance(self, interaction: discord.Interaction, button: discord.ui.Button):
         bal = get_balance(interaction.user.id)
         embed = discord.Embed(
@@ -197,7 +226,7 @@ class InviteRewardView(discord.ui.View):
         embed.set_footer(text=STORE_NAME)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🔄 Convert Invite", style=discord.ButtonStyle.primary, custom_id="invite_convert")
+    @discord.ui.button(label="🔄 Convert Invite", style=discord.ButtonStyle.primary, custom_id="invite_convert", row=1)
     async def convert(self, interaction: discord.Interaction, button: discord.ui.Button):
         bal = get_balance(interaction.user.id)
         embed = discord.Embed(
@@ -220,7 +249,7 @@ class InviteRewardView(discord.ui.View):
         embed.set_footer(text=STORE_NAME)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="💰 Pencairan Balance", style=discord.ButtonStyle.success, custom_id="invite_pencairan")
+    @discord.ui.button(label="💰 Pencairan Balance", style=discord.ButtonStyle.success, custom_id="invite_pencairan", row=1)
     async def pencairan(self, interaction: discord.Interaction, button: discord.ui.Button):
         bal = get_balance(interaction.user.id)
         if bal["robux_balance"] < ROBUX_PER_INVITE:
