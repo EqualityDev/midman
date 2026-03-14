@@ -12,7 +12,7 @@ THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 ROBUX_PER_INVITE = 5
 INVITE_REWARD_CHANNEL_ID = 1482464579085799435
 INVITES_CHANNEL_ID = 1482498306692223138
-MAX_CLAIM_PER_DAY = 400
+MAX_CLAIM_PER_DAY = 500
 
 TUTORIAL_GAMEPASS = """
 📹 **Tutorial Video:** https://vt.tiktok.com/ZSua68EBn/
@@ -470,43 +470,74 @@ class InviteReward(commands.Cog):
             await ctx.send("Channel invite reward tidak ditemukan!", delete_after=5)
             return
 
-        embed = discord.Embed(
+        invites_ch = ctx.guild.get_channel(INVITES_CHANNEL_ID)
+        invites_mention = invites_ch.mention if invites_ch else "#invite-stats"
+
+        # Embed 1 — Info utama + tutorial
+        embed1 = discord.Embed(
             title="🎉 Invite Reward — Cellyn Store",
             description=(
                 f"Ajak teman ke server dan dapatkan **Robux gratis!**\n\n"
                 f"💎 **{ROBUX_PER_INVITE} Robux** per 1 invite yang valid\n"
                 f"✅ Invite dihitung valid jika member tetap di server\n"
-                f"❌ Invite hangus jika member keluar server\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                f"❌ Invite hangus jika member keluar server\n"
+                f"📊 Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari"
             ),
             color=0xF1C40F
         )
-        embed.add_field(
+        embed1.add_field(
             name="📋 Tutorial Membuat Gamepass",
             value=TUTORIAL_GAMEPASS,
             inline=False
         )
-        embed.add_field(
+        embed1.set_thumbnail(url=THUMBNAIL)
+        embed1.set_footer(text=STORE_NAME)
+
+        # Embed 2 — Tabel harga + cara klaim + tombol
+        embed2 = discord.Embed(color=0xF1C40F)
+        embed2.add_field(
+            name="💸 Tabel Harga Gamepass (Potongan 30% Roblox)",
+            value=(
+                "```\n"
+                "Ingin Terima  | Set Harga GP\n"
+                "5 Robux       | 8 Robux\n"
+                "10 Robux      | 15 Robux\n"
+                "15 Robux      | 22 Robux\n"
+                "20 Robux      | 29 Robux\n"
+                "25 Robux      | 36 Robux\n"
+                "50 Robux      | 72 Robux\n"
+                "100 Robux     | 143 Robux\n"
+                "```\n"
+                "Rumus: **Harga GP = Robux ÷ 0.7** (bulatkan ke atas)"
+            ),
+            inline=False
+        )
+        embed2.add_field(
+            name="💰 Cara Klaim Robux",
+            value=(
+                "1. Buat gamepass dengan harga sesuai tabel\n"
+                "2. Klik **🔗 Dapatkan Invite Link** → share ke teman\n"
+                "3. Klik **💰 Pencairan Balance** → paste link gamepass\n"
+                "4. Admin beli gamepass → Robux masuk ke akunmu! 🎉"
+            ),
+            inline=False
+        )
+        embed2.add_field(
+            name="📊 Cek Invite Kamu",
+            value=f"Ketik `/invites` di {invites_mention} untuk lihat jumlah invite & saldo Robuxmu!",
+            inline=False
+        )
+        embed2.add_field(
             name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             value=(
-                "Klik tombol di bawah untuk:\n"
+                "🔗 **Dapatkan Invite Link** — link unik untuk undang teman\n"
                 "🏆 **Check Balance** — lihat saldo Robux kamu\n"
                 "🔄 **Convert** — info konversi invite ke Robux\n"
                 "💰 **Pencairan** — cairkan Robux ke akun kamu"
             ),
             inline=False
         )
-        embed.set_thumbnail(url=THUMBNAIL)
-        embed.set_footer(text=f"{STORE_NAME} • Invite sekarang dan kumpulkan Robux!")
-
-        if self.catalog_message_id:
-            try:
-                msg = await ch.fetch_message(self.catalog_message_id)
-                await msg.edit(embed=embed, view=InviteRewardView())
-                await ctx.send(f"Embed invite reward diperbarui di {ch.mention}", delete_after=5)
-                return
-            except Exception:
-                pass
+        embed2.set_footer(text=f"{STORE_NAME} • Invite sekarang dan kumpulkan Robux!")
 
         async for msg in ch.history(limit=10):
             if msg.author == ctx.guild.me:
@@ -515,7 +546,8 @@ class InviteReward(commands.Cog):
                 except Exception:
                     pass
 
-        sent = await ch.send(embed=embed, view=InviteRewardView())
+        await ch.send(embed=embed1)
+        sent = await ch.send(embed=embed2, view=InviteRewardView())
         self.catalog_message_id = sent.id
         await ctx.send(f"Embed invite reward dikirim ke {ch.mention}", delete_after=5)
 
