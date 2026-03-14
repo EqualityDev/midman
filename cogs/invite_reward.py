@@ -201,6 +201,18 @@ def remove_valid_invite(invitee_id: int):
     return row[0] if row else None
 
 
+def get_claimed_today(user_id: int) -> int:
+    """Hitung total Robux yang sudah diklaim hari ini."""
+    conn = get_conn()
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    row = conn.execute(
+        "SELECT COALESCE(SUM(robux_amount), 0) FROM invite_claims WHERE user_id=? AND status='selesai' AND closed_at LIKE ?",
+        (user_id, f"{today}%")
+    ).fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
 def deduct_balance(user_id: int, amount: int):
     conn = get_conn()
     conn.execute("""
@@ -377,6 +389,22 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
         member = interaction.user
         cog = interaction.client.cogs.get("InviteReward")
 
+        # Cek limit harian
+        claimed_today = get_claimed_today(member.id)
+        if claimed_today + self.robux_balance > MAX_CLAIM_PER_DAY:
+            sisa = MAX_CLAIM_PER_DAY - claimed_today
+            if sisa <= 0:
+                await interaction.response.send_message(
+                    f"Kamu sudah mencapai batas klaim harian **{MAX_CLAIM_PER_DAY} Robux**. Coba lagi besok!",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    f"Kamu hanya bisa klaim **{sisa} Robux** lagi hari ini (batas harian {MAX_CLAIM_PER_DAY} Robux).",
+                    ephemeral=True
+                )
+            return
+
         for ch_id, t in cog.active_claims.items():
             if t["user_id"] == member.id:
                 existing = guild.get_channel(ch_id)
@@ -464,6 +492,31 @@ class InviteReward(commands.Cog):
     async def _wait_and_cache(self):
         await self.bot.wait_until_ready()
         await self._cache_invites()
+        await self._run_startup_validation()
+
+    async def _run_startup_validation(self):
+        """Validasi invite pending saat bot startup."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return
+        pending = get_pending_invites()
+        count = 0
+        for inv in pending:
+            joined_at = datetime.datetime.fromisoformat(inv["joined_at"])
+            if joined_at.tzinfo is None:
+                joined_at = joined_at.replace(tzinfo=datetime.timezone.utc)
+            days_stayed = (now - joined_at).total_seconds() / 86400
+            if days_stayed >= MIN_STAY_DAYS:
+                member = guild.get_member(inv["invitee_id"])
+                if member:
+                    inviter_id = validate_invite(inv["invitee_id"])
+                    if inviter_id:
+                        count += 1
+                else:
+                    cancel_pending_invite(inv["invitee_id"])
+        if count > 0:
+            print(f"[InviteReward] Startup validation: {count} invite divalidasi")
 
     async def _cache_invites(self):
         guild = self.bot.get_guild(GUILD_ID)
