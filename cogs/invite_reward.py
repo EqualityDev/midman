@@ -276,7 +276,7 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
 
     async def on_submit(self, interaction: discord.Interaction):
         link = self.gamepass_link.value.strip()
-        if "roblox.com/game-pass" not in link and "roblox.com/catalog" not in link:
+        if "roblox.com" not in link:
             await interaction.response.send_message(
                 "Link gamepass tidak valid! Harus berupa link Roblox gamepass.",
                 ephemeral=True
