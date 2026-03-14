@@ -1,3 +1,4 @@
+import time
 import discord
 import datetime
 import asyncio
@@ -404,7 +405,7 @@ class MLStore(commands.Cog):
                         warn_embed.add_field(name="\u200b", value=(
                             "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
                             "Segera ketik `!mlselesai` jika selesai, atau `!mlbatal` jika dibatalkan.\n\n"
-                            "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(__import__("time").time()) + 3600) + ":R>)."
+                            "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                         ), inline=False)
                         warn_embed.set_thumbnail(url=THUMBNAIL)
                         warn_embed.set_footer(text=STORE_NAME)

@@ -1,3 +1,4 @@
+import time
 import discord
 from discord.ext import commands
 import asyncio
@@ -80,7 +81,7 @@ class Midman(commands.Cog):
                     warn_embed.add_field(name="\u200b", value=(
                         "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
                         "Segera ketik `!acc` jika selesai, atau `!batal` jika dibatalkan.\n\n"
-                        "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(__import__("time").time()) + 3600) + ":R>)."
+                        "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                     ), inline=False)
                     warn_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     warn_embed.set_footer(text=STORE_NAME)
@@ -140,10 +141,10 @@ class Midman(commands.Cog):
                 data = f.read().strip().split("|")
             os.remove(".update_channel")
             ch_id = int(data[0])
-            ts = float(data[1]) if len(data) >= 2 else __import__("time").time()
+            ts = float(data[1]) if len(data) >= 2 else time.time()
             new_hash = data[2] if len(data) >= 3 else "unknown"
             ticket_count = int(data[3]) if len(data) >= 4 else 0
-            elapsed = __import__("time").time() - ts
+            elapsed = time.time() - ts
             if elapsed <= 120:
                 await self.bot.wait_until_ready()
                 await asyncio.sleep(3)
@@ -460,7 +461,7 @@ class Midman(commands.Cog):
             await ctx.send(embed=embed)
 
             with open(".update_channel", "w") as f:
-                f.write(f"{ctx.channel.id}|{__import__("time").time()}|{new_hash}|{len(self.active_tickets)}")
+                f.write(f"{ctx.channel.id}|{time.time()}|{new_hash}|{len(self.active_tickets)}")
             await asyncio.sleep(3)
             await self.bot.close()
         else:

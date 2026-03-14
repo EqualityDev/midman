@@ -1,3 +1,4 @@
+import time
 import discord
 import datetime
 import asyncio
@@ -459,7 +460,7 @@ class JualBeli(commands.Cog):
                 warn = discord.Embed(title="PERINGATAN TIKET", color=0xFFA500)
                 warn.add_field(name="\u200b", value=(
                     "Tiket ini tidak ada aktivitas selama **1 jam**.\n\n"
-                    "Jika tidak ada aktivitas dalam 1 jam ke depan, tiket akan **otomatis ditutup** (<t:" + str(int(__import__("time").time()) + 3600) + ":R>)."
+                    "Jika tidak ada aktivitas dalam 1 jam ke depan, tiket akan **otomatis ditutup** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                 ), inline=False)
                 warn.set_thumbnail(url=THUMBNAIL)
                 warn.set_footer(text=STORE_NAME)
