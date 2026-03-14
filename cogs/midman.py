@@ -14,6 +14,24 @@ from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
 from utils.backup import do_backup, do_restore
 from discord.ext import tasks
 
+
+def _count_all_tickets(bot):
+    total = 0
+    cog_attrs = {
+        'Midman': 'active_tickets',
+        'MLStore': 'active_tickets',
+        'RobuxStore': 'active_tickets',
+        'Vilog': 'active_vilog',
+        'LainnyaStore': 'active_tickets',
+        'ScasetStore': 'active_tickets',
+        'JualBeli': 'active_tickets',
+    }
+    for cog_name, attr in cog_attrs.items():
+        cog = bot.cogs.get(cog_name)
+        if cog and hasattr(cog, attr):
+            total += len(getattr(cog, attr))
+    return total
+
 class Midman(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -443,7 +461,7 @@ class Midman(commands.Cog):
             )
             embed.add_field(
                 name="Tiket Aktif",
-                value=f"{len(self.active_tickets)} tiket (akan dipulihkan otomatis)",
+                value=f"{_count_all_tickets(self.bot)} tiket (akan dipulihkan otomatis)",
                 inline=True
             )
             embed.add_field(
@@ -461,7 +479,7 @@ class Midman(commands.Cog):
             await ctx.send(embed=embed)
 
             with open(".update_channel", "w") as f:
-                f.write(f"{ctx.channel.id}|{time.time()}|{new_hash}|{len(self.active_tickets)}")
+                f.write(f"{ctx.channel.id}|{time.time()}|{new_hash}|{_count_all_tickets(self.bot)}")
             await asyncio.sleep(3)
             await self.bot.close()
         else:
