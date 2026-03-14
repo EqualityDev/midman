@@ -355,7 +355,9 @@ class InviteReward(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
+        print(f"[DEBUG] on_member_join: {member} guild={member.guild.id} expected={GUILD_ID}")
         if member.guild.id != GUILD_ID:
+            print("[DEBUG] guild mismatch, skip")
             return
         try:
             invites_after = await member.guild.invites()
