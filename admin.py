@@ -1671,7 +1671,6 @@ def page_lainnya():
 <!-- Daftar Produk -->
 {cat_html if cat_html else '<div class="card"><div class="card-body empty">Belum ada produk</div></div>'}
 """
-    content = _service_info_widget("lainnya", "Cloud Phone & Discord Nitro") + content
     return render_page(content)
 
 
