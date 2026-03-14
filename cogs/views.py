@@ -87,13 +87,55 @@ class MidmanMainView(discord.ui.View):
 
     @discord.ui.button(label="⚔️ Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
     async def open_ticket(self, interaction, button):
-        from cogs.modals import MidmanTradeModal
-        await interaction.response.send_modal(MidmanTradeModal())
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("midman_trade")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Midman Trade", info, 0xFFD700)
+            await interaction.response.send_message(embed=embed, view=MidmanTradeInfoView(), ephemeral=True)
+        else:
+            from cogs.modals import MidmanTradeModal
+            await interaction.response.send_modal(MidmanTradeModal())
 
     @discord.ui.button(label="🛒 Midman Jual Beli", style=discord.ButtonStyle.secondary, custom_id="open_midman_jualbeli")
     async def open_jualbeli(self, interaction, button):
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("midman_jb")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Midman Jual Beli", info, 0x2ECC71)
+            await interaction.response.send_message(embed=embed, view=MidmanJBInfoView(), ephemeral=True)
+        else:
+            from cogs.jualbeli import JBTradeModal
+            await interaction.response.send_modal(JBTradeModal())
+
+
+class MidmanTradeInfoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=120)
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="midman_trade_info_lanjut")
+    async def lanjutkan(self, interaction, button):
+        from cogs.modals import MidmanTradeModal
+        await interaction.response.send_modal(MidmanTradeModal())
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="midman_trade_info_batal")
+    async def batal(self, interaction, button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
+
+
+class MidmanJBInfoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=120)
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="midman_jb_info_lanjut")
+    async def lanjutkan(self, interaction, button):
         from cogs.jualbeli import JBTradeModal
         await interaction.response.send_modal(JBTradeModal())
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="midman_jb_info_batal")
+    async def batal(self, interaction, button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
 
 class AdminSetupView(discord.ui.View):
     def __init__(self):

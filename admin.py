@@ -307,6 +307,7 @@ def render_page(content, **ctx):
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
     {_a("QRIS", "/qr", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/></svg>', "page_qr")}
     {_a("Statistik", "/stats", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', "page_stats")}
+    {_a("Info Layanan", "/service-info", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', "page_service_info")}
   </nav>
   <div class="sidebar-footer">
     <a href="/logout" class="nav-logout">{ico_out}<span>Logout</span></a>
@@ -579,6 +580,7 @@ function openEditProd(id,label,dm,harga){{
   openModal('modal-edit-prod');
 }}
 </script>"""
+    content = _service_info_widget("ml", "Topup Game (ML/FF/WDP)") + content
     return render_page(content)
 
 
@@ -791,6 +793,7 @@ function openEditRobux(id,cat,name,robux){{
   openModal('modal-edit-robux');
 }}
 </script>"""
+    content = _service_info_widget("robux", "Robux Store") + content
     return render_page(content)
 
 
@@ -930,6 +933,7 @@ function openEditVilog(id,nama,robux){{
   openModal('modal-edit-vilog');
 }}
 </script>"""
+    content = _service_info_widget("vilog", "Boost Via Login") + content
     return render_page(content)
 
 
@@ -1667,6 +1671,7 @@ def page_lainnya():
 <!-- Daftar Produk -->
 {cat_html if cat_html else '<div class="card"><div class="card-body empty">Belum ada produk</div></div>'}
 """
+    content = _service_info_widget("lainnya", "Cloud Phone & Discord Nitro") + content
     return render_page(content)
 
 
@@ -1868,6 +1873,121 @@ def qr_toggle(slot):
     conn.close()
     flash(f"Status slot !qr{slot} diubah.", "success")
     return redirect(url_for("page_qr"))
+
+
+
+
+# ── SERVICE INFO (Deskripsi, S&K, Cara Bayar per Layanan) ─────────────────────
+
+def _get_service_info_admin(service_key):
+    conn = get_conn()
+    conn.execute("""CREATE TABLE IF NOT EXISTS service_info (
+        service_key TEXT PRIMARY KEY,
+        description TEXT DEFAULT '',
+        terms TEXT DEFAULT '',
+        payment_info TEXT DEFAULT ''
+    )""")
+    conn.commit()
+    row = conn.execute(
+        "SELECT description, terms, payment_info FROM service_info WHERE service_key=?",
+        (service_key,)
+    ).fetchone()
+    conn.close()
+    if row:
+        return {"description": row[0] or "", "terms": row[1] or "", "payment_info": row[2] or ""}
+    return {"description": "", "terms": "", "payment_info": ""}
+
+
+def _service_info_widget(service_key, label):
+    """Render HTML widget form info layanan untuk disematkan di halaman admin."""
+    info = _get_service_info_admin(service_key)
+    desc = info["description"].replace('"', '&quot;')
+    terms = info["terms"].replace('"', '&quot;')
+    pay = info["payment_info"].replace('"', '&quot;')
+    return f"""
+<div class="card" style="margin-bottom:24px;border-left:4px solid #7c5cbf">
+  <div class="card-header" style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">ℹ️</span>
+    <span style="font-weight:600">Info Layanan — {label}</span>
+    <span style="font-size:12px;color:var(--muted);margin-left:4px">Ditampilkan ke member sebelum buka tiket</span>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="/service-info/save">
+      <input type="hidden" name="service_key" value="{service_key}">
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:6px;font-weight:500;color:var(--muted);font-size:13px">📋 DESKRIPSI PRODUK</label>
+        <textarea name="description" rows="3" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:14px;resize:vertical" placeholder="Jelaskan layanan ini secara singkat...">{info['description']}</textarea>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:6px;font-weight:500;color:var(--muted);font-size:13px">📜 SYARAT & KETENTUAN</label>
+        <textarea name="terms" rows="4" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:14px;resize:vertical" placeholder="Tuliskan syarat & ketentuan layanan...">{info['terms']}</textarea>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:6px;font-weight:500;color:var(--muted);font-size:13px">💳 CARA PEMBAYARAN</label>
+        <textarea name="payment_info" rows="3" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:14px;resize:vertical" placeholder="Jelaskan cara pembayaran yang tersedia...">{info['payment_info']}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button type="submit" class="btn btn-primary" style="min-width:120px">💾 Simpan</button>
+        <span style="font-size:12px;color:var(--muted)">Kosongkan semua field untuk menonaktifkan info embed.</span>
+      </div>
+    </form>
+  </div>
+</div>"""
+
+
+@app.route("/service-info/save", methods=["POST"])
+@login_required
+def service_info_save():
+    service_key = request.form.get("service_key", "").strip()
+    description = request.form.get("description", "").strip()
+    terms = request.form.get("terms", "").strip()
+    payment_info = request.form.get("payment_info", "").strip()
+
+    valid_keys = ["midman_trade", "midman_jb", "vilog", "robux", "ml", "lainnya", "scaset"]
+    if service_key not in valid_keys:
+        flash("Service key tidak valid.", "error")
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    conn.execute("""CREATE TABLE IF NOT EXISTS service_info (
+        service_key TEXT PRIMARY KEY,
+        description TEXT DEFAULT '',
+        terms TEXT DEFAULT '',
+        payment_info TEXT DEFAULT ''
+    )""")
+    conn.execute(
+        "INSERT OR REPLACE INTO service_info (service_key, description, terms, payment_info) VALUES (?,?,?,?)",
+        (service_key, description, terms, payment_info)
+    )
+    conn.commit()
+    conn.close()
+
+    # Redirect ke halaman asal berdasarkan service_key
+    redirect_map = {
+        "midman_trade": "page_service_info",
+        "midman_jb": "page_service_info",
+        "vilog": "page_vilog",
+        "robux": "page_robux",
+        "ml": "page_ml",
+        "lainnya": "page_lainnya",
+        "scaset": "page_service_info",
+    }
+    flash(f"Info layanan berhasil disimpan.", "success")
+    target = redirect_map.get(service_key, "page_service_info")
+    return redirect(url_for(target))
+
+
+@app.route("/service-info")
+@login_required
+def page_service_info():
+    """Halaman khusus untuk kelola info layanan yang tidak punya halaman admin tersendiri."""
+    content = f"""
+<div class="page-header"><h2>ℹ️ Info Layanan</h2><p class="text-muted">Kelola informasi yang ditampilkan ke member sebelum membuka tiket.</p></div>
+{_service_info_widget("midman_trade", "Midman Trade")}
+{_service_info_widget("midman_jb", "Midman Jual Beli")}
+{_service_info_widget("scaset", "SC TB / Aset Game")}
+"""
+    return render_page(content)
 
 
 if __name__ == "__main__":

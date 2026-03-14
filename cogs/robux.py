@@ -120,43 +120,33 @@ class CategoryButton(discord.ui.Button):
             ephemeral=True
         )
 
-class ItemSelect(discord.ui.Select):
-    def __init__(self, options, category):
-        super().__init__(
-            placeholder=f"Pilih item {category}...",
-            options=options,
-            custom_id=f"robux_select_{category}"
-        )
+class RobuxConfirmView(discord.ui.View):
+    """Tampil setelah member pilih item robux — info layanan + tombol Lanjutkan/Batal."""
+    def __init__(self, item: dict, rate: int):
+        super().__init__(timeout=120)
+        self.item = item
+        self.rate = rate
 
-    async def callback(self, interaction: discord.Interaction):
-        item_id = int(self.values[0])
-        item = next((p for p in PRODUCTS if p["id"] == item_id), None)
-        if not item:
-            await interaction.response.send_message("Item tidak ditemukan!", ephemeral=True)
-            return
-
-        rate = get_rate()
-        if rate == 0:
-            await interaction.response.send_message("Rate belum diset oleh admin!", ephemeral=True)
-            return
-
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="robux_confirm_lanjut")
+    async def lanjutkan(self, interaction: discord.Interaction, button: discord.ui.Button):
+        item = self.item
+        rate = self.rate
         total = item["robux"] * rate
         guild = interaction.guild
         member = interaction.user
 
-        # Cek tiket aktif
         cog = interaction.client.cogs.get("RobuxStore")
         for ch_id, t in cog.active_tickets.items():
             if t["user_id"] == member.id:
                 existing = guild.get_channel(ch_id)
                 if existing:
-                    await interaction.response.send_message(
-                        f"Kamu masih punya tiket aktif di {existing.mention}!",
-                        ephemeral=True
+                    await interaction.response.edit_message(
+                        content=f"Kamu masih punya tiket aktif di {existing.mention}!",
+                        embed=None, view=None
                     )
                     return
 
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
 
         category = guild.get_channel(TICKET_CATEGORY_ID)
         admin_role = guild.get_role(ADMIN_ROLE_ID)
@@ -221,6 +211,127 @@ class ItemSelect(discord.ui.Select):
             embed=embed
         )
         await interaction.followup.send(f"Tiket dibuat! {channel.mention}", ephemeral=True)
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="robux_confirm_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Order dibatalkan.", embed=None, view=None)
+
+
+class ItemSelect(discord.ui.Select):
+    def __init__(self, options, category):
+        super().__init__(
+            placeholder=f"Pilih item {category}...",
+            options=options,
+            custom_id=f"robux_select_{category}"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        item_id = int(self.values[0])
+        item = next((p for p in PRODUCTS if p["id"] == item_id), None)
+        if not item:
+            await interaction.response.send_message("Item tidak ditemukan!", ephemeral=True)
+            return
+
+        rate = get_rate()
+        if rate == 0:
+            await interaction.response.send_message("Rate belum diset oleh admin!", ephemeral=True)
+            return
+
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("robux")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Robux Store", info, 0xE91E63)
+            total = item["robux"] * rate
+            embed.add_field(
+                name="🛒 Item Dipilih",
+                value=f"**{item['name']}** — {item['robux']} Robux — Rp {total:,}",
+                inline=False
+            )
+            view = RobuxConfirmView(item=item, rate=rate)
+            await interaction.response.edit_message(content=None, embed=embed, view=view)
+        else:
+            # Lanjut langsung buka tiket (flow lama)
+            guild = interaction.guild
+            member = interaction.user
+            total = item["robux"] * rate
+
+            cog = interaction.client.cogs.get("RobuxStore")
+            for ch_id, t in cog.active_tickets.items():
+                if t["user_id"] == member.id:
+                    existing = guild.get_channel(ch_id)
+                    if existing:
+                        await interaction.response.send_message(
+                            f"Kamu masih punya tiket aktif di {existing.mention}!",
+                            ephemeral=True
+                        )
+                        return
+
+            await interaction.response.defer(ephemeral=True)
+
+            category = guild.get_channel(TICKET_CATEGORY_ID)
+            admin_role = guild.get_role(ADMIN_ROLE_ID)
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            }
+            if admin_role:
+                overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+            channel = await guild.create_text_channel(
+                name=f"robux-{member.name}",
+                category=category,
+                overwrites=overwrites,
+            )
+
+            ticket = {
+                "user_id": member.id,
+                "item_id": item["id"],
+                "item_name": item["name"],
+                "robux": item["robux"],
+                "rate": rate,
+                "total": total,
+                "channel_id": channel.id,
+                "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+            ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            cog.active_tickets[channel.id] = ticket
+            save_robux_ticket(ticket)
+
+            embed = discord.Embed(
+                title=f"ROBUX STORE — {STORE_NAME}",
+                color=0xE91E63,
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
+            )
+            embed.add_field(name="Member", value=member.mention, inline=True)
+            embed.add_field(name="Item", value=item["name"], inline=True)
+            embed.add_field(name="Jumlah Robux", value=f"{item['robux']} Robux", inline=True)
+            embed.add_field(name="Rate", value=f"Rp {rate:,}/Robux", inline=True)
+            embed.add_field(name="Total Tagihan", value=f"Rp {total:,}", inline=True)
+            embed.add_field(
+                name="Cara Bayar",
+                value="Ketik **1** — QRIS  |  **2** — DANA  |  **3** — BCA",
+                inline=False
+            )
+            embed.add_field(
+                name="Catatan",
+                value="Setelah pembayaran dikonfirmasi, admin dan member masuk game untuk proses gift item.",
+                inline=False
+            )
+            embed.add_field(
+                name="Peringatan",
+                value="Tiket yang tidak aktif selama 2 jam akan otomatis ditutup dan transaksi dianggap batal. Jangan biarkan tiket menggantung.",
+                inline=False
+            )
+            embed.set_thumbnail(url=THUMBNAIL)
+            embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
+
+            await channel.send(
+                content=f"Halo {member.mention}! Tiket pembelian item Robux telah dibuat.{' ' + admin_role.mention if admin_role else ''}",
+                embed=embed
+            )
+            await interaction.followup.send(f"Tiket dibuat! {channel.mention}", ephemeral=True)
 
 class RobuxStore(commands.Cog):
     def __init__(self, bot):

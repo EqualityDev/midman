@@ -143,13 +143,34 @@ class VilogFormModal(discord.ui.Modal, title="Form Boost Via Login"):
         await interaction.followup.send(f"Tiket berhasil dibuat di {channel.mention}!", ephemeral=True)
 
 
+class VilogInfoView(discord.ui.View):
+    """Info layanan Vilog + tombol Lanjutkan/Batal."""
+    def __init__(self):
+        super().__init__(timeout=120)
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="vilog_info_lanjut")
+    async def lanjutkan(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(VilogFormModal())
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="vilog_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
+
+
 class VilogMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="BELI", style=discord.ButtonStyle.primary, custom_id="open_vilog")
     async def open_vilog(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(VilogFormModal())
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("vilog")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Boost Via Login", info, 0xE67E22)
+            await interaction.response.send_message(embed=embed, view=VilogInfoView(), ephemeral=True)
+        else:
+            await interaction.response.send_modal(VilogFormModal())
 
 
 class Vilog(commands.Cog):

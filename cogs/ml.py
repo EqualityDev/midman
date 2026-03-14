@@ -255,6 +255,22 @@ class GameFormModal(discord.ui.Modal):
         )
 
 
+class MLConfirmView(discord.ui.View):
+    """Ditampilkan setelah member pilih produk — berisi info layanan + tombol Lanjutkan/Batal."""
+    def __init__(self, game: dict, product: dict):
+        super().__init__(timeout=120)
+        self.game = game
+        self.product = product
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="ml_confirm_lanjut")
+    async def lanjutkan(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(GameFormModal(game=self.game, product=self.product))
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="ml_confirm_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Order dibatalkan.", embed=None, view=None)
+
+
 class ProductSelect(discord.ui.Select):
     def __init__(self, game: dict):
         self.game = game
@@ -283,7 +299,22 @@ class ProductSelect(discord.ui.Select):
         if not row:
             await interaction.response.send_message("Produk tidak ditemukan.", ephemeral=True)
             return
-        await interaction.response.send_modal(GameFormModal(game=self.game, product=dict(row)))
+        product = dict(row)
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("ml")
+        color = self.game.get("color", 0x3498DB)
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed(f"Topup {self.game['name']}", info, color)
+            embed.add_field(
+                name="🛒 Produk Dipilih",
+                value=f"**{product['label']}** — Rp {product['harga']:,}",
+                inline=False
+            )
+            view = MLConfirmView(game=self.game, product=product)
+            await interaction.response.edit_message(content=None, embed=embed, view=view)
+        else:
+            await interaction.response.send_modal(GameFormModal(game=self.game, product=product))
 
 
 class GameSelect(discord.ui.Select):

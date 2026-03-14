@@ -160,6 +160,73 @@ def build_admin_guide_embed():
 
 
 # ── CATALOG VIEW (persistent) ──────────────────────────────────────────────────
+class ScasetInfoView(discord.ui.View):
+    """Info layanan Scaset + tombol Lanjutkan/Batal."""
+    def __init__(self):
+        super().__init__(timeout=120)
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="scaset_info_lanjut")
+    async def lanjutkan(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await _open_scaset_ticket(interaction)
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="scaset_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
+
+
+async def _open_scaset_ticket(interaction: discord.Interaction):
+    """Helper: buat channel tiket scaset."""
+    guild = interaction.guild
+    member = interaction.user
+    cog = interaction.client.cogs.get("ScasetStore")
+
+    for ch_id, t in cog.active_tickets.items():
+        if t["user_id"] == member.id:
+            existing = guild.get_channel(ch_id)
+            if existing:
+                await interaction.response.edit_message(
+                    content=f"Kamu masih punya tiket aktif di {existing.mention}!",
+                    embed=None, view=None
+                )
+                return
+
+    await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
+
+    cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
+    admin_role = guild.get_role(ADMIN_ROLE_ID)
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }
+    if admin_role:
+        overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+    channel = await guild.create_text_channel(
+        name=f"scaset-{member.name}", category=cat_channel, overwrites=overwrites)
+
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    ticket = {
+        "channel_id": channel.id, "user_id": member.id,
+        "payment_method": None, "items": [], "admin_id": None,
+        "embed_message_id": None, "opened_at": now, "last_activity": now,
+        "warned": 0, "warn_message_id": None,
+    }
+    cog.active_tickets[channel.id] = ticket
+    save_scaset_ticket(ticket)
+
+    embed = build_ticket_embed(ticket, member)
+    admin_mention = admin_role.mention if admin_role else ""
+    msg = await channel.send(
+        content=f"{member.mention} {admin_mention}",
+        embed=embed
+    )
+    ticket["embed_message_id"] = msg.id
+    save_scaset_ticket(ticket)
+    await channel.send(embed=build_admin_guide_embed())
+    await interaction.followup.send(f"Tiket kamu dibuat di {channel.mention}!", ephemeral=True)
+
+
 class ScasetOrderButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
@@ -170,53 +237,60 @@ class ScasetOrderButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        member = interaction.user
-        cog = interaction.client.cogs.get("ScasetStore")
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("scaset")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("SC TB / Aset Game", info, COLOR_SCASET)
+            await interaction.response.send_message(embed=embed, view=ScasetInfoView(), ephemeral=True)
+        else:
+            guild = interaction.guild
+            member = interaction.user
+            cog = interaction.client.cogs.get("ScasetStore")
 
-        for ch_id, t in cog.active_tickets.items():
-            if t["user_id"] == member.id:
-                existing = guild.get_channel(ch_id)
-                if existing:
-                    await interaction.response.send_message(
-                        f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True)
-                    return
+            for ch_id, t in cog.active_tickets.items():
+                if t["user_id"] == member.id:
+                    existing = guild.get_channel(ch_id)
+                    if existing:
+                        await interaction.response.send_message(
+                            f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True)
+                        return
 
-        await interaction.response.defer(ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
 
-        cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
-        admin_role = guild.get_role(ADMIN_ROLE_ID)
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        }
-        if admin_role:
-            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
+            admin_role = guild.get_role(ADMIN_ROLE_ID)
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            }
+            if admin_role:
+                overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
-        channel = await guild.create_text_channel(
-            name=f"scaset-{member.name}", category=cat_channel, overwrites=overwrites)
+            channel = await guild.create_text_channel(
+                name=f"scaset-{member.name}", category=cat_channel, overwrites=overwrites)
 
-        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        ticket = {
-            "channel_id": channel.id, "user_id": member.id,
-            "payment_method": None, "items": [], "admin_id": None,
-            "embed_message_id": None, "opened_at": now, "last_activity": now,
-            "warned": 0, "warn_message_id": None,
-        }
-        cog.active_tickets[channel.id] = ticket
-        save_scaset_ticket(ticket)
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            ticket = {
+                "channel_id": channel.id, "user_id": member.id,
+                "payment_method": None, "items": [], "admin_id": None,
+                "embed_message_id": None, "opened_at": now, "last_activity": now,
+                "warned": 0, "warn_message_id": None,
+            }
+            cog.active_tickets[channel.id] = ticket
+            save_scaset_ticket(ticket)
 
-        embed = build_ticket_embed(ticket, member)
-        admin_mention = admin_role.mention if admin_role else ""
-        msg = await channel.send(
-            content=f"{member.mention} {admin_mention}",
-            embed=embed
-        )
-        ticket["embed_message_id"] = msg.id
-        save_scaset_ticket(ticket)
-        await channel.send(embed=build_admin_guide_embed())
-        await interaction.followup.send(f"Tiket kamu dibuat di {channel.mention}!", ephemeral=True)
+            embed = build_ticket_embed(ticket, member)
+            admin_mention = admin_role.mention if admin_role else ""
+            msg = await channel.send(
+                content=f"{member.mention} {admin_mention}",
+                embed=embed
+            )
+            ticket["embed_message_id"] = msg.id
+            save_scaset_ticket(ticket)
+            await channel.send(embed=build_admin_guide_embed())
+            await interaction.followup.send(f"Tiket kamu dibuat di {channel.mention}!", ephemeral=True)
 
 
 class ScasetCatalogView(discord.ui.View):
