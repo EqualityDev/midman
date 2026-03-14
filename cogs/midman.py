@@ -80,7 +80,7 @@ class Midman(commands.Cog):
                     warn_embed.add_field(name="\u200b", value=(
                         "Tiket tidak ada aktivitas selama **1 jam**.\n\n"
                         "Segera ketik `!acc` jika selesai, atau `!batal` jika dibatalkan.\n\n"
-                        "Tiket akan otomatis ditutup dalam **1 jam lagi**."
+                        "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(__import__("time").time()) + 3600) + ":R>)."
                     ), inline=False)
                     warn_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     warn_embed.set_footer(text=STORE_NAME)
