@@ -643,7 +643,9 @@ class InviteReward(commands.Cog):
                 f"✅ Invite valid setelah member stay **{MIN_STAY_DAYS} hari**\n"
                 f"❌ Invite hangus jika member keluar sebelum {MIN_STAY_DAYS} hari\n"
                 f"🔞 Akun Discord harus berumur minimal **{MIN_ACCOUNT_AGE_DAYS} hari**\n"
-                f"📊 Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari"
+                f"📊 Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari\n\n"
+                f"⚠️ **PENTING:** Gunakan link dari tombol **🔗 Dapatkan Invite Link** di bawah.\n"
+                f"Link `discord.gg/cellynstore` atau link server umum **TIDAK akan tercatat!**"
             ),
             color=0xF1C40F
         )
