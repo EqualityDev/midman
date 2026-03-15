@@ -16,6 +16,8 @@ INVITES_CHANNEL_ID = 1482498306692223138
 MAX_CLAIM_PER_DAY = 500
 MIN_STAY_DAYS = 3
 MIN_ACCOUNT_AGE_DAYS = 30
+LEADERBOARD_CHANNEL_ID = 1482754603920396473
+LEADERBOARD_TOP = 15
 
 TUTORIAL_GAMEPASS = """
 📹 **Tutorial Video:** https://vt.tiktok.com/ZSua68EBn/
@@ -256,6 +258,21 @@ def load_claims():
     return {row["channel_id"]: dict(row) for row in rows}
 
 
+def get_leaderboard(limit: int = 15) -> list:
+    """Ambil top member berdasarkan total invite valid."""
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT user_id, total_invites, robux_balance, total_claimed
+        FROM invite_balance
+        WHERE total_invites > 0
+        ORDER BY total_invites DESC, robux_balance DESC
+        LIMIT ?""",
+        (limit,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_pending_invites():
     conn = get_conn()
     rows = conn.execute(
@@ -481,10 +498,13 @@ class InviteReward(commands.Cog):
         self.invite_cache = {}
         self.active_claims = load_claims()
         self.catalog_message_id = None
+        self.leaderboard_message_id = None
         self.validate_pending_task.start()
+        self.leaderboard_task.start()
 
     def cog_unload(self):
         self.validate_pending_task.cancel()
+        self.leaderboard_task.cancel()
 
     async def cog_load(self):
         self.bot.loop.create_task(self._wait_and_cache())
@@ -776,6 +796,95 @@ class InviteReward(commands.Cog):
         del self.active_claims[channel_id]
         await ctx.channel.delete()
 
+
+    @tasks.loop(hours=1)
+    async def leaderboard_task(self):
+        """Update leaderboard setiap 1 jam."""
+        await self._update_leaderboard()
+
+    @leaderboard_task.before_loop
+    async def before_leaderboard(self):
+        await self.bot.wait_until_ready()
+
+    async def _update_leaderboard(self):
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return
+        ch = guild.get_channel(LEADERBOARD_CHANNEL_ID)
+        if not ch:
+            return
+
+        data = get_leaderboard(LEADERBOARD_TOP)
+        now = datetime.datetime.now(datetime.timezone.utc)
+
+        medals = ["🥇", "🥈", "🥉"]
+        rank_icons = ["4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","1️⃣1️⃣","1️⃣2️⃣","1️⃣3️⃣","1️⃣4️⃣","1️⃣5️⃣"]
+
+        if not data:
+            board = "*Belum ada yang masuk leaderboard. Mulai invite sekarang!*"
+        else:
+            lines = []
+            for i, row in enumerate(data):
+                member = guild.get_member(row["user_id"])
+                name = member.display_name if member else f"User#{row['user_id']}"
+                icon = medals[i] if i < 3 else rank_icons[i - 3]
+                line = f"{icon} **{name}**\n┗ `{row['total_invites']} invite` • `{row['robux_balance']} Robux saldo`"
+                lines.append(line)
+            board = "\n\n".join(lines)
+
+        desc = (
+            f"**Top {LEADERBOARD_TOP} Inviter Terbaik Cellyn Store**\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"{board}\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        )
+        embed = discord.Embed(
+            title="🏆  INVITE REWARD LEADERBOARD",
+            description=desc,
+            color=0xF1C40F,
+            timestamp=now
+        )
+        info_val = (
+            "Invite **1 orang** = **5 Robux** 💎\n"
+            "Leaderboard update setiap **1 jam** sekali\n"
+            "Invite harus stay **3 hari** untuk dihitung valid"
+        )
+        embed.add_field(
+            name="📊 Info",
+            value=info_val,
+            inline=False
+        )
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=f"{STORE_NAME} • Last update")
+
+        # Edit pesan lama kalau ada, kalau tidak kirim baru
+        if self.leaderboard_message_id:
+            try:
+                msg = await ch.fetch_message(self.leaderboard_message_id)
+                await msg.edit(embed=embed)
+                return
+            except Exception:
+                pass
+
+        # Hapus pesan lama bot di channel
+        async for msg in ch.history(limit=10):
+            if msg.author == guild.me:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+
+        sent = await ch.send(embed=embed)
+        self.leaderboard_message_id = sent.id
+
+    @commands.command(name="leaderboard")
+    async def leaderboard_cmd(self, ctx):
+        """Admin: kirim/refresh leaderboard manual."""
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        await self._update_leaderboard()
+        await ctx.send("Leaderboard diperbarui!", delete_after=5)
 
 async def setup(bot):
     await bot.add_cog(InviteReward(bot))
