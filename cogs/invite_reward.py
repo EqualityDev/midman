@@ -43,7 +43,6 @@ SKK = f"""
 **6.** Maksimal klaim **{MAX_CLAIM_PER_DAY} Robux** per hari
 **7.** Kecurangan & manipulasi = **diskualifikasi permanen**
 **8.** Keputusan admin bersifat **final**
-**9.** Tanggal event: **TBA** (akan diumumkan segera)
 """
 
 
