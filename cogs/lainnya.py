@@ -195,81 +195,130 @@ class CatalogView(discord.ui.View):
         return self
 
 
-class LainnyaConfirmView(discord.ui.View):
-    """Info embed + tombol Lanjutkan/Batal untuk lainnya."""
-    def __init__(self, item: dict):
+def _build_lainnya_cart_embed(cart_items: list) -> discord.Embed:
+    total = sum(i["harga"] for i in cart_items)
+    embed = discord.Embed(title="🛒 Keranjang Belanja", color=COLOR_LAINNYA)
+    items_text = "\n".join(
+        f"`{idx+1}.` **{i['name']}** ({i['category']}) — Rp {i['harga']:,}"
+        for idx, i in enumerate(cart_items)
+    )
+    embed.add_field(name="Item Dipilih", value=items_text, inline=False)
+    embed.add_field(name="Total Harga", value=f"**Rp {total:,}**", inline=True)
+    embed.set_footer(text="Tambah item lagi atau langsung buat tiket")
+    return embed
+
+
+async def _create_lainnya_ticket(interaction: discord.Interaction, cart: list):
+    guild = interaction.guild
+    member = interaction.user
+    cog = interaction.client.cogs.get("LainnyaStore")
+
+    for ch_id, t in cog.active_tickets.items():
+        if t["user_id"] == member.id:
+            existing = guild.get_channel(ch_id)
+            if existing:
+                await interaction.response.edit_message(
+                    content=f"Kamu masih punya tiket aktif di {existing.mention}!",
+                    embed=None, view=None
+                )
+                return
+
+    await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
+
+    total = sum(i["harga"] for i in cart)
+    items_label = ", ".join(i["name"] for i in cart)
+    categories_label = ", ".join(dict.fromkeys(i["category"] for i in cart))
+
+    cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
+    admin_role = guild.get_role(ADMIN_ROLE_ID)
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }
+    if admin_role:
+        overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+    channel = await guild.create_text_channel(
+        name=f"order-{member.name}", category=cat_channel, overwrites=overwrites
+    )
+
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    ticket = {
+        "channel_id": channel.id, "user_id": member.id,
+        "item_id": cart[0]["id"], "item_name": items_label,
+        "category": categories_label, "harga": total,
+        "payment_method": None, "admin_id": None,
+        "embed_message_id": None,
+        "opened_at": now, "last_activity": now, "warned": 0, "warn_message_id": None,
+    }
+    cog.active_tickets[channel.id] = ticket
+    save_lainnya_ticket(ticket)
+    cog.carts.pop(member.id, None)
+
+    items_text = "\n".join(
+        f"• **{i['name']}** ({i['category']}) — Rp {i['harga']:,}" for i in cart
+    )
+    embed = discord.Embed(
+        title=f"ORDER {categories_label} — {STORE_NAME}",
+        color=COLOR_LAINNYA,
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
+    )
+    embed.add_field(name="Member", value=member.mention, inline=True)
+    embed.add_field(name="Item", value=items_text, inline=False)
+    embed.add_field(name="Total Harga", value=f"Rp {total:,}", inline=True)
+    embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
+    embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
+    embed.set_thumbnail(url=THUMBNAIL)
+    embed.set_footer(text=STORE_NAME)
+
+    admin_mention = admin_role.mention if admin_role else ""
+    msg = await channel.send(
+        content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
+        embed=embed
+    )
+    ticket["embed_message_id"] = msg.id
+    save_lainnya_ticket(ticket)
+    await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
+
+
+class LainnyaCartView(discord.ui.View):
+    def __init__(self, user_id: int):
         super().__init__(timeout=120)
-        self.item = item
+        self.user_id = user_id
 
-    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="lainnya_confirm_lanjut")
-    async def lanjutkan(self, interaction: discord.Interaction, button: discord.ui.Button):
-        item = self.item
-        guild = interaction.guild
-        member = interaction.user
+    @discord.ui.button(label="➕ Tambah Item", style=discord.ButtonStyle.secondary, custom_id="lainnya_cart_add")
+    async def tambah(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Ini bukan keranjang kamu!", ephemeral=True)
+            return
+        products = load_lainnya_products()
+        cats = list(dict.fromkeys(p["category"] for p in products))
+        view = discord.ui.View(timeout=60)
+        for cat in cats:
+            view.add_item(CategoryButton(cat))
+        await interaction.response.edit_message(content="Pilih kategori:", embed=None, view=view)
+
+    @discord.ui.button(label="🛒 Buat Tiket", style=discord.ButtonStyle.success, custom_id="lainnya_cart_checkout")
+    async def checkout(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Ini bukan keranjang kamu!", ephemeral=True)
+            return
         cog = interaction.client.cogs.get("LainnyaStore")
+        cart = cog.carts.get(self.user_id, [])
+        if not cart:
+            await interaction.response.edit_message(content="Keranjang kosong!", embed=None, view=None)
+            return
+        await _create_lainnya_ticket(interaction, cart)
 
-        for ch_id, t in cog.active_tickets.items():
-            if t["user_id"] == member.id:
-                existing = guild.get_channel(ch_id)
-                if existing:
-                    await interaction.response.edit_message(
-                        content=f"Kamu masih punya tiket aktif di {existing.mention}!",
-                        embed=None, view=None
-                    )
-                    return
-
-        await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
-
-        cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
-        admin_role = guild.get_role(ADMIN_ROLE_ID)
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        }
-        if admin_role:
-            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-
-        channel = await guild.create_text_channel(
-            name=f"order-{member.name}", category=cat_channel, overwrites=overwrites)
-
-        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        ticket = {
-            "channel_id": channel.id, "user_id": member.id,
-            "item_id": item["id"], "item_name": item["name"],
-            "category": item["category"], "harga": item["harga"],
-            "payment_method": None, "admin_id": None,
-            "embed_message_id": None,
-            "opened_at": now, "last_activity": now, "warned": 0, "warn_message_id": None,
-        }
-        cog.active_tickets[channel.id] = ticket
-        save_lainnya_ticket(ticket)
-
-        embed = discord.Embed(
-            title=f"ORDER {item['category']} — {STORE_NAME}",
-            color=COLOR_LAINNYA,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        embed.add_field(name="Member", value=member.mention, inline=True)
-        embed.add_field(name="Item", value=item["name"], inline=True)
-        embed.add_field(name="Harga", value=f"Rp {item['harga']:,}", inline=True)
-        embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
-        embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
-        embed.set_thumbnail(url=THUMBNAIL)
-        embed.set_footer(text=STORE_NAME)
-
-        admin_mention = admin_role.mention if admin_role else ""
-        msg = await channel.send(
-            content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
-            embed=embed
-        )
-        ticket["embed_message_id"] = msg.id
-        save_lainnya_ticket(ticket)
-        await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
-
-    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="lainnya_confirm_batal")
-    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(content="Order dibatalkan.", embed=None, view=None)
+    @discord.ui.button(label="❌ Batalkan", style=discord.ButtonStyle.danger, custom_id="lainnya_cart_cancel")
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Ini bukan keranjang kamu!", ephemeral=True)
+            return
+        cog = interaction.client.cogs.get("LainnyaStore")
+        cog.carts.pop(self.user_id, None)
+        await interaction.response.edit_message(content="Keranjang dibatalkan.", embed=None, view=None)
 
 
 class ItemSelect(discord.ui.Select):
@@ -289,74 +338,23 @@ class ItemSelect(discord.ui.Select):
             await interaction.response.send_message("Item tidak ditemukan!", ephemeral=True)
             return
 
-        from utils.service_info import get_service_info, build_info_embed
-        info = get_service_info("lainnya")
-        has_info = any([info["description"], info["terms"], info["payment_info"]])
-        if has_info:
-            embed = build_info_embed(item["category"], info, COLOR_LAINNYA)
-            embed.add_field(
-                name="🛒 Item Dipilih",
-                value=f"**{item['name']}** — Rp {item['harga']:,}",
-                inline=False
-            )
-            view = LainnyaConfirmView(item=item)
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        else:
-            # Flow lama — langsung buka tiket
+        cog = interaction.client.cogs.get("LainnyaStore")
+        user_id = interaction.user.id
+        if user_id not in cog.carts:
+            cog.carts[user_id] = []
+        cog.carts[user_id].append(item)
+
+        cart = cog.carts[user_id]
+        embed = _build_lainnya_cart_embed(cart)
+        view = LainnyaCartView(user_id=user_id)
+        await interaction.response.edit_message(content=None, embed=embed, view=view)
+
+        if False:
             guild = interaction.guild
             member = interaction.user
             cog = interaction.client.cogs.get("LainnyaStore")
-
-            for ch_id, t in cog.active_tickets.items():
-                if t["user_id"] == member.id:
-                    existing = guild.get_channel(ch_id)
-                    if existing:
-                        await interaction.response.send_message(
-                            f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True)
-                        return
-
-            await interaction.response.defer(ephemeral=True)
-
-            cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
-            admin_role = guild.get_role(ADMIN_ROLE_ID)
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            }
-            if admin_role:
-                overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-
-            channel = await guild.create_text_channel(
-                name=f"order-{member.name}", category=cat_channel, overwrites=overwrites)
-
-            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            ticket = {
-                "channel_id": channel.id, "user_id": member.id,
-                "item_id": item["id"], "item_name": item["name"],
-                "category": item["category"], "harga": item["harga"],
-                "payment_method": None, "admin_id": None,
-                "embed_message_id": None,
-                "opened_at": now, "last_activity": now, "warned": 0, "warn_message_id": None,
-            }
-            cog.active_tickets[channel.id] = ticket
-            save_lainnya_ticket(ticket)
-
-            embed = discord.Embed(
-                title=f"ORDER {item['category']} — {STORE_NAME}",
-                color=COLOR_LAINNYA,
-                timestamp=datetime.datetime.now(datetime.timezone.utc)
-            )
-            embed.add_field(name="Member", value=member.mention, inline=True)
-            embed.add_field(name="Item", value=item["name"], inline=True)
-            embed.add_field(name="Harga", value=f"Rp {item['harga']:,}", inline=True)
-            embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
-            embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
-            embed.set_thumbnail(url=THUMBNAIL)
-            embed.set_footer(text=STORE_NAME)
-
-            admin_mention = admin_role.mention if admin_role else ""
-            msg = await channel.send(
+            admin_mention = ""
+            msg = await interaction.channel.send(
                 content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
                 embed=embed
             )
@@ -371,6 +369,7 @@ class LainnyaStore(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_tickets = {}
+        self.carts = {}  # user_id -> list of items
         self.catalog_message_id = None
         _init_db()
         self.auto_close_loop.start()
