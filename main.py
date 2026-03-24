@@ -146,6 +146,7 @@ async def main():
         await bot.load_extension("cogs.autopost")
         await bot.load_extension("cogs.qr")
         await bot.load_extension("cogs.invite_reward")
+        await bot.load_extension("cogs.poll")
 
         await bot.start(TOKEN)
 
