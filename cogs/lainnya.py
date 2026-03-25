@@ -142,7 +142,7 @@ def build_catalog_embed(products):
     embed = discord.Embed(
         title=f"CELLYN STORE — {STORE_NAME}",
         description=(
-            "Tersedia layanan Cloud Phone, Discord Nitro, dan lainnya.\n"
+            "Tersedia layanan APP PREMIUM, Discord Nitro, dan lainnya.\n"
             "Klik tombol kategori di bawah untuk melihat produk."
         ),
         color=COLOR_LAINNYA,
@@ -311,7 +311,7 @@ class LainnyaCartView(discord.ui.View):
             return
         await _create_lainnya_ticket(interaction, cart)
 
-    @discord.ui.button(label="❌ Batalkan", style=discord.ButtonStyle.danger, custom_id="lainnya_cart_cancel")
+    @discord.ui.button(label="Batalkan", style=discord.ButtonStyle.danger, custom_id="lainnya_cart_cancel")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Ini bukan keranjang kamu!", ephemeral=True)
