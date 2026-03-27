@@ -147,6 +147,7 @@ async def main():
         await bot.load_extension("cogs.qr")
         await bot.load_extension("cogs.invite_reward")
         await bot.load_extension("cogs.poll")
+        await bot.load_extension("cogs.embed_builder")
 
         await bot.start(TOKEN)
 
