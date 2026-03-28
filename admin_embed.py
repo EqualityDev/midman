@@ -204,6 +204,11 @@ def page_embeds():
         </div>
         <div class="form-group"><label>Label Internal</label><input id="f-label" placeholder="Catatan untuk embed ini..."></div>
       </div>
+      <div class="form-group" style="margin-top:.75rem">
+        <label>Message Content (opsional — untuk mention role/everyone)</label>
+        <input id="f-content" placeholder="Contoh: &lt;@&amp;ROLE_ID&gt; atau @everyone">
+        <span style="font-size:.72rem;color:var(--muted);margin-top:3px;display:block">Teks dikirim bareng embed, gunakan untuk tag role.</span>
+      </div>
       <div class="form-actions" style="margin-top:1rem">
         <button class="btn btn-ghost" onclick="updatePreview()">🔄 Preview</button>
         <button class="btn btn-primary" onclick="sendEmbed()">📨 Kirim</button>
@@ -271,7 +276,7 @@ function addField(n='',v='',inline=false){{
 function collectData(){{
   const fields=[];
   document.querySelectorAll('.field-block').forEach(b=>{{const n=b.querySelector('.fn')?.value.trim();const v=b.querySelector('.fv')?.value.trim();if(n&&v)fields.push({{name:n,value:v,inline:b.querySelector('.fi')?.checked||false}});}});
-  return{{title:document.getElementById('f-title').value.trim(),url:document.getElementById('f-url').value.trim(),description:document.getElementById('f-desc').value.trim(),color:document.getElementById('f-color').value,timestamp:document.getElementById('f-timestamp').value||null,author:{{name:document.getElementById('f-author-name').value.trim(),url:document.getElementById('f-author-url').value.trim(),icon_url:document.getElementById('f-author-icon').value.trim()}},thumbnail:document.getElementById('f-thumbnail').value.trim(),image:document.getElementById('f-image').value.trim(),footer:{{text:document.getElementById('f-footer-text').value.trim(),icon_url:document.getElementById('f-footer-icon').value.trim()}},fields}};
+  return{{title:document.getElementById('f-title').value.trim(),url:document.getElementById('f-url').value.trim(),description:document.getElementById('f-desc').value.trim(),color:document.getElementById('f-color').value,timestamp:document.getElementById('f-timestamp').value||null,author:{{name:document.getElementById('f-author-name').value.trim(),url:document.getElementById('f-author-url').value.trim(),icon_url:document.getElementById('f-author-icon').value.trim()}},thumbnail:document.getElementById('f-thumbnail').value.trim(),image:document.getElementById('f-image').value.trim(),footer:{{text:document.getElementById('f-footer-text').value.trim(),icon_url:document.getElementById('f-footer-icon').value.trim()}},fields,content:document.getElementById('f-content')?.value.trim()||''}}; 
 }}
 function loadDataIntoForm(d){{
   if(!d)return;
@@ -286,11 +291,12 @@ function loadDataIntoForm(d){{
   document.getElementById('f-image').value=d.image||'';
   document.getElementById('f-footer-text').value=d.footer?.text||'';
   document.getElementById('f-footer-icon').value=d.footer?.icon_url||'';
+  document.getElementById('f-content').value=d.content||'';
   document.getElementById('fields-container').innerHTML='';fieldCount=0;
   (d.fields||[]).forEach(f=>addField(f.name,f.value,f.inline));
   updatePreview();
 }}
-function clearForm(){{loadDataIntoForm({{}});editingMessageId=null;document.getElementById('f-label').value='';document.getElementById('f-channel').value='';document.getElementById('preview-area').innerHTML='<div style="color:#72767d;font-size:.82rem;text-align:center;padding:2rem 0">Isi form lalu klik Preview...</div>';}}
+function clearForm(){{loadDataIntoForm({{}});editingMessageId=null;document.getElementById('f-label').value='';document.getElementById('f-channel').value='';document.getElementById('f-content').value='';document.getElementById('preview-area').innerHTML='<div style="color:#72767d;font-size:.82rem;text-align:center;padding:2rem 0">Isi form lalu klik Preview...</div>';}}
 function esc(s){{return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}}
 function updatePreview(){{
   const d=collectData();const col=d.color||'#5865f2';
@@ -307,7 +313,7 @@ function updatePreview(){{
 async function sendEmbed(){{
   const ch=document.getElementById('f-channel').value;const lbl=document.getElementById('f-label').value.trim();
   if(!ch)return toast('Pilih channel dulu!',true);if(!lbl)return toast('Isi label dulu!',true);
-  const payload={{embed:collectData(),channel_id:ch,label:lbl}};
+  const d=collectData();const payload={{embed:d,channel_id:ch,label:lbl,content:d.content||''}};
   if(editingMessageId)payload.message_id=editingMessageId;
   const url=editingMessageId?'/embeds/api/edit':'/embeds/api/send';
   const r=await fetch(url,{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
@@ -346,10 +352,14 @@ def api_send():
     if not channel_id:
         return jsonify(ok=False, error="Channel ID kosong")
     try:
+        msg_content = data.get("content", "").strip()
+        payload = {"embeds": [build_embed_payload(embed_data)]}
+        if msg_content:
+            payload["content"] = msg_content
         r = requests.post(
             f"{API}/channels/{channel_id}/messages",
             headers=discord_headers(),
-            json={"embeds": [build_embed_payload(embed_data)]},
+            json=payload,
             timeout=10
         )
         if r.status_code not in (200, 201):
@@ -373,10 +383,14 @@ def api_edit():
     embed_data = data.get("embed", {})
     label      = data.get("label", "untitled")
     try:
+        msg_content = data.get("content", "").strip()
+        payload = {"embeds": [build_embed_payload(embed_data)]}
+        if msg_content:
+            payload["content"] = msg_content
         r = requests.patch(
             f"{API}/channels/{channel_id}/messages/{message_id}",
             headers=discord_headers(),
-            json={"embeds": [build_embed_payload(embed_data)]},
+            json=payload,
             timeout=10
         )
         if r.status_code not in (200, 201):
