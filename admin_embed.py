@@ -8,7 +8,7 @@ Daftarkan otomatis via admin.py:
 import os, json, sqlite3
 import requests
 from functools import wraps
-from flask import Blueprint, request as req, jsonify, session, redirect, url_for
+from flask import Blueprint, request as req, jsonify, session, redirect
 
 DB_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "midman.db")
 TOKEN    = os.environ.get("TOKEN", "")
@@ -51,7 +51,7 @@ def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("logged_in"):
-            return redirect(url_for("login"))
+            return redirect("/login")
         return f(*args, **kwargs)
     return wrapper
 
