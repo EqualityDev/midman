@@ -4,4 +4,3 @@ flask
 requests
 aiohttp
 PyNaCl
-requests
