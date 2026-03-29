@@ -143,7 +143,6 @@ async def main():
         await bot.load_extension("cogs.lainnya")
         await bot.load_extension("cogs.scaset")
         await bot.load_extension("cogs.orders")
-        await bot.load_extension("cogs.autopost")
         await bot.load_extension("cogs.qr")
         await bot.load_extension("cogs.invite_reward")
         await bot.load_extension("cogs.poll")
