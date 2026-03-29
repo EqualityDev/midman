@@ -3,72 +3,122 @@ cogs/embed_builder.py
 Diload di main.py seperti cog lainnya.
 """
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
-import sqlite3, json, os
+import sqlite3, json, os, datetime, requests
 
 DB_PATH = os.getenv("DB_PATH", "midman.db")
+TOKEN   = os.getenv("TOKEN", "")
+API     = "https://discord.com/api/v10"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-def dict_to_embed(data: dict) -> discord.Embed:
-    embed = discord.Embed()
-
-    if data.get("title"):
-        embed.title = data["title"]
-    if data.get("url"):
-        embed.url = data["url"]
-    if data.get("description"):
-        embed.description = data["description"]
+def build_embed_payload(data: dict) -> dict:
+    embed = {}
+    if data.get("title"):       embed["title"] = data["title"]
+    if data.get("url"):         embed["url"]   = data["url"]
+    if data.get("description"): embed["description"] = data["description"]
     if data.get("color"):
-        try:
-            embed.color = int(data["color"].lstrip("#"), 16)
-        except Exception:
-            pass
+        try: embed["color"] = int(str(data["color"]).lstrip("#"), 16)
+        except: pass
     if data.get("timestamp"):
-        from datetime import datetime
-        try:
-            embed.timestamp = datetime.fromisoformat(data["timestamp"])
-        except Exception:
-            pass
-
-    author = data.get("author", {})
-    if author.get("name"):
-        embed.set_author(
-            name=author["name"],
-            url=author.get("url") or discord.Embed.Empty,
-            icon_url=author.get("icon_url") or discord.Embed.Empty
-        )
-
-    if data.get("thumbnail"):
-        embed.set_thumbnail(url=data["thumbnail"])
-    if data.get("image"):
-        embed.set_image(url=data["image"])
-
-    footer = data.get("footer", {})
-    if footer.get("text"):
-        embed.set_footer(
-            text=footer["text"],
-            icon_url=footer.get("icon_url") or discord.Embed.Empty
-        )
-
-    for field in data.get("fields", []):
-        if field.get("name") and field.get("value"):
-            embed.add_field(
-                name=field["name"],
-                value=field["value"],
-                inline=field.get("inline", False)
-            )
-
+        ts = data["timestamp"]
+        embed["timestamp"] = ts + ":00" if len(ts) == 16 else ts
+    a = data.get("author", {})
+    if a.get("name"):
+        au = {"name": a["name"]}
+        if a.get("url"):      au["url"]      = a["url"]
+        if a.get("icon_url"): au["icon_url"]  = a["icon_url"]
+        embed["author"] = au
+    if data.get("thumbnail"): embed["thumbnail"] = {"url": data["thumbnail"]}
+    if data.get("image"):     embed["image"]     = {"url": data["image"]}
+    f = data.get("footer", {})
+    if f.get("text"):
+        fo = {"text": f["text"]}
+        if f.get("icon_url"): fo["icon_url"] = f["icon_url"]
+        embed["footer"] = fo
+    fields = [{"name": x["name"], "value": x["value"], "inline": bool(x.get("inline", False))}
+              for x in data.get("fields", []) if x.get("name") and x.get("value")]
+    if fields: embed["fields"] = fields
     return embed
+
+def send_embed_rest(channel_id: str, embed_data: dict, content_msg: str = "") -> bool:
+    headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
+    payload = {"embeds": [build_embed_payload(embed_data)]}
+    if content_msg:
+        payload["content"] = content_msg
+    try:
+        r = requests.post(f"{API}/channels/{channel_id}/messages",
+                          headers=headers, json=payload, timeout=10)
+        return r.status_code in (200, 201)
+    except Exception:
+        return False
 
 
 class EmbedBuilder(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.auto_send_loop.start()
+
+    def cog_unload(self):
+        self.auto_send_loop.cancel()
+
+    # ── Background loop auto-send ──────────────────────────────
+    @tasks.loop(minutes=1)
+    async def auto_send_loop(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        conn = get_db()
+        tasks_due = conn.execute(
+            "SELECT * FROM embed_messages WHERE auto_send=1 AND active=1 AND next_send IS NOT NULL"
+        ).fetchall()
+        conn.close()
+
+        for task in tasks_due:
+            try:
+                next_send_str = task["next_send"]
+                next_dt = datetime.datetime.fromisoformat(next_send_str)
+                if next_dt.tzinfo is None:
+                    next_dt = next_dt.replace(tzinfo=datetime.timezone.utc)
+                if now < next_dt:
+                    continue
+
+                embed_data = json.loads(task["embed_json"])
+                content_msg = task["content"] or ""
+                ok = send_embed_rest(task["channel_id"], embed_data, content_msg)
+
+                if ok:
+                    interval = task["interval_minutes"] or 60
+                    scheduled_time = task["scheduled_time"]
+                    if scheduled_time:
+                        try:
+                            h, m = map(int, scheduled_time.split(":"))
+                            nxt = now.replace(hour=h, minute=m, second=0, microsecond=0)
+                            if nxt <= now:
+                                nxt += datetime.timedelta(days=1)
+                        except Exception:
+                            nxt = now + datetime.timedelta(minutes=interval)
+                    else:
+                        nxt = now + datetime.timedelta(minutes=interval)
+
+                    conn2 = get_db()
+                    conn2.execute(
+                        "UPDATE embed_messages SET next_send=? WHERE id=?",
+                        (nxt.isoformat(), task["id"])
+                    )
+                    conn2.commit()
+                    conn2.close()
+                    print(f"[EmbedBuilder] Auto-sent: {task['label']} → #{task['channel_id']}")
+                else:
+                    print(f"[EmbedBuilder] Gagal auto-send: {task['label']}")
+            except Exception as e:
+                print(f"[EmbedBuilder] Loop error: {e}")
+
+    @auto_send_loop.before_loop
+    async def before_loop(self):
+        await self.bot.wait_until_ready()
 
     # ── Slash: list embed terkirim ──────────────────────────────
     @app_commands.command(name="embed_list", description="[Admin] List semua embed yang pernah dikirim via builder")
@@ -76,7 +126,7 @@ class EmbedBuilder(commands.Cog):
     async def embed_list(self, interaction: discord.Interaction):
         conn = get_db()
         rows = conn.execute(
-            "SELECT id, label, channel_id, message_id, sent_at FROM embed_messages ORDER BY sent_at DESC LIMIT 20"
+            "SELECT id, label, channel_id, message_id, sent_at, auto_send FROM embed_messages ORDER BY sent_at DESC LIMIT 20"
         ).fetchall()
         conn.close()
 
@@ -87,9 +137,10 @@ class EmbedBuilder(commands.Cog):
         for r in rows:
             ch = self.bot.get_channel(int(r["channel_id"]))
             ch_name = f"<#{r['channel_id']}>" if ch else r["channel_id"]
+            auto = "🔄 Auto" if r["auto_send"] else "📨 Manual"
             embed.add_field(
                 name=f"#{r['id']} — {r['label']}",
-                value=f"Channel: {ch_name}\nMessage ID: `{r['message_id']}`\nDikirim: {r['sent_at'][:16]}",
+                value=f"Channel: {ch_name}\nMessage ID: `{r['message_id']}`\nDikirim: {r['sent_at'][:16]} | {auto}",
                 inline=False
             )
 
