@@ -11,8 +11,6 @@ from functools import wraps
 from flask import Blueprint, request as req, jsonify, session, redirect
 
 DB_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "midman.db")
-TOKEN    = os.environ.get("TOKEN", "")
-GUILD_ID = os.environ.get("GUILD_ID", "")
 API      = "https://discord.com/api/v10"
 
 embed_bp = Blueprint("embed_bp", __name__)
@@ -28,47 +26,19 @@ def _ensure_tables():
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS embed_messages (
-        id               INTEGER PRIMARY KEY AUTOINCREMENT,
-        label            TEXT NOT NULL,
-        channel_id       TEXT NOT NULL,
-        message_id       TEXT NOT NULL UNIQUE,
-        embed_json       TEXT NOT NULL,
-        content          TEXT DEFAULT NULL,
-        auto_send        INTEGER DEFAULT 0,
-        interval_minutes INTEGER DEFAULT 60,
-        scheduled_time   TEXT DEFAULT NULL,
-        next_send        TEXT DEFAULT NULL,
-        active           INTEGER DEFAULT 1,
-        sent_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        label      TEXT NOT NULL,
+        channel_id TEXT NOT NULL,
+        message_id TEXT NOT NULL UNIQUE,
+        embed_json TEXT NOT NULL,
+        sent_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     """)
     conn.commit()
     conn.close()
 
 _ensure_tables()
-
-# Migrasi kolom baru jika belum ada
-def _migrate_embed_messages():
-    conn = sqlite3.connect(DB_FILE)
-    for col, defval in [
-        ("content",          "TEXT DEFAULT NULL"),
-        ("auto_send",        "INTEGER DEFAULT 0"),
-        ("interval_minutes", "INTEGER DEFAULT 60"),
-        ("scheduled_time",   "TEXT DEFAULT NULL"),
-        ("next_send",        "TEXT DEFAULT NULL"),
-        ("active",           "INTEGER DEFAULT 1"),
-    ]:
-        try:
-            conn.execute(f"ALTER TABLE embed_messages ADD COLUMN {col} {defval}")
-        except Exception as e:
-            if "duplicate column" not in str(e).lower():
-                print(f"[EMBED] Migration {col}: {e}")
-    conn.commit()
-    conn.close()
-
-_migrate_embed_messages()
-
 
 def get_db():
     conn = sqlite3.connect(DB_FILE)
@@ -84,11 +54,13 @@ def login_required(f):
     return wrapper
 
 def discord_headers():
-    return {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
+    token = os.environ.get("TOKEN", "")
+    return {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
 
 def get_guild_channels():
     try:
-        r = requests.get(f"{API}/guilds/{GUILD_ID}/channels",
+        guild_id = os.environ.get("GUILD_ID", "")
+        r = requests.get(f"{API}/guilds/{guild_id}/channels",
                          headers=discord_headers(), timeout=5)
         if r.status_code == 200:
             return [{"id": c["id"], "name": c["name"]}
@@ -145,7 +117,7 @@ def page_embeds():
     conn = get_db()
     templates = conn.execute("SELECT id, name FROM embed_templates ORDER BY name").fetchall()
     sent      = conn.execute(
-        "SELECT id, label, channel_id, message_id, sent_at, auto_send, interval_minutes, scheduled_time, next_send, active FROM embed_messages ORDER BY sent_at DESC"
+        "SELECT id, label, channel_id, message_id, sent_at FROM embed_messages ORDER BY sent_at DESC"
     ).fetchall()
     conn.close()
     channels = get_guild_channels()
@@ -154,24 +126,11 @@ def page_embeds():
     ch_opts   = "".join(f'<option value="{c["id"]}">#{c["name"]}</option>' for c in channels)
     sent_rows = ""
     for s in sent:
-        auto_info = "-"
-        next_info = "-"
-        active_val = dict(s).get("active", 0)
-        auto_send_val = dict(s).get("auto_send", 0)
-        if auto_send_val:
-            sched = dict(s).get("scheduled_time")
-            interval = dict(s).get("interval_minutes", 60)
-            mode_str = f"Jam {sched}" if sched else f"{interval} menit"
-            status_str = "✅" if active_val else "⏸"
-            auto_info = f"{status_str} {mode_str}"
-            next_send = dict(s).get("next_send")
-            next_info = str(next_send)[:16] if next_send else "-"
         sent_rows += f"""<tr>
           <td>{s['id']}</td><td>{s['label']}</td>
           <td>#{s['channel_id']}</td>
           <td><code style="font-size:.72rem">{s['message_id']}</code></td>
-          <td style="font-size:.78rem">{auto_info}</td>
-          <td style="font-size:.78rem">{next_info}</td>
+          <td>{str(s['sent_at'])[:16]}</td>
           <td style="white-space:nowrap">
             <button class="btn btn-ghost btn-sm" onclick="loadSent('{s['message_id']}')">✏️ Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteSent('{s['message_id']}',this)">🗑</button>
@@ -250,31 +209,6 @@ def page_embeds():
         <input id="f-content" placeholder="Contoh: &lt;@&amp;ROLE_ID&gt; atau @everyone">
         <span style="font-size:.72rem;color:var(--muted);margin-top:3px;display:block">Teks dikirim bareng embed, gunakan untuk tag role.</span>
       </div>
-      <div class="divider"></div>
-      <label>Auto Send (opsional)</label>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:.4rem;margin-bottom:.6rem">
-        <input type="checkbox" id="f-autosend" onchange="toggleAutoSend(this)" style="width:auto">
-        <span style="font-size:.82rem;color:var(--muted2)">Aktifkan auto send terjadwal</span>
-      </div>
-      <div id="autosend-opts" style="display:none">
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Mode</label>
-            <select id="f-mode" onchange="toggleAutoSendMode(this.value)">
-              <option value="interval">Interval (setiap N menit)</option>
-              <option value="schedule">Jadwal jam tertentu (setiap hari)</option>
-            </select>
-          </div>
-          <div class="form-group" id="f-interval-wrap">
-            <label>Interval (menit)</label>
-            <input id="f-interval" type="number" value="60" min="1" placeholder="60">
-          </div>
-          <div class="form-group" id="f-schedule-wrap" style="display:none">
-            <label>Jam kirim (HH:MM)</label>
-            <input id="f-schedule" type="text" placeholder="09:00">
-          </div>
-        </div>
-      </div>
       <div class="form-actions" style="margin-top:1rem">
         <button class="btn btn-ghost" onclick="updatePreview()">🔄 Preview</button>
         <button class="btn btn-primary" onclick="sendEmbed()">📨 Kirim</button>
@@ -286,7 +220,7 @@ def page_embeds():
   <div class="card" style="margin-top:1rem">
     <div class="card-header"><span class="card-title">📋 Embed Terkirim</span></div>
     <div class="card-body" style="padding:0">
-      <table><thead><tr><th>#</th><th>Label</th><th>Channel</th><th>Message ID</th><th>Auto Send</th><th>Next Send</th><th>Aksi</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Label</th><th>Channel</th><th>Message ID</th><th>Waktu</th><th>Aksi</th></tr></thead>
       <tbody>{sent_rows or '<tr><td colspan="6" class="empty">Belum ada embed terkirim</td></tr>'}</tbody></table>
     </div>
   </div>
@@ -362,7 +296,7 @@ function loadDataIntoForm(d){{
   (d.fields||[]).forEach(f=>addField(f.name,f.value,f.inline));
   updatePreview();
 }}
-function clearForm(){{loadDataIntoForm({{}});editingMessageId=null;document.getElementById('f-label').value='';document.getElementById('f-channel').value='';document.getElementById('f-content').value='';document.getElementById('f-autosend').checked=false;document.getElementById('autosend-opts').style.display='none';document.getElementById('f-interval').value='60';document.getElementById('f-schedule').value='';document.getElementById('preview-area').innerHTML='<div style="color:#72767d;font-size:.82rem;text-align:center;padding:2rem 0">Isi form lalu klik Preview...</div>';}}
+function clearForm(){{loadDataIntoForm({{}});editingMessageId=null;document.getElementById('f-label').value='';document.getElementById('f-channel').value='';document.getElementById('f-content').value='';document.getElementById('preview-area').innerHTML='<div style="color:#72767d;font-size:.82rem;text-align:center;padding:2rem 0">Isi form lalu klik Preview...</div>';}}
 function esc(s){{return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}}
 function updatePreview(){{
   const d=collectData();const col=d.color||'#5865f2';
@@ -379,13 +313,7 @@ function updatePreview(){{
 async function sendEmbed(){{
   const ch=document.getElementById('f-channel').value;const lbl=document.getElementById('f-label').value.trim();
   if(!ch)return toast('Pilih channel dulu!',true);if(!lbl)return toast('Isi label dulu!',true);
-  const d=collectData();const autoSend=document.getElementById('f-autosend')?.checked||false;
-  const mode=document.getElementById('f-mode')?.value||'interval';
-  const interval=parseInt(document.getElementById('f-interval')?.value||'60');
-  const schedule=document.getElementById('f-schedule')?.value.trim()||'';
-  const payload={{embed:d,channel_id:ch,label:lbl,content:d.content||'',
-    auto_send:autoSend,interval_minutes:interval,
-    scheduled_time:mode==='schedule'?schedule:'',}};
+  const d=collectData();const payload={{embed:d,channel_id:ch,label:lbl,content:d.content||''}};
   if(editingMessageId)payload.message_id=editingMessageId;
   const url=editingMessageId?'/embeds/api/edit':'/embeds/api/send';
   const r=await fetch(url,{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
@@ -401,16 +329,8 @@ async function saveTemplate(){{
   const d=await r.json();if(d.ok){{toast('✅ Template tersimpan!');setTimeout(()=>location.reload(),1500);}}else toast('❌ '+d.error,true);
 }}
 async function deleteTemplate(){{const id=document.getElementById('tpl-select').value;if(!id)return toast('Pilih template dulu!',true);if(!confirm('Hapus template ini?'))return;const r=await fetch('/embeds/api/template/'+id,{{method:'DELETE'}});const d=await r.json();if(d.ok){{toast('✅ Dihapus!');setTimeout(()=>location.reload(),1500);}}else toast('❌ '+d.error,true);}}
-async function loadSent(mid){{const r=await fetch('/embeds/api/sent/'+mid);const d=await r.json();if(d.ok){{editingMessageId=mid;loadDataIntoForm(JSON.parse(d.embed_json));document.getElementById('f-label').value=d.label||'';document.getElementById('f-channel').value=d.channel_id||'';toast('📝 Loaded untuk edit');window.scrollTo({{top:0,behavior:'smooth'}});if(d.auto_send){{document.getElementById('f-autosend').checked=true;document.getElementById('autosend-opts').style.display='';if(d.scheduled_time){{document.getElementById('f-mode').value='schedule';document.getElementById('f-interval-wrap').style.display='none';document.getElementById('f-schedule-wrap').style.display='';document.getElementById('f-schedule').value=d.scheduled_time||'';}}else{{document.getElementById('f-interval').value=d.interval_minutes||60;}}}}}}else toast('❌ '+d.error,true);}}
+async function loadSent(mid){{const r=await fetch('/embeds/api/sent/'+mid);const d=await r.json();if(d.ok){{editingMessageId=mid;loadDataIntoForm(JSON.parse(d.embed_json));document.getElementById('f-label').value=d.label||'';document.getElementById('f-channel').value=d.channel_id||'';toast('📝 Loaded untuk edit');window.scrollTo({{top:0,behavior:'smooth'}});}}else toast('❌ '+d.error,true);}}
 async function deleteSent(mid,btn){{if(!confirm('Hapus embed dari Discord & DB?'))return;const r=await fetch('/embeds/api/sent/'+mid,{{method:'DELETE'}});const d=await r.json();if(d.ok){{toast('✅ Embed dihapus!');btn.closest('tr').remove();}}else toast('❌ '+d.error,true);}}
-
-function toggleAutoSend(cb) {{
-  document.getElementById('autosend-opts').style.display = cb.checked ? '' : 'none';
-}}
-function toggleAutoSendMode(val) {{
-  document.getElementById('f-interval-wrap').style.display = val==='interval' ? '' : 'none';
-  document.getElementById('f-schedule-wrap').style.display = val==='schedule' ? '' : 'none';
-}}
 ['f-title','f-url','f-desc','f-color','f-author-name','f-thumbnail','f-image','f-footer-text'].forEach(id=>document.getElementById(id)?.addEventListener('input',updatePreview));
 </script>"""
 
@@ -446,29 +366,8 @@ def api_send():
             return jsonify(ok=False, error=f"Discord error {r.status_code}: {r.text[:200]}")
         msg_id = r.json()["id"]
         conn = get_db()
-        auto_send      = 1 if data.get("auto_send") else 0
-        interval_mins  = int(data.get("interval_minutes", 60))
-        scheduled_time = data.get("scheduled_time", "").strip() or None
-        content_msg2   = data.get("content", "").strip() or None
-        # Hitung next_send
-        import datetime as _dt
-        now_dt = _dt.datetime.now(_dt.timezone.utc)
-        if scheduled_time and auto_send:
-            try:
-                h, m = map(int, scheduled_time.split(":"))
-                nxt = now_dt.replace(hour=h, minute=m, second=0, microsecond=0)
-                if nxt <= now_dt:
-                    nxt += _dt.timedelta(days=1)
-            except Exception:
-                nxt = now_dt + _dt.timedelta(minutes=interval_mins)
-        elif auto_send:
-            nxt = now_dt + _dt.timedelta(minutes=interval_mins)
-        else:
-            nxt = None
-        conn.execute(
-            "INSERT INTO embed_messages (label,channel_id,message_id,embed_json,content,auto_send,interval_minutes,scheduled_time,next_send,active) VALUES (?,?,?,?,?,?,?,?,?,1)",
-            (label, channel_id, msg_id, json.dumps(embed_data), content_msg2, auto_send, interval_mins, scheduled_time, nxt.isoformat() if nxt else None)
-        )
+        conn.execute("INSERT INTO embed_messages (label,channel_id,message_id,embed_json) VALUES (?,?,?,?)",
+                     (label, channel_id, msg_id, json.dumps(embed_data)))
         conn.commit(); conn.close()
         return jsonify(ok=True, message_id=msg_id)
     except Exception as e:
@@ -497,28 +396,8 @@ def api_edit():
         if r.status_code not in (200, 201):
             return jsonify(ok=False, error=f"Discord error {r.status_code}: {r.text[:200]}")
         conn = get_db()
-        auto_send      = 1 if data.get("auto_send") else 0
-        interval_mins  = int(data.get("interval_minutes", 60))
-        scheduled_time = data.get("scheduled_time", "").strip() or None
-        content_msg2   = data.get("content", "").strip() or None
-        import datetime as _dt
-        now_dt = _dt.datetime.now(_dt.timezone.utc)
-        if scheduled_time and auto_send:
-            try:
-                h, m = map(int, scheduled_time.split(":"))
-                nxt = now_dt.replace(hour=h, minute=m, second=0, microsecond=0)
-                if nxt <= now_dt:
-                    nxt += _dt.timedelta(days=1)
-            except Exception:
-                nxt = now_dt + _dt.timedelta(minutes=interval_mins)
-        elif auto_send:
-            nxt = now_dt + _dt.timedelta(minutes=interval_mins)
-        else:
-            nxt = None
-        conn.execute(
-            "UPDATE embed_messages SET embed_json=?,label=?,content=?,auto_send=?,interval_minutes=?,scheduled_time=?,next_send=?,updated_at=CURRENT_TIMESTAMP WHERE message_id=?",
-            (json.dumps(embed_data), label, content_msg2, auto_send, interval_mins, scheduled_time, nxt.isoformat() if nxt else None, message_id)
-        )
+        conn.execute("UPDATE embed_messages SET embed_json=?,label=?,updated_at=CURRENT_TIMESTAMP WHERE message_id=?",
+                     (json.dumps(embed_data), label, message_id))
         conn.commit(); conn.close()
         return jsonify(ok=True)
     except Exception as e:
