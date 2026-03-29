@@ -1020,6 +1020,8 @@ def _ensure_autopost_table():
         ("embed_title", "TEXT DEFAULT NULL"),
         ("embed_color", "TEXT DEFAULT NULL"),
         ("next_send", "TEXT DEFAULT NULL"),
+        ("embed_json", "TEXT DEFAULT NULL"),
+        ("content", "TEXT DEFAULT NULL"),
     ]:
         try:
             conn.execute(f"ALTER TABLE autopost_tasks ADD COLUMN {col} {defval}")
@@ -1084,7 +1086,7 @@ def page_autopost():
                     </button>
                 </form>
                 <button class='btn btn-warning' style='padding:4px 8px;font-size:12px'
-                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]},"{t["scheduled_time"] or ""}",{t["use_embed"]},"{t["embed_title"] or ""}","{t["embed_color"] or "#5865F2"}")'>
+                    onclick='openEdit({t["id"]},"{t["label"]}","{t["channel_id"]}",`{t["message"]}`,{t["interval_minutes"]},"{t["scheduled_time"] or ""}",{t["use_embed"]},"{t["embed_title"] or ""}","{t["embed_color"] or "#5865F2"}",{repr(t["embed_json"] or "")},{repr(t["content"] or "")})'>
                     Edit
                 </button>
                 <form method='post' action='/autopost/delete/{t["id"]}' style='display:inline'
@@ -1150,21 +1152,42 @@ def page_autopost():
             </div>
             <div class='form-group'>
                 <label style='display:flex;align-items:center;gap:8px'>
-                    <input type='checkbox' name='use_embed' value='1' onchange='toggleEmbed(this,"add")'>
+                    <input type='checkbox' name='use_embed' id='addUseEmbed' value='1' onchange='toggleEmbed(this,"add")'>
                     Kirim sebagai Embed Discord
                 </label>
             </div>
             <div id='add_embed_opts' style='display:none'>
-                <div class='form-group'>
-                    <label>Judul Embed</label>
-                    <input type='text' name='embed_title' class='form-control' placeholder='Judul embed...'>
+                <div class='form-group'><label>Title</label><input id='ae-title' placeholder='Judul embed'></div>
+                <div class='form-group'><label>Title URL</label><input id='ae-url' placeholder='https://...'></div>
+                <div class='form-group'><label>Description</label><textarea id='ae-desc' rows='3' placeholder='Deskripsi...'></textarea></div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Color</label><input id='ae-color' type='color' value='#5865F2' style='height:38px;padding:3px 5px'></div>
+                    <div class='form-group'><label>Timestamp</label><input id='ae-timestamp' type='datetime-local'></div>
                 </div>
-                <div class='form-group'>
-                    <label>Warna Embed</label>
-                    <input type='color' name='embed_color' class='form-control' value='#5865F2' style='height:40px'>
+                <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px'>
+                    <div class='form-group'><label>Author Nama</label><input id='ae-aname' placeholder='Nama'></div>
+                    <div class='form-group'><label>Author URL</label><input id='ae-aurl' placeholder='https://...'></div>
+                    <div class='form-group'><label>Author Icon</label><input id='ae-aicon' placeholder='https://...'></div>
                 </div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Thumbnail URL</label><input id='ae-thumb' placeholder='https://...'></div>
+                    <div class='form-group'><label>Image URL</label><input id='ae-img' placeholder='https://...'></div>
+                </div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Footer Text</label><input id='ae-ftext' placeholder='Footer...'></div>
+                    <div class='form-group'><label>Footer Icon</label><input id='ae-ficon' placeholder='https://...'></div>
+                </div>
+                <div style='margin-bottom:8px'>
+                    <label>Fields <button type='button' onclick='addAutopostField()' style='margin-left:8px;padding:2px 8px;font-size:12px;background:#4f545c;color:#fff;border:none;border-radius:4px;cursor:pointer'>+ Tambah</button></label>
+                    <div id='ae-fields'></div>
+                </div>
+                <div class='form-group'><label>Message Content (untuk tag role)</label><input id='ae-content' placeholder='@everyone atau &lt;@&ROLE_ID&gt;'></div>
+                <input type='hidden' name='embed_json' id='ae-json'>
+                <input type='hidden' name='embed_title' id='ae-title-h'>
+                <input type='hidden' name='embed_color' id='ae-color-h' value='#5865F2'>
+                <input type='hidden' name='content_msg' id='ae-content-h'>
             </div>
-            <button type='submit' class='btn btn-success'>Simpan</button>
+            <button type='submit' class='btn btn-success' onclick='return prepareAutopostEmbed("add")'>Simpan</button>
             <button type='button' class='btn' onclick="document.getElementById('addForm').style.display='none';document.querySelector('.btn-success').style.display=''">Batal</button>
         </form>
     </div>
@@ -1207,16 +1230,37 @@ def page_autopost():
                 </label>
             </div>
             <div id='edit_embed_opts' style='display:none'>
-                <div class='form-group'>
-                    <label>Judul Embed</label>
-                    <input type='text' name='embed_title' id='editEmbedTitle' class='form-control'>
+                <div class='form-group'><label>Title</label><input id='ee-title' placeholder='Judul embed'></div>
+                <div class='form-group'><label>Title URL</label><input id='ee-url' placeholder='https://...'></div>
+                <div class='form-group'><label>Description</label><textarea id='ee-desc' rows='3' placeholder='Deskripsi...'></textarea></div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Color</label><input id='ee-color' type='color' value='#5865F2' style='height:38px;padding:3px 5px'></div>
+                    <div class='form-group'><label>Timestamp</label><input id='ee-timestamp' type='datetime-local'></div>
                 </div>
-                <div class='form-group'>
-                    <label>Warna Embed</label>
-                    <input type='color' name='embed_color' id='editEmbedColor' class='form-control' style='height:40px'>
+                <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px'>
+                    <div class='form-group'><label>Author Nama</label><input id='ee-aname' placeholder='Nama'></div>
+                    <div class='form-group'><label>Author URL</label><input id='ee-aurl' placeholder='https://...'></div>
+                    <div class='form-group'><label>Author Icon</label><input id='ee-aicon' placeholder='https://...'></div>
                 </div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Thumbnail URL</label><input id='ee-thumb' placeholder='https://...'></div>
+                    <div class='form-group'><label>Image URL</label><input id='ee-img' placeholder='https://...'></div>
+                </div>
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px'>
+                    <div class='form-group'><label>Footer Text</label><input id='ee-ftext' placeholder='Footer...'></div>
+                    <div class='form-group'><label>Footer Icon</label><input id='ee-ficon' placeholder='https://...'></div>
+                </div>
+                <div style='margin-bottom:8px'>
+                    <label>Fields <button type='button' onclick='addAutopostField("edit")' style='margin-left:8px;padding:2px 8px;font-size:12px;background:#4f545c;color:#fff;border:none;border-radius:4px;cursor:pointer'>+ Tambah</button></label>
+                    <div id='ee-fields'></div>
+                </div>
+                <div class='form-group'><label>Message Content (untuk tag role)</label><input id='ee-content' placeholder='@everyone atau &lt;@&ROLE_ID&gt;'></div>
+                <input type='hidden' name='embed_json' id='ee-json'>
+                <input type='hidden' name='embed_title' id='editEmbedTitle'>
+                <input type='hidden' name='embed_color' id='editEmbedColor' value='#5865F2'>
+                <input type='hidden' name='content_msg' id='ee-content-h'>
             </div>
-            <button type='submit' class='btn btn-success'>Simpan</button>
+            <button type='submit' class='btn btn-success' onclick='return prepareAutopostEmbed("edit")'>Simpan</button>
             <button type='button' class='btn' onclick="document.getElementById('editForm').style.display='none'">Batal</button>
         </form>
     </div>
@@ -1247,6 +1291,7 @@ def page_autopost():
     </div>
 
     <script>
+    var apFieldCount = 0;
     function toggleMode(val, prefix) {{
         document.getElementById(prefix+'_interval').style.display = val==='interval' ? '' : 'none';
         document.getElementById(prefix+'_schedule').style.display = val==='schedule' ? '' : 'none';
@@ -1254,7 +1299,90 @@ def page_autopost():
     function toggleEmbed(cb, prefix) {{
         document.getElementById(prefix+'_embed_opts').style.display = cb.checked ? '' : 'none';
     }}
-    function openEdit(id, label, channel, message, interval, schedule, useEmbed, embedTitle, embedColor) {{
+    function addAutopostField(mode) {{
+        mode = mode || 'add';
+        var container = document.getElementById(mode==='edit' ? 'ee-fields' : 'ae-fields');
+        var idx = apFieldCount++;
+        var div = document.createElement('div');
+        div.id = 'apf-'+idx;
+        div.style = 'background:#1e1f22;border-radius:6px;padding:8px;margin-top:6px;position:relative';
+        div.innerHTML = '<button type="button" onclick="document.getElementById(\'apf-'+idx+'\').remove()" style="position:absolute;top:6px;right:6px;background:#ed4245;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:11px">✕</button>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="form-group"><label>Nama</label><input class="apfn" placeholder="Field name"></div>'
+            + '<div class="form-group"><label>Value</label><textarea class="apfv" rows="2" placeholder="Value"></textarea></div></div>'
+            + '<div style="display:flex;align-items:center;gap:6px;margin-top:4px"><input type="checkbox" class="apfi"><span style="font-size:12px;color:#b5bac1">Inline</span></div>';
+        container.appendChild(div);
+    }}
+    function collectAutopostEmbed(pfx) {{
+        var p = pfx;
+        var fields = [];
+        var container = document.getElementById(p==='ae' ? 'ae-fields' : 'ee-fields');
+        container.querySelectorAll('[id^=apf-]').forEach(function(b) {{
+            var n = b.querySelector('.apfn')?.value.trim();
+            var v = b.querySelector('.apfv')?.value.trim();
+            if (n && v) fields.push({{name:n, value:v, inline:b.querySelector('.apfi')?.checked||false}});
+        }});
+        return {{
+            title:       document.getElementById(p+'-title')?.value.trim()||'',
+            url:         document.getElementById(p+'-url')?.value.trim()||'',
+            description: document.getElementById(p+'-desc')?.value.trim()||'',
+            color:       document.getElementById(p+'-color')?.value||'#5865F2',
+            timestamp:   document.getElementById(p+'-timestamp')?.value||null,
+            author: {{
+                name:     document.getElementById(p+'-aname')?.value.trim()||'',
+                url:      document.getElementById(p+'-aurl')?.value.trim()||'',
+                icon_url: document.getElementById(p+'-aicon')?.value.trim()||'',
+            }},
+            thumbnail:   document.getElementById(p+'-thumb')?.value.trim()||'',
+            image:       document.getElementById(p+'-img')?.value.trim()||'',
+            footer: {{
+                text:     document.getElementById(p+'-ftext')?.value.trim()||'',
+                icon_url: document.getElementById(p+'-ficon')?.value.trim()||'',
+            }},
+            fields: fields,
+        }};
+    }}
+    function prepareAutopostEmbed(mode) {{
+        var useEmbed = document.getElementById(mode==='edit' ? 'editUseEmbed' : 'addUseEmbed')?.checked;
+        if (!useEmbed) return true;
+        var pfx = mode==='edit' ? 'ee' : 'ae';
+        var data = collectAutopostEmbed(pfx);
+        document.getElementById(pfx+'-json').value = JSON.stringify(data);
+        document.getElementById(pfx==='ae' ? 'ae-title-h' : 'editEmbedTitle').value = data.title;
+        document.getElementById(pfx==='ae' ? 'ae-color-h' : 'editEmbedColor').value = data.color;
+        document.getElementById(pfx+'-content-h').value = document.getElementById(pfx+'-content')?.value.trim()||'';
+        return true;
+    }}
+    function loadEmbedIntoEdit(embedJson, contentMsg) {{
+        if (!embedJson) return;
+        try {{
+            var d = JSON.parse(embedJson);
+            document.getElementById('ee-title').value = d.title||'';
+            document.getElementById('ee-url').value = d.url||'';
+            document.getElementById('ee-desc').value = d.description||'';
+            document.getElementById('ee-color').value = d.color||'#5865F2';
+            document.getElementById('ee-timestamp').value = d.timestamp||'';
+            document.getElementById('ee-aname').value = d.author?.name||'';
+            document.getElementById('ee-aurl').value = d.author?.url||'';
+            document.getElementById('ee-aicon').value = d.author?.icon_url||'';
+            document.getElementById('ee-thumb').value = d.thumbnail||'';
+            document.getElementById('ee-img').value = d.image||'';
+            document.getElementById('ee-ftext').value = d.footer?.text||'';
+            document.getElementById('ee-ficon').value = d.footer?.icon_url||'';
+            document.getElementById('ee-content').value = contentMsg||'';
+            document.getElementById('ee-fields').innerHTML = '';
+            (d.fields||[]).forEach(function(f) {{
+                addAutopostField('edit');
+                var container = document.getElementById('ee-fields');
+                var last = container.lastElementChild;
+                if (last) {{
+                    last.querySelector('.apfn').value = f.name||'';
+                    last.querySelector('.apfv').value = f.value||'';
+                    if (last.querySelector('.apfi')) last.querySelector('.apfi').checked = f.inline||false;
+                }}
+            }});
+        }} catch(e) {{}}
+    }}
+    function openEdit(id, label, channel, message, interval, schedule, useEmbed, embedTitle, embedColor, embedJson, contentMsg) {{
         document.getElementById('editId').value = id;
         document.getElementById('editLabel').value = label;
         document.getElementById('editChannel').value = channel;
@@ -1269,6 +1397,7 @@ def page_autopost():
         var mode = schedule ? 'schedule' : 'interval';
         document.getElementById('editMode').value = mode;
         toggleMode(mode, 'edit');
+        if (useEmb && embedJson) loadEmbedIntoEdit(embedJson, contentMsg);
         document.getElementById('editForm').style.display = 'block';
         document.getElementById('editForm').scrollIntoView({{behavior:'smooth'}});
     }}
@@ -1308,9 +1437,11 @@ def autopost_add():
     else:
         nxt = now + _dt.timedelta(minutes=interval)
     conn = get_conn()
+    embed_json  = request.form.get("embed_json", "").strip() or None
+    content_msg = request.form.get("content_msg", "").strip() or None
     conn.execute(
-        "INSERT INTO autopost_tasks (label, channel_id, message, interval_minutes, active, scheduled_time, use_embed, embed_title, embed_color, next_send) VALUES (?,?,?,?,1,?,?,?,?,?)",
-        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat())
+        "INSERT INTO autopost_tasks (label, channel_id, message, interval_minutes, active, scheduled_time, use_embed, embed_title, embed_color, next_send, embed_json, content) VALUES (?,?,?,?,1,?,?,?,?,?,?,?)",
+        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat(), embed_json, content_msg)
     )
     conn.commit(); conn.close()
     flash(f"Task '{label}' berhasil ditambahkan.", "success")
@@ -1348,9 +1479,11 @@ def autopost_edit():
     else:
         nxt = now + _dt.timedelta(minutes=interval)
     conn = get_conn()
+    embed_json  = request.form.get("embed_json", "").strip() or None
+    content_msg = request.form.get("content_msg", "").strip() or None
     conn.execute(
-        "UPDATE autopost_tasks SET label=?, channel_id=?, message=?, interval_minutes=?, scheduled_time=?, use_embed=?, embed_title=?, embed_color=?, next_send=? WHERE id=?",
-        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat(), tid)
+        "UPDATE autopost_tasks SET label=?, channel_id=?, message=?, interval_minutes=?, scheduled_time=?, use_embed=?, embed_title=?, embed_color=?, next_send=?, embed_json=?, content=? WHERE id=?",
+        (label, channel_id, message, interval, sched_time, use_embed, embed_title, embed_color, nxt.isoformat(), embed_json, content_msg, tid)
     )
     conn.commit(); conn.close()
     flash("Task berhasil diupdate.", "success")

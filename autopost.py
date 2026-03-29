@@ -15,6 +15,7 @@ import os
 import sys
 import time
 import sqlite3
+import json
 import requests
 import datetime
 
@@ -32,6 +33,7 @@ if os.path.exists(_env_path):
             os.environ.setdefault(k.strip(), v.strip())
 
 USER_TOKEN = os.environ.get("AUTOPOST_TOKEN", "")
+BOT_TOKEN  = os.environ.get("TOKEN", "")
 CHECK_INTERVAL = 60  # cek DB setiap 60 detik
 
 
@@ -51,11 +53,71 @@ def ensure_table():
             message TEXT NOT NULL,
             interval_minutes INTEGER NOT NULL DEFAULT 60,
             active INTEGER NOT NULL DEFAULT 1,
-            last_sent TEXT DEFAULT NULL
+            last_sent TEXT DEFAULT NULL,
+            embed_json TEXT DEFAULT NULL,
+            content TEXT DEFAULT NULL
         )
     """)
     conn.commit()
     conn.close()
+
+
+def send_embed(channel_id: str, embed_json_str: str, content_msg: str = "") -> bool:
+    """Kirim embed via Bot token."""
+    try:
+        embed_data = json.loads(embed_json_str)
+    except Exception:
+        print(f"[AUTOPOST] embed_json invalid JSON")
+        return False
+
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+    headers = {
+        "Authorization": f"Bot {BOT_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    def build_payload(d):
+        embed = {}
+        if d.get("title"):       embed["title"] = d["title"]
+        if d.get("url"):         embed["url"]   = d["url"]
+        if d.get("description"): embed["description"] = d["description"]
+        if d.get("color"):
+            try: embed["color"] = int(str(d["color"]).lstrip("#"), 16)
+            except: pass
+        if d.get("timestamp"):
+            ts = d["timestamp"]
+            embed["timestamp"] = ts + ":00" if len(ts) == 16 else ts
+        a = d.get("author", {})
+        if a.get("name"):
+            au = {"name": a["name"]}
+            if a.get("url"):      au["url"]      = a["url"]
+            if a.get("icon_url"): au["icon_url"]  = a["icon_url"]
+            embed["author"] = au
+        if d.get("thumbnail"): embed["thumbnail"] = {"url": d["thumbnail"]}
+        if d.get("image"):     embed["image"]     = {"url": d["image"]}
+        f = d.get("footer", {})
+        if f.get("text"):
+            fo = {"text": f["text"]}
+            if f.get("icon_url"): fo["icon_url"] = f["icon_url"]
+            embed["footer"] = fo
+        fields = [{"name": x["name"], "value": x["value"], "inline": bool(x.get("inline", False))}
+                  for x in d.get("fields", []) if x.get("name") and x.get("value")]
+        if fields: embed["fields"] = fields
+        return embed
+
+    payload = {"embeds": [build_payload(embed_data)]}
+    if content_msg:
+        payload["content"] = content_msg
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=10)
+        if resp.status_code in (200, 201):
+            return True
+        print(f"[AUTOPOST] Gagal kirim embed ke {channel_id}: {resp.status_code} — {resp.text[:200]}")
+        return False
+    except Exception as e:
+        print(f"[AUTOPOST] Exception embed: {e}")
+        return False
 
 
 def send_message(channel_id: str, message: str) -> bool:
@@ -110,8 +172,13 @@ def run():
                     except Exception:
                         pass
 
-                print(f"[AUTOPOST] Mengirim task '{task['label']}' ke channel {task['channel_id']}...")
-                ok = send_message(task["channel_id"], task["message"])
+                print(f"[AUTOPOST] Mengirim task '{task["label"]}' ke channel {task["channel_id"]}...")
+                embed_json = task["embed_json"] if "embed_json" in task.keys() else None
+                content_msg = task["content"] if "content" in task.keys() else ""
+                if embed_json and BOT_TOKEN:
+                    ok = send_embed(task["channel_id"], embed_json, content_msg or "")
+                else:
+                    ok = send_message(task["channel_id"], task["message"])
                 if ok:
                     now_str = now.isoformat()
                     conn2 = get_conn()
