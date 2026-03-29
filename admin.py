@@ -1289,17 +1289,18 @@ def page_autopost():
             </table>
         </div>
     </div>
-
+    """
+    content += """
     <script>
     var apFieldCount = 0;
-    function toggleMode(val, prefix) {{
+    function toggleMode(val, prefix) {
         document.getElementById(prefix+'_interval').style.display = val==='interval' ? '' : 'none';
         document.getElementById(prefix+'_schedule').style.display = val==='schedule' ? '' : 'none';
-    }}
-    function toggleEmbed(cb, prefix) {{
+    }
+    function toggleEmbed(cb, prefix) {
         document.getElementById(prefix+'_embed_opts').style.display = cb.checked ? '' : 'none';
-    }}
-    function addAutopostField(mode) {{
+    }
+    function addAutopostField(mode) {
         mode = mode || 'add';
         var container = document.getElementById(mode==='edit' ? 'ee-fields' : 'ae-fields');
         var idx = apFieldCount++;
@@ -1311,37 +1312,37 @@ def page_autopost():
             + '<div class="form-group"><label>Value</label><textarea class="apfv" rows="2" placeholder="Value"></textarea></div></div>'
             + '<div style="display:flex;align-items:center;gap:6px;margin-top:4px"><input type="checkbox" class="apfi"><span style="font-size:12px;color:#b5bac1">Inline</span></div>';
         container.appendChild(div);
-    }}
-    function collectAutopostEmbed(pfx) {{
+    }
+    function collectAutopostEmbed(pfx) {
         var p = pfx;
         var fields = [];
         var container = document.getElementById(p==='ae' ? 'ae-fields' : 'ee-fields');
-        container.querySelectorAll('[id^=apf-]').forEach(function(b) {{
+        container.querySelectorAll('[id^=apf-]').forEach(function(b) {
             var n = b.querySelector('.apfn')?.value.trim();
             var v = b.querySelector('.apfv')?.value.trim();
-            if (n && v) fields.push({{name:n, value:v, inline:b.querySelector('.apfi')?.checked||false}});
-        }});
-        return {{
+            if (n && v) fields.push({name:n, value:v, inline:b.querySelector('.apfi')?.checked||false});
+        });
+        return {
             title:       document.getElementById(p+'-title')?.value.trim()||'',
             url:         document.getElementById(p+'-url')?.value.trim()||'',
             description: document.getElementById(p+'-desc')?.value.trim()||'',
             color:       document.getElementById(p+'-color')?.value||'#5865F2',
             timestamp:   document.getElementById(p+'-timestamp')?.value||null,
-            author: {{
+            author: {
                 name:     document.getElementById(p+'-aname')?.value.trim()||'',
                 url:      document.getElementById(p+'-aurl')?.value.trim()||'',
                 icon_url: document.getElementById(p+'-aicon')?.value.trim()||'',
-            }},
+            },
             thumbnail:   document.getElementById(p+'-thumb')?.value.trim()||'',
             image:       document.getElementById(p+'-img')?.value.trim()||'',
-            footer: {{
+            footer: {
                 text:     document.getElementById(p+'-ftext')?.value.trim()||'',
                 icon_url: document.getElementById(p+'-ficon')?.value.trim()||'',
-            }},
+            },
             fields: fields,
-        }};
-    }}
-    function prepareAutopostEmbed(mode) {{
+        };
+    }
+    function prepareAutopostEmbed(mode) {
         var useEmbed = document.getElementById(mode==='edit' ? 'editUseEmbed' : 'addUseEmbed')?.checked;
         if (!useEmbed) return true;
         var pfx = mode==='edit' ? 'ee' : 'ae';
@@ -1351,10 +1352,10 @@ def page_autopost():
         document.getElementById(pfx==='ae' ? 'ae-color-h' : 'editEmbedColor').value = data.color;
         document.getElementById(pfx+'-content-h').value = document.getElementById(pfx+'-content')?.value.trim()||'';
         return true;
-    }}
-    function loadEmbedIntoEdit(embedJson, contentMsg) {{
+    }
+    function loadEmbedIntoEdit(embedJson, contentMsg) {
         if (!embedJson) return;
-        try {{
+        try {
             var d = JSON.parse(embedJson);
             document.getElementById('ee-title').value = d.title||'';
             document.getElementById('ee-url').value = d.url||'';
@@ -1370,19 +1371,19 @@ def page_autopost():
             document.getElementById('ee-ficon').value = d.footer?.icon_url||'';
             document.getElementById('ee-content').value = contentMsg||'';
             document.getElementById('ee-fields').innerHTML = '';
-            (d.fields||[]).forEach(function(f) {{
+            (d.fields||[]).forEach(function(f) {
                 addAutopostField('edit');
                 var container = document.getElementById('ee-fields');
                 var last = container.lastElementChild;
-                if (last) {{
+                if (last) {
                     last.querySelector('.apfn').value = f.name||'';
                     last.querySelector('.apfv').value = f.value||'';
                     if (last.querySelector('.apfi')) last.querySelector('.apfi').checked = f.inline||false;
-                }}
-            }});
-        }} catch(e) {{}}
-    }}
-    function openEdit(id, label, channel, message, interval, schedule, useEmbed, embedTitle, embedColor, embedJson, contentMsg) {{
+                }
+            });
+        } catch(e) {}
+    }
+    function openEdit(id, label, channel, message, interval, schedule, useEmbed, embedTitle, embedColor, embedJson, contentMsg) {
         document.getElementById('editId').value = id;
         document.getElementById('editLabel').value = label;
         document.getElementById('editChannel').value = channel;
@@ -1399,10 +1400,9 @@ def page_autopost():
         toggleMode(mode, 'edit');
         if (useEmb && embedJson) loadEmbedIntoEdit(embedJson, contentMsg);
         document.getElementById('editForm').style.display = 'block';
-        document.getElementById('editForm').scrollIntoView({{behavior:'smooth'}});
-    }}
-    </script>
-    """
+        document.getElementById('editForm').scrollIntoView({behavior:'smooth'});
+    }
+    </script>"""
     return render_page(content)
 
 
