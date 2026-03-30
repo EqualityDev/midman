@@ -121,7 +121,6 @@ async def main():
 
         await bot.load_extension("cogs.midman")
 
-        await bot.load_extension("cogs.vilog")
 
         await bot.load_extension("cogs.selfroles")
 

@@ -135,7 +135,6 @@ a{color:var(--gold);text-decoration:none;}
 .stat-card.ml::after{background:linear-gradient(90deg,#3498DB,transparent);}
 .stat-card.ff::after{background:linear-gradient(90deg,#FF6B35,transparent);}
 .stat-card.robux::after{background:linear-gradient(90deg,#E91E63,transparent);}
-.stat-card.vilog::after{background:linear-gradient(90deg,var(--gold),transparent);}
 .stat-card.autopost::after{background:linear-gradient(90deg,var(--success),transparent);}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;font-size:1rem;}
 .stat-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:500;}
@@ -157,7 +156,6 @@ tr:hover td{background:rgba(201,168,76,.03);}
 .badge-limited{background:rgba(77,187,138,.12);color:#5dd4a0;border:1px solid rgba(77,187,138,.25);}
 .badge-ml{background:rgba(52,152,219,.12);color:#60aadb;border:1px solid rgba(52,152,219,.25);}
 .badge-ff{background:rgba(255,107,53,.12);color:#ff8860;border:1px solid rgba(255,107,53,.25);}
-.badge-vilog{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.25);}
 .badge-aktif{background:rgba(77,187,138,.12);color:var(--success);border:1px solid rgba(77,187,138,.25);}
 .badge-nonaktif{background:rgba(224,85,85,.12);color:var(--danger);border:1px solid rgba(224,85,85,.25);}
 
@@ -297,7 +295,6 @@ def render_page(content, **ctx):
         ico_ml    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>'
         ico_ff    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>'
         ico_robux = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-        ico_vilog = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/><circle cx="18" cy="5" r="3" fill="currentColor" opacity=".3"/></svg>'
         ico_auto  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.72A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>'
         ico_out   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
         nav = f'''<aside class="sidebar">
@@ -312,7 +309,6 @@ def render_page(content, **ctx):
     {_a("Mobile Legends", "/ml", ico_ml, "page_ml")}
     {_a("Free Fire", "/ff", ico_ff, "page_ff")}
     {_a("Robux Store", "/robux", ico_robux, "page_robux")}
-    {_a("Vilog", "/vilog", ico_vilog, "page_vilog")}
     <div class="nav-section">Tools</div>
     {_a("Lainnya", "/lainnya", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>', "page_lainnya")}
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
@@ -389,7 +385,6 @@ def index():
     ml_count = conn.execute("SELECT COUNT(*) FROM ml_products").fetchone()[0]
     ff_count = conn.execute("SELECT COUNT(*) FROM ff_products").fetchone()[0]
     robux_count = conn.execute("SELECT COUNT(*) FROM robux_products WHERE active=1").fetchone()[0]
-    vilog_count = conn.execute("SELECT COUNT(*) FROM vilog_boosts WHERE active=1").fetchone()[0]
     row = conn.execute("SELECT rate FROM robux_rate WHERE id=1").fetchone()
     rate = row[0] if row else 0
     conn.close()
@@ -405,8 +400,6 @@ def index():
     <div class="stat-value">{ff_count}</div><div class="stat-sub">produk aktif</div></div>
   <div class="stat-card robux"><div class="stat-label">Robux Store</div>
     <div class="stat-value">{robux_count}</div><div class="stat-sub">item aktif</div></div>
-  <div class="stat-card vilog"><div class="stat-label">Vilog Boost</div>
-    <div class="stat-value">{vilog_count}</div><div class="stat-sub">paket aktif</div></div>
 </div>
 <div class="card">
   <div class="card-header"><span class="card-title">Rate Robux</span></div>
@@ -879,129 +872,6 @@ def robux_rate():
 
 
 # ── VILOG ──────────────────────────────────────────────────────────────────────
-@app.route("/vilog")
-@login_required
-def page_vilog():
-    conn = get_conn()
-    boosts = conn.execute("SELECT * FROM vilog_boosts ORDER BY id").fetchall()
-    conn.close()
-    rows = "".join(f"""<tr>
-      <td style="color:var(--muted)">{i+1}</td>
-      <td><span class="badge badge-vilog">{b['nama']}</span></td>
-      <td style="color:var(--accent)">{b['robux']:,} Robux</td>
-      <td><span style="color:{'var(--success)' if b['active'] else 'var(--danger)'};font-size:.8rem;">{'Aktif' if b['active'] else 'Nonaktif'}</span></td>
-      <td><div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" onclick="openEditVilog({b['id']},'{b['nama']}',{b['robux']})">Edit</button>
-        <form method="post" action="/vilog/toggle/{b['id']}" style="display:inline;">
-          <button type="submit" class="btn btn-sm {'btn-danger' if b['active'] else 'btn-success'}">{'Nonaktifkan' if b['active'] else 'Aktifkan'}</button>
-        </form>
-        <form method="post" action="/vilog/delete/{b['id']}" style="display:inline;" onsubmit="return confirm('Hapus paket ini?')">
-          <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-        </form>
-      </div></td>
-    </tr>""" for i, b in enumerate(boosts)) or '<tr><td colspan="5" class="empty">Belum ada paket Vilog</td></tr>'
-    content = f"""
-<div class="page-header">
-  <div class="page-title">Vilog Boosts <small>{len(boosts)} paket</small></div>
-  <button class="btn btn-primary" onclick="openModal('modal-add-vilog')">+ Tambah Paket</button>
-</div>
-<div class="card"><table>
-  <thead><tr><th>#</th><th>Nama Paket</th><th>Harga Robux</th><th>Status</th><th>Aksi</th></tr></thead>
-  <tbody>{rows}</tbody>
-</table></div>
-<div class="note">Nomor pilihan (1/2/3) di modal Discord otomatis menyesuaikan urutan paket aktif.</div>
-<div class="modal-overlay" id="modal-add-vilog"><div class="modal">
-  <div class="modal-title">Tambah Paket Vilog</div>
-  <form method="post" action="/vilog/add">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Nama Paket</label><input type="text" name="nama" placeholder="contoh: X8 48 JAM" required></div>
-      <div class="form-group"><label>Harga Robux</label><input type="number" name="robux" placeholder="contoh: 5000" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-vilog')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<div class="modal-overlay" id="modal-edit-vilog"><div class="modal">
-  <div class="modal-title">Edit Paket Vilog</div>
-  <form method="post" action="/vilog/edit">
-    <input type="hidden" name="id" id="edit-vilog-id">
-    <div class="form-grid form-grid-2">
-      <div class="form-group"><label>Nama Paket</label><input type="text" name="nama" id="edit-vilog-nama" required></div>
-      <div class="form-group"><label>Harga Robux</label><input type="number" name="robux" id="edit-vilog-robux" min="1" required></div>
-    </div>
-    <div class="form-actions" style="margin-top:1.5rem;">
-      <button type="submit" class="btn btn-primary">Simpan</button>
-      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-vilog')">Batal</button>
-    </div>
-  </form>
-</div></div>
-<script>
-function openEditVilog(id,nama,robux){{
-  document.getElementById('edit-vilog-id').value=id;
-  document.getElementById('edit-vilog-nama').value=nama;
-  document.getElementById('edit-vilog-robux').value=robux;
-  openModal('modal-edit-vilog');
-}}
-</script>"""
-    content = _service_info_widget("vilog", "Boost Via Login") + content
-    return render_page(content)
-
-
-@app.route("/vilog/add", methods=["POST"])
-@login_required
-def vilog_add():
-    nama = request.form.get("nama", "").strip()
-    robux = safe_int(request.form.get("robux"), min_val=1)
-    if not nama or robux is None:
-        flash("Input tidak valid. Nama dan Robux harus diisi.", "error")
-        return redirect(url_for("page_vilog"))
-    conn = get_conn()
-    conn.execute("INSERT INTO vilog_boosts (nama, robux) VALUES (?,?)", (nama, robux))
-    conn.commit(); conn.close()
-    flash(f"Paket {nama} berhasil ditambahkan.", "success")
-    return redirect(url_for("page_vilog"))
-
-
-@app.route("/vilog/edit", methods=["POST"])
-@login_required
-def vilog_edit():
-    bid = safe_int(request.form.get("id"), min_val=1)
-    nama = request.form.get("nama", "").strip()
-    robux = safe_int(request.form.get("robux"), min_val=1)
-    if bid is None or not nama or robux is None:
-        flash("Input tidak valid.", "error")
-        return redirect(url_for("page_vilog"))
-    conn = get_conn()
-    conn.execute("UPDATE vilog_boosts SET nama=?, robux=? WHERE id=?", (nama, robux, bid))
-    conn.commit(); conn.close()
-    flash("Paket Vilog berhasil diupdate.", "success")
-    return redirect(url_for("page_vilog"))
-
-
-@app.route("/vilog/toggle/<int:bid>", methods=["POST"])
-@login_required
-def vilog_toggle(bid):
-    conn = get_conn()
-    row = conn.execute("SELECT active FROM vilog_boosts WHERE id=?", (bid,)).fetchone()
-    if row:
-        conn.execute("UPDATE vilog_boosts SET active=? WHERE id=?", (0 if row[0] else 1, bid))
-        conn.commit()
-    conn.close()
-    return redirect(url_for("page_vilog"))
-
-
-@app.route("/vilog/delete/<int:bid>", methods=["POST"])
-@login_required
-def vilog_delete(bid):
-    conn = get_conn()
-    conn.execute("DELETE FROM vilog_boosts WHERE id=?", (bid,))
-    conn.commit(); conn.close()
-    flash("Paket Vilog berhasil dihapus.", "success")
-    return redirect(url_for("page_vilog"))
-
-
 # ── AUTOPOST ──────────────────────────────────────────────────────────────────
 
 def _ensure_autopost_table():
@@ -1607,11 +1477,11 @@ def page_stats():
 
     conn.close()
 
-    label_map = {"midman":"Midman Trade","vilog":"Vilog","robux":"Robux","ml":"ML","ff":"Free Fire","jualbeli":"Jual Beli","cloudphone":"Cloud Phone","nitro":"Discord Nitro","scaset":"SC/Aset Game"}
+    label_map = {"midman":"Midman Trade","robux":"Robux","ml":"ML","ff":"Free Fire","jualbeli":"Jual Beli","cloudphone":"Cloud Phone","nitro":"Discord Nitro","scaset":"SC/Aset Game"}
 
     # Stat cards
     layanan_list = [
-        ("midman","💼","#7c5cbf"),("vilog","⚡","#c9a84c"),("robux","🎮","#E91E63"),
+        ("midman","💼","#7c5cbf"),("robux","🎮","#E91E63"),
         ("ml","💎","#3498DB"),("ff","🔥","#FF6B35"),("jualbeli","🤝","#4dbb8a"),
         ("cloudphone","📱","#00BFFF"),("nitro","💜","#5865F2"),("scaset","🎮","#F0A500")
     ]
@@ -2087,7 +1957,7 @@ def service_info_save():
     terms = request.form.get("terms", "").strip()
     payment_info = request.form.get("payment_info", "").strip()
 
-    valid_keys = ["midman_trade", "midman_jb", "vilog", "robux", "ml", "lainnya", "scaset"]
+    valid_keys = ["midman_trade", "midman_jb", "robux", "ml", "lainnya", "scaset"]
     if service_key not in valid_keys:
         flash("Service key tidak valid.", "error")
         return redirect(url_for("index"))
@@ -2110,7 +1980,6 @@ def service_info_save():
     redirect_map = {
         "midman_trade": "page_service_info",
         "midman_jb": "page_service_info",
-        "vilog": "page_vilog",
         "robux": "page_robux",
         "ml": "page_ml",
         "lainnya": "page_lainnya",
