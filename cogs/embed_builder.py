@@ -5,10 +5,9 @@ Diload di main.py seperti cog lainnya.
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-import sqlite3, json, os, datetime, requests
+import sqlite3, json, os, datetime
 
 DB_PATH = os.getenv("DB_PATH", "midman.db")
-TOKEN   = os.getenv("TOKEN", "")
 API     = "https://discord.com/api/v10"
 
 def get_db():
@@ -45,15 +44,18 @@ def build_embed_payload(data: dict) -> dict:
     if fields: embed["fields"] = fields
     return embed
 
-def send_embed_rest(channel_id: str, embed_data: dict, content_msg: str = "") -> bool:
-    headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
+async def send_embed_rest(channel_id: str, embed_data: dict, content_msg: str = "") -> bool:
+    import aiohttp
+    token = os.getenv("TOKEN", "")
+    headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
     payload = {"embeds": [build_embed_payload(embed_data)]}
     if content_msg:
         payload["content"] = content_msg
     try:
-        r = requests.post(f"{API}/channels/{channel_id}/messages",
-                          headers=headers, json=payload, timeout=10)
-        return r.status_code in (200, 201)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{API}/channels/{channel_id}/messages",
+                                    headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                return r.status in (200, 201)
     except Exception:
         return False
 
@@ -87,7 +89,7 @@ class EmbedBuilder(commands.Cog):
 
                 embed_data = json.loads(task["embed_json"])
                 content_msg = task["content"] or ""
-                ok = send_embed_rest(task["channel_id"], embed_data, content_msg)
+                ok = await send_embed_rest(task["channel_id"], embed_data, content_msg)
 
                 if ok:
                     interval = task["interval_minutes"] or 60
