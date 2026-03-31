@@ -65,13 +65,11 @@ def calc_gp_price(robux: int) -> int:
 
 
 def build_catalog_embed(rate: int) -> discord.Embed:
-    rate_str = f"Rp {rate:,}/Robux" if rate > 0 else "Belum diset"
     embed = discord.Embed(
         title=f"TOPUP ROBUX VIA GAMEPASS — {STORE_NAME}",
         description=(
             f"Topup Robux aman tanpa perlu kasih password akun!\n"
             f"Robux masuk dalam **3-7 hari kerja** setelah admin beli gamepass kamu.\n\n"
-            f"Rate saat ini: **{rate_str}**\n"
             f"Minimal order: **{MIN_ROBUX} Robux**\n\n"
             f"Klik tombol di bawah untuk mulai order."
         ),
