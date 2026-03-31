@@ -108,7 +108,7 @@ class CatalogView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Order Sekarang", style=discord.ButtonStyle.primary, custom_id="gp_order", emoji="🎮")
+    @discord.ui.button(label="Order", style=discord.ButtonStyle.primary, custom_id="gp_order", emoji="🎫")
     async def order(self, interaction: discord.Interaction, button: discord.ui.Button):
         rate = get_gp_rate()
         if rate == 0:
