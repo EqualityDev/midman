@@ -597,10 +597,8 @@ class GPStore(commands.Cog):
             if content.startswith("http") and "roblox.com" in content:
                 ticket["gp_link"] = content
                 save_gp_ticket(ticket)
-                admin_role = message.guild.get_role(ADMIN_ROLE_ID)
-                ping = admin_role.mention if admin_role else ""
                 await message.channel.send(
-                    f"{ping} Link gamepass diterima!\n"
+                    f"Link gamepass diterima!\n"
                     f"🔗 {content}\n"
                     f"Admin silakan beli gamepass ini, lalu ketik `!gpdone` untuk selesaikan tiket."
                 )
