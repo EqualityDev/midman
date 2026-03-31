@@ -142,14 +142,14 @@ class NominalModal(discord.ui.Modal, title="Topup Robux via Gamepass"):
             return
 
         gp_price = calc_gp_price(robux)
-        total = robux * self.rate
+        gp_price = calc_gp_price(robux)
+        total = gp_price * self.rate
 
         embed = discord.Embed(
             title="📋 Konfirmasi Order Robux via Gamepass",
             color=COLOR
         )
         embed.add_field(name="Robux yang Diterima", value=f"**{robux} Robux** (after tax)", inline=True)
-        embed.add_field(name="Rate", value=f"Rp {self.rate:,}/Robux", inline=True)
         embed.add_field(name="Total Bayar", value=f"**Rp {total:,}**", inline=True)
         embed.add_field(
             name="Harga Gamepass yang Harus Dibuat",
@@ -233,7 +233,6 @@ class ConfirmView(discord.ui.View):
         )
         embed.add_field(name="Member", value=member.mention, inline=True)
         embed.add_field(name="Robux Diterima", value=f"{self.robux} Robux (after tax)", inline=True)
-        embed.add_field(name="Rate", value=f"Rp {self.rate:,}/Robux", inline=True)
         embed.add_field(name="Total Tagihan", value=f"**Rp {self.total:,}**", inline=True)
         embed.add_field(
             name="Harga Gamepass",
