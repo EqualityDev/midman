@@ -135,6 +135,7 @@ a{color:var(--gold);text-decoration:none;}
 .stat-card.ml::after{background:linear-gradient(90deg,#3498DB,transparent);}
 .stat-card.ff::after{background:linear-gradient(90deg,#FF6B35,transparent);}
 .stat-card.robux::after{background:linear-gradient(90deg,#E91E63,transparent);}
+.stat-card.gp::after{background:linear-gradient(90deg,#9B59B6,transparent);}
 .stat-card.autopost::after{background:linear-gradient(90deg,var(--success),transparent);}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;font-size:1rem;}
 .stat-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:500;}
@@ -309,6 +310,7 @@ def render_page(content, **ctx):
     {_a("Mobile Legends", "/ml", ico_ml, "page_ml")}
     {_a("Free Fire", "/ff", ico_ff, "page_ff")}
     {_a("Robux Store", "/robux", ico_robux, "page_robux")}
+    {_a("GP Topup", "/gp", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>', "page_gp")}
     <div class="nav-section">Tools</div>
     {_a("Lainnya", "/lainnya", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>', "page_lainnya")}
     {_a("Autopost", "/autopost", ico_auto, "page_autopost")}
@@ -1417,6 +1419,101 @@ def autopost_test(tid):
         }, f)
     flash(f"Test kirim untuk '{task['label']}' telah dijadwalkan. Bot akan mengirim dalam beberapa detik.", "success")
     return redirect(url_for("page_autopost"))
+
+
+
+# ── GP TOPUP ──────────────────────────────────────────────────────────────────
+
+@app.route("/gp")
+@login_required
+def page_gp():
+    from utils.db import get_conn as _gc
+    conn = _gc()
+    tickets = conn.execute("SELECT * FROM gp_tickets ORDER BY opened_at DESC LIMIT 50").fetchall()
+    conn.close()
+
+    import os
+    gp_rate = int(__import__("sqlite3").connect(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "midman.db")
+    ).execute("SELECT value FROM bot_state WHERE key='gp_rate'").fetchone()[0] or 0)
+
+    rows = ""
+    for t in tickets:
+        paid = "✅ Lunas" if t["paid"] else "⏳ Belum bayar"
+        link = f'<a href="{t["gp_link"]}" target="_blank">Link</a>' if t["gp_link"] else "-"
+        rows += f"""<tr>
+            <td><code>{t['channel_id']}</code></td>
+            <td><code>{t['user_id']}</code></td>
+            <td>{t['robux']} Robux</td>
+            <td>{t['gp_price']} Robux</td>
+            <td>Rp {t['total']:,}</td>
+            <td>{paid}</td>
+            <td>{link}</td>
+            <td style='font-size:12px'>{(t['opened_at'] or '')[:16]}</td>
+        </tr>"""
+    if not rows:
+        rows = "<tr><td colspan='8' class='empty'>Belum ada tiket GP.</td></tr>"
+
+    content = f"""
+<div class="page-header">
+  <h2 class="page-title">🎮 GP Topup<small>Topup Robux via Gamepass</small></h2>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card gp">
+    <div class="stat-label">Rate GP</div>
+    <div class="stat-value" style="font-size:1.4rem">Rp {gp_rate:,}</div>
+    <div class="stat-sub">per Robux</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Ubah Rate GP</span>
+  </div>
+  <div class="card-body">
+    <form method="post" action="/gp/rate" style="display:flex;gap:10px;align-items:flex-end">
+      <div class="form-group" style="flex:1">
+        <label>Rate Baru (Rp per Robux)</label>
+        <input type="number" name="rate" min="1" value="{gp_rate}" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Simpan & Refresh Catalog</button>
+    </form>
+    <p class="note" style="margin-top:10px">Setelah simpan, catalog channel GP akan otomatis diperbarui. Gunakan <code>!gpcatalog</code> jika perlu refresh manual.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Riwayat Tiket GP (50 terakhir)</span></div>
+  <div class="card-body" style="padding:0">
+    <table>
+      <thead><tr>
+        <th>Channel ID</th><th>User ID</th><th>Robux</th>
+        <th>Harga GP</th><th>Total</th><th>Status</th><th>Link GP</th><th>Waktu</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table>
+  </div>
+</div>
+"""
+    return render_page(content)
+
+
+@app.route("/gp/rate", methods=["POST"])
+@login_required
+def gp_rate_save():
+    import sqlite3 as _sq, os
+    rate = safe_int(request.form.get("rate"), min_val=1)
+    if not rate:
+        flash("Rate tidak valid.", "error")
+        return redirect(url_for("page_gp"))
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "midman.db")
+    conn = _sq.connect(db_path)
+    conn.execute("INSERT OR REPLACE INTO bot_state (key, value) VALUES ('gp_rate', ?)", (str(rate),))
+    conn.commit()
+    conn.close()
+    flash(f"Rate GP diubah ke Rp {rate:,}/Robux. Refresh catalog via !gpcatalog di Discord.", "success")
+    return redirect(url_for("page_gp"))
 
 
 # ── STATISTIK ─────────────────────────────────────────────────────────────────
