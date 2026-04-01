@@ -82,6 +82,7 @@ class CategoryView(discord.ui.View):
         for cat in categories:
             color = CATEGORY_COLORS.get(cat, DEFAULT_COLOR)
             self.add_item(CategoryButton(cat, color))
+        self.add_item(CustomOrderButton())
 
 class CategoryButton(discord.ui.Button):
     def __init__(self, category, color):
@@ -289,6 +290,122 @@ class ItemSelect(discord.ui.Select):
             member = interaction.user
             total = item["robux"] * rate
             cog = interaction.client.cogs.get("RobuxStore")
+
+
+class CustomOrderModal(discord.ui.Modal, title="Custom Order Robux"):
+    game = discord.ui.TextInput(
+        label="Nama Game / Map",
+        placeholder="Contoh: Fish It, Sawah Indo, Abyss, dsb.",
+        max_length=100,
+    )
+    username = discord.ui.TextInput(
+        label="Username (Roblox)",
+        placeholder="Masukkan username Roblox @Username",
+        max_length=100,
+    )
+    item = discord.ui.TextInput(
+        label="Nama Item yang Dibeli",
+        placeholder="Contoh: Boost, Skin Rod, Gamepass, dll",
+        max_length=100,
+    )
+    robux_amount = discord.ui.TextInput(
+        label="Jumlah Robux",
+        placeholder="Contoh: 500, 1000",
+        max_length=10,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            robux = int(self.robux_amount.value.strip())
+        except ValueError:
+            await interaction.response.send_message("Jumlah Robux harus berupa angka!", ephemeral=True)
+            return
+
+        rate = get_rate()
+        if rate == 0:
+            await interaction.response.send_message("Rate belum diset oleh admin. Coba lagi nanti.", ephemeral=True)
+            return
+
+        total = robux * rate
+        guild = interaction.guild
+        member = interaction.user
+        cog = interaction.client.cogs.get("RobuxStore")
+
+        # Cek tiket aktif
+        for ch_id, t in cog.active_tickets.items():
+            if t["user_id"] == member.id:
+                existing = guild.get_channel(ch_id)
+                if existing:
+                    await interaction.response.send_message(
+                        f"Kamu masih punya tiket aktif di {existing.mention}!", ephemeral=True
+                    )
+                    return
+
+        await interaction.response.send_message("Membuat tiket...", ephemeral=True)
+
+        ticket_category = guild.get_channel(TICKET_CATEGORY_ID)
+        admin_role = guild.get_role(ADMIN_ROLE_ID)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+        channel = await guild.create_text_channel(
+            name=f"robux-{member.name}", category=ticket_category, overwrites=overwrites
+        )
+
+        item_label = f"[Custom] {self.item.value.strip()}"
+        ticket = {
+            "user_id": member.id,
+            "item_id": 0,
+            "item_name": item_label,
+            "robux": robux,
+            "rate": rate,
+            "total": total,
+            "channel_id": channel.id,
+            "opened_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "last_activity": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        cog.active_tickets[channel.id] = ticket
+        save_robux_ticket(ticket)
+
+        embed = discord.Embed(
+            title=f"ROBUX STORE — CUSTOM ORDER — {STORE_NAME}",
+            color=0xE91E63,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        embed.add_field(name="Member", value=member.mention, inline=True)
+        embed.add_field(name="Game / Map", value=self.game.value.strip(), inline=True)
+        embed.add_field(name="Username Roblox", value=self.username.value.strip(), inline=True)
+        embed.add_field(name="Item", value=self.item.value.strip(), inline=True)
+        embed.add_field(name="Jumlah Robux", value=f"{robux} Robux", inline=True)
+        embed.add_field(name="Rate", value=f"Rp {rate:,}/Robux", inline=True)
+        embed.add_field(name="Total Tagihan", value=f"Rp {total:,}", inline=True)
+        embed.add_field(name="Cara Bayar", value="Ketik **1** — QRIS  |  **2** — DANA  |  **3** — BCA", inline=False)
+        embed.add_field(name="Peringatan", value="Tiket yang tidak aktif selama 2 jam akan otomatis ditutup.", inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
+        embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
+
+        await channel.send(
+            content=f"Halo {member.mention}! Custom order kamu telah dibuat.{' ' + admin_role.mention if admin_role else ''}",
+            embed=embed
+        )
+        await interaction.edit_original_response(content=f"Tiket dibuat! {channel.mention}")
+
+
+class CustomOrderButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="✏️ Custom Order",
+            style=discord.ButtonStyle.primary,
+            custom_id="robux_custom_order"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(CustomOrderModal())
 
 
 class RobuxStore(commands.Cog):
