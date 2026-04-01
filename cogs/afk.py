@@ -21,6 +21,11 @@ def init_afk_table():
             afk_since     TEXT
         )
     ''')
+    try:
+        c.execute('ALTER TABLE afk_users ADD COLUMN afk_since TEXT')
+    except Exception as e:
+        if 'duplicate column' not in str(e).lower():
+            print(f'[AFK] Migration: {e}')
     conn.commit()
     conn.close()
 
