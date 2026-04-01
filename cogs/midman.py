@@ -559,11 +559,12 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="BOOST VIA LOGIN",
+            name="GP TOPUP",
             value=(
-                "`!vilog` — kirim embed pricelist boost\n"
-                "`!selesai <nominal>` — tutup tiket vilog\n"
-                "`!batalin` — batalkan tiket vilog"
+                "`!gpcatalog` — kirim embed catalog GP Topup\n"
+                "`!gprate <angka>` — set rate GP\n"
+                "`!gpdone` — konfirmasi gamepass sudah dibeli\n"
+                "`!gpbatal [alasan]` — batalkan tiket GP"
             ),
             inline=False
         )
