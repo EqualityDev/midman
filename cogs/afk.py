@@ -6,6 +6,7 @@ Mention user AFK = bot kasih notif
 AFK state persistent di SQLite (table: afk_users)
 """
 import discord
+import datetime
 from discord.ext import commands
 from utils.db import get_conn
 
@@ -16,18 +17,21 @@ def init_afk_table():
         CREATE TABLE IF NOT EXISTS afk_users (
             user_id       INTEGER PRIMARY KEY,
             reason        TEXT DEFAULT 'AFK',
-            original_nick TEXT
+            original_nick TEXT,
+            afk_since     TEXT
         )
     ''')
     conn.commit()
     conn.close()
 
-def save_afk(user_id: int, reason: str, original_nick: str):
+def save_afk(user_id: int, reason: str, original_nick: str, afk_since: str = None):
+    if afk_since is None:
+        afk_since = datetime.datetime.utcnow().isoformat()
     conn = get_conn()
     c = conn.cursor()
     c.execute(
-        "INSERT OR REPLACE INTO afk_users (user_id, reason, original_nick) VALUES (?, ?, ?)",
-        (user_id, reason, original_nick)
+        "INSERT OR REPLACE INTO afk_users (user_id, reason, original_nick, afk_since) VALUES (?, ?, ?, ?)",
+        (user_id, reason, original_nick, datetime.datetime.utcnow().isoformat())
     )
     conn.commit()
     conn.close()
@@ -42,10 +46,10 @@ def delete_afk(user_id: int):
 def load_all_afk() -> dict:
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT user_id, reason, original_nick FROM afk_users")
+    c.execute("SELECT user_id, reason, original_nick, afk_since FROM afk_users")
     rows = c.fetchall()
     conn.close()
-    return {row["user_id"]: {"reason": row["reason"], "original_nick": row["original_nick"]} for row in rows}
+    return {row["user_id"]: {"reason": row["reason"], "original_nick": row["original_nick"], "afk_since": row["afk_since"]} for row in rows}
 
 
 class AFK(commands.Cog):
@@ -63,8 +67,9 @@ class AFK(commands.Cog):
             return
 
         original_nick = user.display_name
-        self.afk_users[user.id] = {"reason": reason, "original_nick": original_nick}
-        save_afk(user.id, reason, original_nick)
+        afk_since = datetime.datetime.utcnow().isoformat()
+        self.afk_users[user.id] = {"reason": reason, "original_nick": original_nick, "afk_since": afk_since}
+        save_afk(user.id, reason, original_nick, afk_since)
 
         try:
             new_nick = f"[AFK] {original_nick}"
@@ -111,8 +116,22 @@ class AFK(commands.Cog):
                     continue
                 if mentioned.id in self.afk_users and mentioned.id not in notified:
                     data = self.afk_users[mentioned.id]
+                    afk_since = data.get("afk_since")
+                    durasi = ""
+                    if afk_since:
+                        try:
+                            delta = datetime.datetime.utcnow() - datetime.datetime.fromisoformat(afk_since)
+                            total = int(delta.total_seconds())
+                            jam = total // 3600
+                            menit = (total % 3600) // 60
+                            if jam > 0:
+                                durasi = f" (AFK sejak {jam} jam {menit} menit lalu)"
+                            else:
+                                durasi = f" (AFK sejak {menit} menit lalu)"
+                        except Exception:
+                            pass
                     await message.channel.send(
-                        f"{message.author.mention}, **{mentioned.display_name}** sedang AFK: **{data['reason']}**",
+                        f"{message.author.mention}, **{mentioned.display_name}** sedang AFK: **{data['reason']}**{durasi}",
                         delete_after=10
                     )
                     notified.add(mentioned.id)
