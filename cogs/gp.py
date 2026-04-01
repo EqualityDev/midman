@@ -142,7 +142,6 @@ class NominalModal(discord.ui.Modal, title="Topup Robux via Gamepass"):
             return
 
         gp_price = calc_gp_price(robux)
-        gp_price = calc_gp_price(robux)
         total = gp_price * self.rate
 
         embed = discord.Embed(
