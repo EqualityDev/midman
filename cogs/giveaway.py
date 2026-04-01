@@ -24,22 +24,30 @@ def _init_giveaway_table():
             winners     INTEGER DEFAULT 1,
             host_id     INTEGER,
             participants TEXT DEFAULT '',
-            ended       INTEGER DEFAULT 0
+            ended       INTEGER DEFAULT 0,
+            sponsor     TEXT,
+            image_url   TEXT
         )
     ''')
+    for col, defval in [('sponsor', 'TEXT'), ('image_url', 'TEXT')]:
+        try:
+            c.execute(f'ALTER TABLE giveaways ADD COLUMN {col} {defval}')
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                print(f'[Giveaway] Migration {col}: {e}')
     conn.commit()
     conn.close()
 
 
-def _save_giveaway(msg_id, channel_id, guild_id, prize, end_time, winners, host_id, participants):
+def _save_giveaway(msg_id, channel_id, guild_id, prize, end_time, winners, host_id, participants, sponsor=None, image_url=None):
     conn = get_conn()
     c = conn.cursor()
     parts_str = ','.join(str(p) for p in participants)
     c.execute('''
         INSERT OR REPLACE INTO giveaways
-        (message_id, channel_id, guild_id, prize, end_time, winners, host_id, participants, ended)
-        VALUES (?,?,?,?,?,?,?,?,0)
-    ''', (msg_id, channel_id, guild_id, prize, end_time.isoformat(), winners, host_id, parts_str))
+        (message_id, channel_id, guild_id, prize, end_time, winners, host_id, participants, ended, sponsor, image_url)
+        VALUES (?,?,?,?,?,?,?,?,0,?,?)
+    ''', (msg_id, channel_id, guild_id, prize, end_time.isoformat(), winners, host_id, parts_str, sponsor, image_url))
     conn.commit()
     conn.close()
 
@@ -78,6 +86,8 @@ def _load_giveaways():
             'winners': row['winners'],
             'host_id': row['host_id'],
             'participants': parts,
+            'sponsor': row['sponsor'],
+            'image_url': row['image_url'],
         }
     return result
 
@@ -131,7 +141,7 @@ class GiveawayCog(commands.Cog):
             await self._end_giveaway(msg_id, data['channel_id'], data['guild_id'],
                                      data['prize'], data['winners'], data['host_id'])
 
-    def _build_embed(self, prize, end_time, winner_count, host, participants=0, ended=False, winner_mentions=None):
+    def _build_embed(self, prize, end_time, winner_count, host, participants=0, ended=False, winner_mentions=None, sponsor=None, image_url=None):
         color = 0x95a5a6 if ended else 0xFF6B6B
         embed = discord.Embed(
             title=f"🎉 GIVEAWAY — {prize}",
@@ -141,6 +151,8 @@ class GiveawayCog(commands.Cog):
         embed.add_field(name="Hadiah", value=prize, inline=True)
         embed.add_field(name="Pemenang", value=f"{winner_count} orang", inline=True)
         embed.add_field(name="Host", value=host.mention if hasattr(host, 'mention') else str(host), inline=True)
+        if sponsor:
+            embed.add_field(name="Sponsor", value=sponsor, inline=True)
         embed.add_field(name="Peserta", value=str(participants), inline=True)
         if ended:
             embed.add_field(name="Status", value="SELESAI", inline=True)
@@ -151,6 +163,8 @@ class GiveawayCog(commands.Cog):
             embed.add_field(name="Berakhir", value=f"<t:{int(end_time.timestamp())}:R>", inline=True)
             embed.description = f"Klik tombol **IKUTAN** di bawah untuk ikut!\nBerakhir: <t:{int(end_time.timestamp())}:F>"
         embed.set_thumbnail(url=THUMBNAIL)
+        if image_url:
+            embed.set_image(url=image_url)
         embed.set_footer(text=f"{STORE_NAME} • Giveaway" + (" • Selesai" if ended else ""))
         return embed
 
@@ -249,14 +263,15 @@ class GiveawayCog(commands.Cog):
         try:
             host = interaction.guild.get_member(data['host_id'])
             embed = self._build_embed(data['prize'], data['end_time'], data['winners'],
-                                      host, participants=len(participants))
+                                      host, participants=len(participants),
+                                      sponsor=data.get('sponsor'), image_url=data.get('image_url'))
             await interaction.message.edit(embed=embed)
         except Exception:
             pass
 
     @app_commands.command(name="giveaway", description="[ADMIN] Mulai giveaway baru")
-    @app_commands.describe(hadiah="Hadiah yang akan diberikan", durasi="Durasi: 10m / 2h / 1d", pemenang="Jumlah pemenang")
-    async def giveaway(self, interaction: discord.Interaction, hadiah: str, durasi: str, pemenang: int = 1):
+    @app_commands.describe(hadiah="Hadiah yang akan diberikan", durasi="Durasi: 10m / 2h / 1d", pemenang="Jumlah pemenang", sponsor="Nama sponsor (opsional)", image="URL banner/gambar hadiah (opsional)")
+    async def giveaway(self, interaction: discord.Interaction, hadiah: str, durasi: str, pemenang: int = 1, sponsor: str = None, image: str = None):
         if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
             await interaction.response.send_message("Admin only!", ephemeral=True)
             return
@@ -268,17 +283,18 @@ class GiveawayCog(commands.Cog):
             await interaction.response.send_message("Jumlah pemenang minimal 1!", ephemeral=True)
             return
         end_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=seconds)
-        embed = self._build_embed(hadiah, end_time, pemenang, interaction.user, participants=0)
+        embed = self._build_embed(hadiah, end_time, pemenang, interaction.user, participants=0, sponsor=sponsor, image_url=image)
         await interaction.response.send_message("Giveaway dimulai!", ephemeral=True)
         msg = await interaction.channel.send(embed=embed)
         giveaway_data = {
             'prize': hadiah, 'end_time': end_time, 'winners': pemenang,
             'host_id': interaction.user.id, 'channel_id': interaction.channel.id,
             'guild_id': interaction.guild.id, 'participants': set(),
+            'sponsor': sponsor, 'image_url': image,
         }
         self.active_giveaways[msg.id] = giveaway_data
         _save_giveaway(msg.id, interaction.channel.id, interaction.guild.id,
-                       hadiah, end_time, pemenang, interaction.user.id, set())
+                       hadiah, end_time, pemenang, interaction.user.id, set(), sponsor=sponsor, image_url=image)
         await msg.edit(view=self._build_view(msg.id))
         async def auto_end():
             await asyncio.sleep(seconds)
