@@ -58,27 +58,19 @@ def harga(robux, rate):
 
 def build_catalog_embed(rate):
     rate_str = f"Rp {rate:,}/Robux" if rate > 0 else "Belum diset"
+    categories = load_categories()
+    cat_list = "\n".join(f"• **{cat}**" for cat in categories) if categories else "Belum ada produk aktif."
     embed = discord.Embed(
         title=f"ROBUX STORE — {STORE_NAME}",
         description=(
             f"Harga dihitung otomatis berdasarkan rate Robux terkini.\n"
             f"Rate saat ini: **{rate_str}**\n\n"
-            f"Buka tiket dengan klik tombol di bawah."
+            f"**Kategori tersedia:**\n{cat_list}\n\n"
+            f"Klik tombol kategori di bawah untuk lihat item & order."
         ),
         color=0xE91E63,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-
-    categories = load_categories()
-
-    for cat in categories:
-        items = [p for p in PRODUCTS if p["category"] == cat]
-        value = ""
-        for item in items:
-            harga_str = harga(item["robux"], rate)
-            value += f"`ID:{item['id']:02d}` {item['name']} ({item['robux']} Robux) — **{harga_str}**\n"
-        embed.add_field(name=cat, value=value or "Tidak ada item aktif", inline=False)
-
     embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Harga dapat berubah sewaktu-waktu")
     return embed
