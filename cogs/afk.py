@@ -68,7 +68,7 @@ class AFK(commands.Cog):
                 if mentioned.id in self.afk_users and mentioned.id not in notified:
                     data = self.afk_users[mentioned.id]
                     await message.channel.send(
-                        f"{message.author.mention}, {mentioned.mention} sedang AFK: **{data['reason']}**",
+                        f"{message.author.mention}, {mentioned.display_name}** sedang AFK: **{data['reason']}**",
                         delete_after=10
                     )
                     notified.add(mentioned.id)
