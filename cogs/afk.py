@@ -6,7 +6,6 @@ Mention user AFK = bot kasih notif
 """
 import discord
 from discord.ext import commands
-import re
 
 class AFK(commands.Cog):
     def __init__(self, bot):
@@ -61,15 +60,18 @@ class AFK(commands.Cog):
 
         # Cek mention ke user yang AFK
         if message.mentions:
-            notified = []
+            notified = set()
             for mentioned in message.mentions:
+                # FIX: skip bot & skip yang sudah dinotif
+                if mentioned.bot:
+                    continue
                 if mentioned.id in self.afk_users and mentioned.id not in notified:
                     data = self.afk_users[mentioned.id]
                     await message.channel.send(
                         f"{message.author.mention}, {mentioned.mention} sedang AFK: **{data['reason']}**",
                         delete_after=10
                     )
-                    notified.append(mentioned.id)
+                    notified.add(mentioned.id)
 
 
 async def setup(bot):
