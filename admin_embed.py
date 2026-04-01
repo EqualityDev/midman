@@ -269,8 +269,9 @@ def page_embeds():
             <input id="f-interval" type="number" value="60" min="1" placeholder="60">
           </div>
           <div class="form-group" id="f-schedule-wrap" style="display:none">
-            <label>Jam kirim (HH:MM)</label>
+            <label>Jam kirim WIB (HH:MM)</label>
             <input id="f-schedule" type="text" placeholder="09:00">
+            <span style="font-size:.72rem;color:var(--muted);margin-top:3px;display:block">Input jam WIB, otomatis dikonversi ke UTC.</span>
           </div>
         </div>
       </div>
@@ -460,7 +461,9 @@ def api_send():
         if scheduled_time and auto_send:
             try:
                 h, m = map(int, scheduled_time.split(":"))
-                nxt = now_dt.replace(hour=h, minute=m, second=0, microsecond=0)
+                # Konversi WIB (UTC+7) → UTC
+                utc_h = (h - 7) % 24
+                nxt = now_dt.replace(hour=utc_h, minute=m, second=0, microsecond=0)
                 if nxt <= now_dt:
                     nxt += _dt.timedelta(days=1)
             except Exception:
@@ -510,7 +513,9 @@ def api_edit():
         if scheduled_time and auto_send:
             try:
                 h, m = map(int, scheduled_time.split(":"))
-                nxt = now_dt.replace(hour=h, minute=m, second=0, microsecond=0)
+                # Konversi WIB (UTC+7) → UTC
+                utc_h = (h - 7) % 24
+                nxt = now_dt.replace(hour=utc_h, minute=m, second=0, microsecond=0)
                 if nxt <= now_dt:
                     nxt += _dt.timedelta(days=1)
             except Exception:
