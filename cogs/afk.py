@@ -122,21 +122,26 @@ class AFK(commands.Cog):
                 if mentioned.id in self.afk_users and mentioned.id not in notified:
                     data = self.afk_users[mentioned.id]
                     afk_since = data.get("afk_since")
-                    durasi = ""
+                    durasi = "baru saja"
                     if afk_since:
                         try:
                             delta = datetime.datetime.utcnow() - datetime.datetime.fromisoformat(afk_since)
                             total = int(delta.total_seconds())
-                            jam = total // 3600
+                            hari = total // 86400
+                            jam = (total % 86400) // 3600
                             menit = (total % 3600) // 60
-                            if jam > 0:
-                                durasi = f" (AFK sejak {jam} jam {menit} menit lalu)"
+                            if total < 60:
+                                durasi = "baru saja"
+                            elif total < 3600:
+                                durasi = f"{menit} menit lalu"
+                            elif total < 86400:
+                                durasi = f"{jam} jam {menit} menit lalu"
                             else:
-                                durasi = f" (AFK sejak {menit} menit lalu)"
+                                durasi = f"{hari} hari {jam} jam lalu"
                         except Exception:
                             pass
                     await message.channel.send(
-                        f"{message.author.mention}, **{mentioned.display_name}** sedang AFK: **{data['reason']}**{durasi}",
+                        f"**{mentioned.display_name}** is AFK: {data['reason']} - {durasi}",
                         delete_after=10
                     )
                     notified.add(mentioned.id)
