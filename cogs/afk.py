@@ -109,8 +109,7 @@ class AFK(commands.Cog):
                 pass
 
             await message.channel.send(
-                f"Selamat datang kembali {message.author.mention}! Status AFK kamu dihapus.",
-                delete_after=5
+                f"Selamat datang kembali {message.author.mention}! Status AFK kamu dihapus."
             )
 
         # Cek mention ke user yang AFK
@@ -141,8 +140,7 @@ class AFK(commands.Cog):
                         except Exception:
                             pass
                     await message.channel.send(
-                        f"**{mentioned.display_name}** is AFK: {data['reason']} - {durasi}",
-                        delete_after=10
+                        f"**{mentioned.display_name}** is AFK: {data['reason']} - {durasi}"
                     )
                     notified.add(mentioned.id)
 
