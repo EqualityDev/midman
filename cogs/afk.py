@@ -109,7 +109,7 @@ class AFK(commands.Cog):
                 pass
 
             await message.channel.send(
-                f"Selamat datang kembali {message.author.mention}! Status AFK kamu dihapus."
+                f"Selamat datang {message.author.mention}"
             )
 
         # Cek mention ke user yang AFK
