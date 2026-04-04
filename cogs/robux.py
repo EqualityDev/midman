@@ -64,7 +64,7 @@ def build_catalog_embed(rate):
         title=f"ROBUX STORE — {STORE_NAME}",
         description=(
             f"Harga dihitung otomatis berdasarkan rate Robux terkini.\n"
-            f"Rate saat ini: **{rate_str}**\n\n"
+            f"Rate: **{rate_str}**\n\n"
             f"**Kategori tersedia:**\n{cat_list}\n\n"
             f"Klik tombol kategori di bawah untuk lihat item & order."
         ),
