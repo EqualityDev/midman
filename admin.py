@@ -8,6 +8,7 @@ Password default: cellyn123 (ubah via env ADMIN_PASSWORD)
 import os
 import sys
 import sqlite3
+import html
 
 # Load .env manual
 _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -1361,23 +1362,37 @@ def page_qr():
     conn = get_conn()
     conn.execute("""CREATE TABLE IF NOT EXISTS qr_slots (
         slot INTEGER PRIMARY KEY, label TEXT NOT NULL DEFAULT '',
+        detail TEXT NOT NULL DEFAULT '',
         url TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1
     )""")
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(qr_slots)").fetchall()]
+    if "detail" not in cols:
+        conn.execute("ALTER TABLE qr_slots ADD COLUMN detail TEXT NOT NULL DEFAULT ''")
     for i in range(1, 11):
-        conn.execute("INSERT OR IGNORE INTO qr_slots (slot, label, url) VALUES (?,?,?)",
-                     (i, f"QRIS {i}", ""))
+        conn.execute(
+            "INSERT OR IGNORE INTO qr_slots (slot, label, detail, url) VALUES (?,?,?,?)",
+            (i, f"QRIS {i}", "", "")
+        )
     conn.commit()
     slots = conn.execute("SELECT * FROM qr_slots ORDER BY slot").fetchall()
     conn.close()
 
+    def _js(s):
+        s = s or ""
+        return s.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "")
+
+    def _h(s):
+        return html.escape(s or "")
+
     rows = "".join(f"""<tr>
       <td style="color:var(--muted);font-weight:600">!qr{s['slot']}</td>
-      <td>{s['label']}</td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.85rem">{s['url'] or '<span style="color:#555">Belum diset</span>'}</td>
-      <td>{'<img src="'+s['url']+'" style="height:48px;border-radius:6px">' if s['url'] else ''}</td>
+      <td>{_h(s['label'])}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.85rem">{_h(s['detail'])}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.85rem">{_h(s['url']) if s['url'] else '<span style="color:#555">Belum diset</span>'}</td>
+      <td>{'<img src="'+_h(s['url'])+'" style="height:48px;border-radius:6px">' if s['url'] else ''}</td>
       <td><span style="color:{'var(--success)' if s['active'] else 'var(--danger)'};font-size:.85rem">{'Aktif' if s['active'] else 'Nonaktif'}</span></td>
       <td><div style="display:flex;gap:.4rem">
-        <button class="btn btn-ghost btn-sm" onclick="openEditQR({s['slot']},'{s['label']}','{s['url']}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditQR({s['slot']},'{_js(s['label'])}','{_js(s['detail'])}','{_js(s['url'])}')">Edit</button>
         <form method="post" action="/qr/toggle/{s['slot']}" style="display:inline">
           <button class="btn btn-sm {'btn-danger' if s['active'] else 'btn-success'}">{'Nonaktifkan' if s['active'] else 'Aktifkan'}</button>
         </form>
@@ -1389,7 +1404,7 @@ def page_qr():
   <div class="page-title">QRIS Slots <small>!qr1 — !qr{len(slots)}</small></div>
 </div>
 <div class="card"><table>
-  <thead><tr><th>Command</th><th>Label</th><th>URL Gambar</th><th>Preview</th><th>Status</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>Command</th><th>Label</th><th>Detail</th><th>URL Gambar</th><th>Preview</th><th>Status</th><th>Aksi</th></tr></thead>
   <tbody>{rows}</tbody>
 </table></div>
 <div class="modal-overlay" id="modal-edit-qr"><div class="modal">
@@ -1398,6 +1413,9 @@ def page_qr():
     <input type="hidden" name="slot" id="edit-qr-slot">
     <div class="form-group"><label>Label</label>
       <input type="text" name="label" id="edit-qr-label" placeholder="contoh: QRIS Admin 1" required>
+    </div>
+    <div class="form-group" style="margin-top:1rem"><label>Detail</label>
+      <input type="text" name="detail" id="edit-qr-detail" placeholder="contoh: QRIS GoPay / Transfer BCA">
     </div>
     <div class="form-group" style="margin-top:1rem"><label>URL Gambar QR</label>
       <input type="text" name="url" id="edit-qr-url" placeholder="https://i.imgur.com/xxx.png">
@@ -1410,9 +1428,10 @@ def page_qr():
   </form>
 </div></div>
 <script>
-function openEditQR(slot, label, url) {{
+function openEditQR(slot, label, detail, url) {{
   document.getElementById('edit-qr-slot').value = slot;
   document.getElementById('edit-qr-label').value = label;
+  document.getElementById('edit-qr-detail').value = detail || '';
   document.getElementById('edit-qr-url').value = url;
   openModal('modal-edit-qr');
 }}
@@ -1425,12 +1444,13 @@ function openEditQR(slot, label, url) {{
 def qr_edit():
     slot = safe_int(request.form.get("slot"), min_val=1)
     label = request.form.get("label", "").strip()
+    detail = request.form.get("detail", "").strip()
     url = request.form.get("url", "").strip()
     if not slot or not label:
         flash("Input tidak valid.", "error")
         return redirect(url_for("page_qr"))
     conn = get_conn()
-    conn.execute("UPDATE qr_slots SET label=?, url=? WHERE slot=?", (label, url, slot))
+    conn.execute("UPDATE qr_slots SET label=?, detail=?, url=? WHERE slot=?", (label, detail, url, slot))
     conn.commit()
     conn.close()
     flash(f"Slot !qr{slot} berhasil diupdate.", "success")

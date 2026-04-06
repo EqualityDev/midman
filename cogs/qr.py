@@ -8,20 +8,27 @@ def _migrate():
     conn.execute("""CREATE TABLE IF NOT EXISTS qr_slots (
         slot    INTEGER PRIMARY KEY,
         label   TEXT NOT NULL DEFAULT '',
+        detail  TEXT NOT NULL DEFAULT '',
         url     TEXT NOT NULL DEFAULT '',
         active  INTEGER NOT NULL DEFAULT 1
     )""")
+    # Pastikan kolom "detail" ada untuk DB lama
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(qr_slots)").fetchall()]
+    if "detail" not in cols:
+        conn.execute("ALTER TABLE qr_slots ADD COLUMN detail TEXT NOT NULL DEFAULT ''")
     # Seed 10 slot kosong kalau belum ada
     for i in range(1, 11):
-        conn.execute("INSERT OR IGNORE INTO qr_slots (slot, label, url) VALUES (?,?,?)",
-                     (i, f"QRIS {i}", ""))
+        conn.execute(
+            "INSERT OR IGNORE INTO qr_slots (slot, label, detail, url) VALUES (?,?,?,?)",
+            (i, f"QRIS {i}", "", "")
+        )
     conn.commit()
     conn.close()
 
 def _get_slot(slot: int):
     conn = get_conn()
     row = conn.execute(
-        "SELECT slot, label, url, active FROM qr_slots WHERE slot=?", (slot,)
+        "SELECT slot, label, detail, url, active FROM qr_slots WHERE slot=?", (slot,)
     ).fetchone()
     conn.close()
     return dict(row) if row else None
@@ -59,6 +66,8 @@ class QRCog(commands.Cog):
             title=f"💳 {data['label']}",
             color=0x2ECC71
         )
+        if data.get("detail"):
+            embed.description = data["detail"]
         embed.set_image(url=data["url"])
         embed.set_footer(text="Scan QR Code di atas untuk melakukan pembayaran")
         await message.channel.send(embed=embed)
