@@ -1,6 +1,6 @@
 # Midman Bot — Cellyn Store Community
 
-Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, boost via login (vilog), robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), Cloud Phone, Discord Nitro, SC/Aset Game, AI customer service, selfroles, giveaway, autopost, welcome, dan admin panel berbasis web.
+Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), Cloud Phone, Discord Nitro, SC/Aset Game, AI customer service, selfroles, giveaway, welcome, dan admin panel berbasis web.
 
 ---
 
@@ -8,7 +8,6 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 
 - **Midman Trade** — tiket perantara tukar item antar dua pihak
 - **Midman Jual Beli** — tiket perantara jual beli, admin tahan uang pembeli sampai item konfirmasi oke
-- **Vilog** — boost server Roblox via login dengan pilihan paket
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
 - **ML & FF Topup** — topup diamond Mobile Legends, Free Fire, dan Weekly Diamond Pass (WDP)
 - **Cloud Phone & Discord Nitro** — order Redfinger cloud phone dan Discord Nitro via tiket
@@ -20,8 +19,7 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Server Stats** — voice channel nama otomatis update jumlah member
 - **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API (rotasi hingga 5 API key)
 - **Selfroles** — self-assignable roles via Discord
-- **Autopost** — kirim pesan promosi/pengumuman ke channel manapun secara otomatis berdasarkan interval
-- **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Vilog/Lainnya, autopost, dan statistik transaksi via browser
+- **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Lainnya dan statistik transaksi via browser
 - **Statistik Transaksi** — dashboard grafik 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
 - **Royal Customer** — auto-assign role setelah transaksi sukses di semua layanan
 - **Auto-restart** — bot restart otomatis jika crash (max 5x)
@@ -36,7 +34,6 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - Termux (Android) atau Linux
 - Akun Discord + Bot Token
 - Akun Groq (gratis) untuk fitur AI CS
-- User Token Discord untuk fitur Autopost
 
 ---
 
@@ -75,7 +72,6 @@ bash start.sh
 - Init database SQLite
 - Seed data produk default jika DB kosong
 - Jalankan admin panel di port 5000
-- Jalankan autopost script di background
 - Install cloudflared jika belum ada
 - Jalankan Cloudflare Tunnel (URL dikirim ke Discord)
 - Jalankan bot dengan auto-restart
@@ -98,7 +94,6 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `BACKUP_CHANNEL_ID` | ID channel backup |
 | `ERROR_LOG_CHANNEL_ID` | ID channel log error + notifikasi admin panel |
 | `MIDMAN_CHANNEL_ID` | ID channel midman |
-| `VILOG_CHANNEL_ID` | ID channel vilog |
 | `ROBUX_CATALOG_CHANNEL_ID` | ID channel catalog robux |
 | `ML_CATALOG_CHANNEL_ID` | ID channel catalog ML/FF |
 | `SELFROLES_CHANNEL_ID` | ID channel selfroles |
@@ -112,7 +107,6 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `GROQ_API_KEY_3` | API key Groq cadangan ke-3 (opsional) |
 | `GROQ_API_KEY_4` | API key Groq cadangan ke-4 (opsional) |
 | `GROQ_API_KEY_5` | API key Groq cadangan ke-5 (opsional) |
-| `AUTOPOST_TOKEN` | User token Discord untuk fitur autopost |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
@@ -134,26 +128,12 @@ Akses: buka URL yang dikirim bot di channel error log → login dengan `ADMIN_PA
 - **ML** — tambah, edit, hapus produk Mobile Legends + Weekly Diamond Pass (WDP)
 - **FF** — tambah, edit, hapus produk Free Fire
 - **Robux** — tambah, edit, nonaktifkan/aktifkan, hapus item + tambah kategori baru
-- **Vilog** — tambah, edit, nonaktifkan/aktifkan, hapus paket boost
 - **Lainnya** — tambah, edit, nonaktifkan/aktifkan, hapus produk Cloud Phone & Discord Nitro + tambah kategori baru
-- **Autopost** — tambah, edit, hapus, aktifkan/nonaktifkan task autopost
 - **Statistik** — grafik transaksi 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
 
 Perubahan produk via web langsung berlaku ke bot tanpa restart.
 
 ---
-
-## Autopost
-
-Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis berdasarkan interval waktu.
-
-**Cara pakai:**
-1. Buka admin panel → menu **Autopost**
-2. Klik **+ Tambah Task**
-3. Isi label, channel ID tujuan, isi pesan, dan interval (dalam menit)
-4. Simpan — pesan akan terkirim otomatis sesuai interval
-
-> Autopost menggunakan user token (`AUTOPOST_TOKEN`), bukan bot token. Bisa mengirim ke channel di server manapun selama akun tersebut adalah member dan punya izin kirim pesan di channel tersebut.
 
 ---
 
@@ -173,13 +153,6 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 | `!jbuang` | Konfirmasi uang dari pembeli diterima |
 | `!jbselesai` | Release dana ke penjual (setelah pembeli konfirmasi item) |
 | `!jbbatal [alasan]` | Batalkan tiket jual beli |
-
-### Vilog
-| Command | Fungsi |
-|---|---|
-| `!vilog` | Refresh embed pricelist vilog |
-| `!selesai [nominal]` | Tutup tiket vilog |
-| `!batalin [alasan]` | Batalkan tiket vilog |
 
 ### Robux Store
 | Command | Fungsi |
@@ -262,13 +235,6 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 6. Pembeli klik **✅ Item Diterima & Sesuai**
 7. Admin ketik `!jbselesai` → dana direlease ke penjual, tiket ditutup
 
-### Vilog
-1. Member klik tombol **BELI** di channel vilog
-2. Isi form: username Roblox, password, pilihan boost, metode bayar
-3. Transfer ke admin, kirim bukti bayar
-4. Admin proses boost, ketik `!selesai [nominal]`
-5. Member **wajib ganti password** setelah selesai
-
 ### Robux Store
 1. Member klik kategori di channel catalog robux
 2. Pilih item dari dropdown
@@ -305,7 +271,6 @@ Kirim pesan promosi atau pengumuman ke channel Discord manapun secara otomatis b
 midman/
 ├── main.py               # Entry point bot + notifikasi URL tunnel
 ├── admin.py              # Flask admin panel (port 5000)
-├── autopost.py           # Script autopost background (pakai user token)
 ├── seed.py               # Seed data produk default ke DB
 ├── start.sh              # Auto-start semua service
 ├── requirements.txt
@@ -317,12 +282,10 @@ midman/
 │   ├── transcript.py     # Generate HTML transcript
 │   ├── fee.py            # Kalkulator fee midman
 │   ├── tickets.py        # CRUD tiket midman trade
-│   ├── vilog_db.py       # CRUD tiket vilog
 │   └── robux_db.py       # CRUD tiket robux + bot_state
 └── cogs/
     ├── midman.py         # Midman trade
     ├── jualbeli.py       # Midman jual beli
-    ├── vilog.py          # Boost via login
     ├── robux.py          # Robux store
     ├── ml.py             # Topup ML, FF & WDP
     ├── lainnya.py        # Cloud Phone & Discord Nitro
@@ -350,13 +313,11 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `wdp_products` — paket Weekly Diamond Pass
 - `ff_products` — produk Free Fire
 - `robux_products` — item Robux per kategori
-- `vilog_boosts` — paket boost vilog
 - `lainnya_products` — produk Cloud Phone & Discord Nitro
 
 **Tabel transaksi:**
 - `tickets` — midman trade
 - `jb_tickets` — midman jual beli
-- `vilog_tickets` — tiket vilog
 - `robux_tickets` — tiket robux
 - `ml_tickets` — tiket ML & FF
 - `lainnya_tickets` — tiket Cloud Phone & Nitro
@@ -365,7 +326,6 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `robux_rate` — rate Robux saat ini
 
 **Tabel lainnya:**
-- `autopost_tasks` — task autopost (label, channel ID, pesan, interval, status)
 - `giveaways` — giveaway aktif
 - `auto_react` — channel auto react
 - `bot_state` — state bot (embed message ID catalog, welcome settings, broadcast cooldown, dll)
