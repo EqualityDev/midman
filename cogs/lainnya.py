@@ -349,19 +349,6 @@ class ItemSelect(discord.ui.Select):
         view = LainnyaCartView(user_id=user_id)
         await interaction.response.edit_message(content=None, embed=embed, view=view)
 
-        if False:
-            guild = interaction.guild
-            member = interaction.user
-            cog = interaction.client.cogs.get("LainnyaStore")
-            admin_mention = ""
-            msg = await interaction.channel.send(
-                content=f"{member.mention} {admin_mention}\nPesanan baru! Segera konfirmasi metode pembayaran.",
-                embed=embed
-            )
-            ticket["embed_message_id"] = msg.id
-            save_lainnya_ticket(ticket)
-            await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
-
 
 # ── COG ────────────────────────────────────────────────────────────────────────
 class LainnyaStore(commands.Cog):
@@ -421,9 +408,15 @@ class LainnyaStore(commands.Cog):
         now = datetime.datetime.now(datetime.timezone.utc)
         to_close = []
         for ch_id, ticket in list(self.active_tickets.items()):
-            last = datetime.datetime.fromisoformat(ticket["last_activity"])
-            if last.tzinfo is None:
-                last = last.replace(tzinfo=datetime.timezone.utc)
+            last_raw = ticket.get("last_activity") or ticket.get("opened_at")
+            if not last_raw:
+                continue
+            try:
+                last = datetime.datetime.fromisoformat(last_raw)
+                if last.tzinfo is None:
+                    last = last.replace(tzinfo=datetime.timezone.utc)
+            except Exception:
+                continue
             diff = (now - last).total_seconds()
             if diff >= 7200:
                 to_close.append(ch_id)
@@ -493,6 +486,8 @@ class LainnyaStore(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
+            return
+        if message.guild is None:
             return
         ch_id = message.channel.id
         if ch_id not in self.active_tickets:
