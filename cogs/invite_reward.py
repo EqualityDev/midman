@@ -96,6 +96,12 @@ def _init_db():
             closed_at       TEXT
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS invite_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -255,6 +261,28 @@ def load_claims():
     rows = conn.execute("SELECT * FROM invite_claims WHERE status='pending'").fetchall()
     conn.close()
     return {row["channel_id"]: dict(row) for row in rows}
+
+
+def get_setting(key: str, default: str = "") -> str:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT value FROM invite_settings WHERE key=?",
+        (key,)
+    ).fetchone()
+    conn.close()
+    if row and row[0] is not None:
+        return str(row[0])
+    return default
+
+
+def set_setting(key: str, value: str):
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO invite_settings (key, value) VALUES (?, ?)",
+        (key, str(value))
+    )
+    conn.commit()
+    conn.close()
 
 
 def get_leaderboard(limit: int = 15) -> list:
@@ -494,7 +522,8 @@ class InviteReward(commands.Cog):
         self.invite_cache = {}
         self.active_claims = load_claims()
         self.catalog_message_id = None
-        self.leaderboard_message_id = None
+        raw = get_setting("leaderboard_message_id", "")
+        self.leaderboard_message_id = int(raw) if str(raw).isdigit() else None
         self.validate_pending_task.start()
         self.leaderboard_task.start()
 
@@ -868,6 +897,7 @@ class InviteReward(commands.Cog):
 
         sent = await ch.send(embed=embed)
         self.leaderboard_message_id = sent.id
+        set_setting("leaderboard_message_id", str(sent.id))
 
     @commands.command(name="leaderboard")
     async def leaderboard_cmd(self, ctx):
