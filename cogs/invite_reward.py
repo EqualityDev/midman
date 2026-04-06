@@ -339,7 +339,6 @@ class InviteRewardView(discord.ui.View):
             ),
             inline=False
         )
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -363,7 +362,6 @@ class InviteRewardView(discord.ui.View):
             ),
             inline=False
         )
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -480,7 +478,6 @@ class PencairanModal(discord.ui.Modal, title="Pencairan Invite Reward"):
             ),
             inline=False
         )
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
 
         admin_mention = admin_role.mention if admin_role else ""
@@ -637,7 +634,6 @@ class InviteReward(commands.Cog):
         embed.add_field(name="Total Dicairkan", value=f"**{bal['total_claimed']}** Robux", inline=True)
         embed.add_field(name="Pending (belum 3 hari)", value=f"**{bal['pending_invites']}** orang", inline=True)
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         await interaction.response.send_message(embed=embed)
 
@@ -669,7 +665,6 @@ class InviteReward(commands.Cog):
             color=0xF1C40F
         )
         embed1.add_field(name="📋 Tutorial Membuat Gamepass", value=TUTORIAL_GAMEPASS, inline=False)
-        embed1.set_thumbnail(url=THUMBNAIL)
         embed1.set_footer(text=STORE_NAME)
 
         embed2 = discord.Embed(color=0xF1C40F)
@@ -756,7 +751,6 @@ class InviteReward(commands.Cog):
             log_embed.add_field(name="Member", value=f"{member.mention if member else ticket['user_id']}", inline=False)
             log_embed.add_field(name="Jumlah", value=f"**{ticket['robux_amount']} Robux**", inline=False)
             log_embed.add_field(name="Gamepass", value=ticket["gamepass_link"], inline=False)
-            log_embed.set_thumbnail(url=THUMBNAIL)
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
 
@@ -853,7 +847,6 @@ class InviteReward(commands.Cog):
             value=info_val,
             inline=False
         )
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=f"{STORE_NAME} • Last update")
 
         # Edit pesan lama kalau ada, kalau tidak kirim baru

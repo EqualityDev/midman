@@ -79,7 +79,6 @@ class SelfRoles(commands.Cog):
             ),
             color=0x9B59B6
         )
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         await ch.send(embed=embed, view=SelfRolesView())
         await ctx.send(f"Embed self roles dikirim ke {ch.mention}", delete_after=5)

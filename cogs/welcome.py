@@ -168,7 +168,6 @@ class WelcomeCog(commands.Cog):
             ),
             color=0x808080,
         )
-        embed.set_thumbnail(url=member.display_avatar.url)
         embed.set_footer(text=STORE_NAME)
         await channel.send(embed=embed)
 
@@ -197,7 +196,6 @@ class WelcomeCog(commands.Cog):
             ),
             color=0x00BFFF,
         )
-        embed.set_thumbnail(url=member.display_avatar.url)
         embed.set_footer(text=STORE_NAME)
         if self._has_gif:
             file = discord.File(WELCOME_GIF_PATH, filename="welcome.gif")
@@ -229,7 +227,6 @@ class WelcomeCog(commands.Cog):
             ),
             color=0xFF73FA,
         )
-        embed.set_thumbnail(url=member.display_avatar.url)
         embed.set_footer(text=STORE_NAME)
         if self._has_boost_gif:
             file = discord.File(BOOST_GIF_PATH, filename="boost.gif")

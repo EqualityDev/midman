@@ -81,7 +81,6 @@ def embed_menunggu_admin(store_name, p1_mention, deskripsi, harga):
         f"{_sep()}\n"
         f"Tiket tidak aktif 2 jam akan otomatis ditutup."
     ), inline=False)
-    e.set_thumbnail(url=THUMBNAIL)
     e.set_footer(text=store_name)
     return e
 
@@ -105,7 +104,6 @@ def embed_setup(store_name, ticket, p1, p2, admin):
         f"Pembeli transfer ke admin sesuai nominal di atas.\n"
         f"Kirim bukti bayar di tiket ini."
     ), inline=False)
-    e.set_thumbnail(url=THUMBNAIL)
     e.set_footer(text=store_name)
     return e
 
@@ -129,7 +127,6 @@ def embed_uang_diterima(store_name, ticket, p1, p2, admin):
         f"Admin sedang menyerahkan item/akun ke pembeli.\n"
         f"Pembeli konfirmasi item setelah diterima."
     ), inline=False)
-    e.set_thumbnail(url=THUMBNAIL)
     e.set_footer(text=store_name)
     return e
 
@@ -152,7 +149,6 @@ def embed_item_diterima(store_name, ticket, p1, p2, admin):
         f"{_sep()}\n"
         f"Admin akan release dana ke penjual setelah konfirmasi."
     ), inline=False)
-    e.set_thumbnail(url=THUMBNAIL)
     e.set_footer(text=store_name)
     return e
 
@@ -175,7 +171,6 @@ def embed_selesai(store_name, ticket, p1, p2, admin):
         f"{_sep()}\n"
         f"Tiket akan ditutup dalam 5 detik."
     ), inline=False)
-    e.set_thumbnail(url=THUMBNAIL)
     e.set_footer(text=store_name)
     return e
 
@@ -462,7 +457,6 @@ class JualBeli(commands.Cog):
                     "Tiket ini tidak ada aktivitas selama **1 jam**.\n\n"
                     "Jika tidak ada aktivitas dalam 1 jam ke depan, tiket akan **otomatis ditutup** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                 ), inline=False)
-                warn.set_thumbnail(url=THUMBNAIL)
                 warn.set_footer(text=STORE_NAME)
                 guild = channel.guild
                 p1 = guild.get_member(ticket["p1_id"])
@@ -483,7 +477,6 @@ class JualBeli(commands.Cog):
         try:
             e = discord.Embed(title="Tiket Ditutup Otomatis", color=COLOR_BATAL)
             e.add_field(name="Alasan", value=alasan, inline=False)
-            e.set_thumbnail(url=THUMBNAIL)
             e.set_footer(text=STORE_NAME)
             await channel.send(embed=e)
             await asyncio.sleep(3)
@@ -545,7 +538,6 @@ class JualBeli(commands.Cog):
             log_e.add_field(name="Harga", value=format_nominal(ticket["harga"]), inline=False)
             log_e.add_field(name="Fee", value=f"{format_nominal(fee)} (ditanggung {penanggung})" if fee else "-", inline=False)
             log_e.add_field(name="Dana ke Penjual", value=release, inline=False)
-            log_e.set_thumbnail(url=THUMBNAIL)
             log_e.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_e)
 
@@ -653,7 +645,6 @@ class JualBeli(commands.Cog):
         e.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         e.add_field(name="Alasan", value=alasan, inline=False)
         e.add_field(name="\u200b", value="Tiket akan ditutup dalam 5 detik.", inline=False)
-        e.set_thumbnail(url=THUMBNAIL)
         e.set_footer(text=STORE_NAME)
 
         mentions = " ".join(filter(None, [p1.mention if p1 else None, p2.mention if p2 else None]))

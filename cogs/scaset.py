@@ -134,7 +134,6 @@ def build_ticket_embed(ticket: dict, member, admin=None):
         ),
         inline=False
     )
-    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=STORE_NAME)
     return embed
 
@@ -339,7 +338,6 @@ class ScasetStore(commands.Cog):
             color=COLOR_SCASET
         )
         embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
-        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=f"{STORE_NAME} • Stock terbatas")
         view = ScasetCatalogView()
         if self.catalog_message_id:
@@ -385,7 +383,6 @@ class ScasetStore(commands.Cog):
                                 "Segera selesaikan atau hubungi admin.\n\n"
                                 "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                             ), inline=False)
-                            warn_embed.set_thumbnail(url=THUMBNAIL)
                             warn_embed.set_footer(text=STORE_NAME)
                             msg = await ch.send(content=user.mention if user else "", embed=warn_embed)
                             ticket["warned"] = 1
