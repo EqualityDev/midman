@@ -219,7 +219,6 @@ class PollCog(commands.Cog):
         if host_id:
             embed.set_footer(text=f"{STORE_NAME} • Poll" + (" • Selesai" if ended else ""))
 
-        embed.set_thumbnail(url=THUMBNAIL)
         return embed
 
     def _build_view(self, message_id, options, ended=False):
@@ -279,7 +278,6 @@ class PollCog(commands.Cog):
                         timestamp=datetime.datetime.now(datetime.timezone.utc)
                     )
                     log_embed.add_field(name="Total Vote", value=str(total_votes), inline=True)
-                    log_embed.set_thumbnail(url=THUMBNAIL)
                     log_embed.set_footer(text=STORE_NAME)
                     await log_ch.send(embed=log_embed)
 
@@ -428,7 +426,6 @@ class PollCog(commands.Cog):
             await interaction.response.send_message("📝 Tidak ada poll aktif.", ephemeral=True)
             return
         embed = discord.Embed(title="POLL AKTIF", color=0x3498DB)
-        embed.set_thumbnail(url=THUMBNAIL)
         for msg_id, data in self.active_polls.items():
             total = sum(len(v) for v in data['votes'])
             end_str = f"<t:{int(data['end_time'].timestamp())}:R>" if data['end_time'] else "Manual"

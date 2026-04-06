@@ -154,7 +154,6 @@ def build_catalog_embed(products):
         value = "\n".join(f"• {p['name']} — **Rp {p['harga']:,}**" for p in items)
         embed.add_field(name=cat, value=value, inline=False)
     embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
-    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Klik tombol untuk order")
     return embed
 
@@ -269,7 +268,6 @@ async def _create_lainnya_ticket(interaction: discord.Interaction, cart: list):
     embed.add_field(name="Total Harga", value=f"Rp {total:,}", inline=True)
     embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
     embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
-    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=STORE_NAME)
 
     admin_mention = admin_role.mention if admin_role else ""
@@ -433,7 +431,6 @@ class LainnyaStore(commands.Cog):
                                 "Segera selesaikan pembayaran atau hubungi admin.\n\n"
                                 "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                             ), inline=False)
-                            warn_embed.set_thumbnail(url=THUMBNAIL)
                             warn_embed.set_footer(text=STORE_NAME)
                             msg = await ch.send(content=user.mention if user else "", embed=warn_embed)
                             ticket["warned"] = 1
@@ -475,7 +472,6 @@ class LainnyaStore(commands.Cog):
                 inline=False
             )
             embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin akan memproses pesanan.", inline=False)
-            embed.set_thumbnail(url=THUMBNAIL)
             embed.set_footer(text=STORE_NAME)
             if ticket.get("embed_message_id"):
                 msg = await channel.fetch_message(ticket["embed_message_id"])
