@@ -451,16 +451,20 @@ class Midman(commands.Cog):
             try:
                 bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 restart_cmd = (
-                    f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || pkill -f 'admin.py' >/dev/null 2>&1; "
-                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
+                    f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
+                    f"pkill -f 'admin.py' >/dev/null 2>&1 || true; "
+                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
+                    f"sleep 0.5; pgrep -af 'admin.py'"
                 )
                 restart_proc = await asyncio.create_subprocess_shell(
                     restart_cmd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
-                _, _ = await restart_proc.communicate()
-                admin_restarted = True
+                out, err = await restart_proc.communicate()
+                admin_restarted = bool(out.decode().strip())
+                if not admin_restarted and err:
+                    admin_err = err.decode().strip()
             except Exception as _ae:
                 admin_err = str(_ae)
 
@@ -544,19 +548,22 @@ class Midman(commands.Cog):
         try:
             bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             restart_cmd = (
-                f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || pkill -f 'admin.py' >/dev/null 2>&1; "
-                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
+                f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
+                f"pkill -f 'admin.py' >/dev/null 2>&1 || true; "
+                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
+                f"sleep 0.5; pgrep -af 'admin.py'"
             )
             proc = await asyncio.create_subprocess_shell(
                 restart_cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            _, stderr = await proc.communicate()
-            if proc.returncode == 0:
+            stdout, stderr = await proc.communicate()
+            if stdout.decode().strip():
                 await ctx.send("✅ Admin panel direstart.", delete_after=5)
             else:
-                await ctx.send(f"⚠️ Gagal restart admin panel: {stderr.decode().strip()}", delete_after=6)
+                err = stderr.decode().strip() or "admin.py tidak terdeteksi"
+                await ctx.send(f"⚠️ Gagal restart admin panel: {err}", delete_after=6)
         except Exception as e:
             await ctx.send(f"⚠️ Error restart admin panel: {e}", delete_after=6)
 
