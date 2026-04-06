@@ -77,14 +77,6 @@ class AFK(commands.Cog):
         self.afk_users[user.id] = {"reason": reason, "original_nick": original_nick, "afk_since": afk_since}
         save_afk(user.id, reason, original_nick, afk_since)
 
-        try:
-            new_nick = f"[AFK] {original_nick}"
-            if len(new_nick) > 32:
-                new_nick = new_nick[:32]
-            await user.edit(nick=new_nick)
-        except Exception:
-            pass
-
         await ctx.message.delete()
         await ctx.send(f"{user.mention} sekarang AFK: **{reason}**", delete_after=5)
 
@@ -103,11 +95,6 @@ class AFK(commands.Cog):
 
             data = self.afk_users.pop(message.author.id)
             delete_afk(message.author.id)
-
-            try:
-                await message.author.edit(nick=data["original_nick"] or None)
-            except Exception:
-                pass
 
             await message.channel.send(
                 f"Selamat datang kembali {message.author.mention}, kamu sudah tidak AFK."
