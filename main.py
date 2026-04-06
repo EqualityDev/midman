@@ -128,7 +128,8 @@ async def main():
 
         await bot.load_extension("cogs.ml")
 
-        await bot.load_extension("cogs.nickname_enforcer")
+        # Disabled: nickname auto-enforcer (Cellyn Team)
+        # await bot.load_extension("cogs.nickname_enforcer")
 
         await bot.load_extension("cogs.jualbeli")
 
@@ -154,4 +155,3 @@ async def main():
 
 
 asyncio.run(main())
-
