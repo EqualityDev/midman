@@ -451,10 +451,16 @@ class Midman(commands.Cog):
             try:
                 bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 restart_cmd = (
+                    "if command -v lsof >/dev/null 2>&1; then "
+                    "lsof -ti :5000 2>/dev/null | xargs -r kill -9; "
+                    "fi; "
                     f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
-                    f"pkill -f 'admin.py' >/dev/null 2>&1 || true; "
+                    "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
                     f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                    f"sleep 0.5; pgrep -af 'admin.py'"
+                    "sleep 0.5; "
+                    "if command -v lsof >/dev/null 2>&1; then "
+                    "lsof -ti :5000 2>/dev/null | head -n 1; "
+                    "else ps aux | grep admin.py | grep -v grep | head -n 1; fi"
                 )
                 restart_proc = await asyncio.create_subprocess_shell(
                     restart_cmd,
@@ -545,14 +551,20 @@ class Midman(commands.Cog):
         if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
             return
         await ctx.message.delete()
-        try:
-            bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            restart_cmd = (
-                f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
-                f"pkill -f 'admin.py' >/dev/null 2>&1 || true; "
-                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                f"sleep 0.5; pgrep -af 'admin.py'"
-            )
+            try:
+                bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                restart_cmd = (
+                    "if command -v lsof >/dev/null 2>&1; then "
+                    "lsof -ti :5000 2>/dev/null | xargs -r kill -9; "
+                    "fi; "
+                    f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
+                    "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
+                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
+                    "sleep 0.5; "
+                    "if command -v lsof >/dev/null 2>&1; then "
+                    "lsof -ti :5000 2>/dev/null | head -n 1; "
+                    "else ps aux | grep admin.py | grep -v grep | head -n 1; fi"
+                )
             proc = await asyncio.create_subprocess_shell(
                 restart_cmd,
                 stdout=asyncio.subprocess.PIPE,
