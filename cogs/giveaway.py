@@ -162,6 +162,7 @@ class GiveawayCog(commands.Cog):
         else:
             embed.add_field(name="Berakhir", value=f"<t:{int(end_time.timestamp())}:R>", inline=True)
             embed.description = f"Klik tombol **IKUTAN** di bawah untuk ikut!\nBerakhir: <t:{int(end_time.timestamp())}:F>"
+        embed.set_thumbnail(url=THUMBNAIL)
         if image_url:
             embed.set_image(url=image_url)
         embed.set_footer(text=f"{STORE_NAME} • Giveaway" + (" • Selesai" if ended else ""))
@@ -231,6 +232,7 @@ class GiveawayCog(commands.Cog):
                 log_embed.add_field(name="Hadiah", value=prize, inline=True)
                 log_embed.add_field(name="Peserta", value=str(len(participants)), inline=True)
                 log_embed.add_field(name="Pemenang", value="\n".join(winner_mentions) or "-", inline=False)
+                log_embed.set_thumbnail(url=THUMBNAIL)
                 log_embed.set_footer(text=STORE_NAME)
                 await log_ch.send(embed=log_embed)
 
@@ -358,6 +360,7 @@ class GiveawayCog(commands.Cog):
             await interaction.response.send_message("📝 Tidak ada giveaway aktif.", ephemeral=True)
             return
         embed = discord.Embed(title="GIVEAWAY AKTIF", color=0xFF6B6B)
+        embed.set_thumbnail(url=THUMBNAIL)
         for msg_id, data in self.active_giveaways.items():
             embed.add_field(
                 name=data['prize'],

@@ -104,6 +104,7 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         ),
         inline=False
     )
+    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
     return embed
 
@@ -165,6 +166,7 @@ class NominalModal(discord.ui.Modal, title="Topup Robux via Gamepass"):
             value="Klik **Konfirmasi** untuk buka tiket dan lanjutkan transaksi.",
             inline=False
         )
+        embed.set_thumbnail(url=THUMBNAIL)
 
         view = ConfirmView(robux=robux, gp_price=gp_price, rate=self.rate, total=total)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -259,6 +261,7 @@ class ConfirmView(discord.ui.View):
             value="Tiket tidak aktif 2 jam akan otomatis ditutup.",
             inline=False
         )
+        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=f"{STORE_NAME} • Jangan hapus gamepass sebelum Robux masuk")
 
         paid_view = discord.ui.View(timeout=None)
@@ -331,6 +334,7 @@ class GPStore(commands.Cog):
                             "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:"
                             + str(int(time.time()) + 3600) + ":R>)."
                         ), inline=False)
+                        warn_embed.set_thumbnail(url=THUMBNAIL)
                         _user = guild.get_member(ticket["user_id"])
                         _mn = _user.mention if _user else ""
                         warn_msg = await channel.send(content=_mn, embed=warn_embed)
@@ -481,6 +485,7 @@ class GPStore(commands.Cog):
             log_embed.add_field(name="Robux", value=f"{ticket['robux']} Robux (after tax)", inline=True)
             log_embed.add_field(name="Harga Gamepass", value=f"{ticket['gp_price']} Robux", inline=True)
             log_embed.add_field(name="Total", value=f"Rp {ticket['total']:,}", inline=False)
+            log_embed.set_thumbnail(url=THUMBNAIL)
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
 

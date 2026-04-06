@@ -82,6 +82,7 @@ class OrdersAdmin(commands.Cog):
                     )
                 log_embed.add_field(name="Harga", value=f"Rp {subtotal:,}", inline=True)
                 log_embed.add_field(name="Metode", value=ticket.get("payment_method", "-"), inline=True)
+                log_embed.set_thumbnail(url=THUMBNAIL)
                 log_embed.set_footer(text=STORE_NAME)
                 await log_ch.send(embed=log_embed)
                 nominal = subtotal
@@ -104,6 +105,7 @@ class OrdersAdmin(commands.Cog):
                 log_embed.add_field(name="Item", value=item_str, inline=True)
                 log_embed.add_field(name="Harga", value=f"Rp {nominal:,}", inline=True)
                 log_embed.add_field(name="Metode", value=ticket.get("payment_method", "-"), inline=True)
+                log_embed.set_thumbnail(url=THUMBNAIL)
                 log_embed.set_footer(text=STORE_NAME)
                 await log_ch.send(embed=log_embed)
 

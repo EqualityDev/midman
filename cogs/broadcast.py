@@ -73,6 +73,7 @@ class BroadcastCog(commands.Cog):
                     timestamp=datetime.datetime.now(datetime.timezone.utc),
                 )
                 embed.set_author(name=f"Dari: {admin.display_name}", icon_url=admin.display_avatar.url)
+                embed.set_thumbnail(url=THUMBNAIL)
                 if image_url:
                     embed.set_image(url=image_url)
                 embed.set_footer(text=f"{STORE_NAME} • Pengumuman", icon_url=THUMBNAIL)
@@ -108,6 +109,7 @@ class BroadcastCog(commands.Cog):
                         log_embed.add_field(name="Terkirim", value=str(success), inline=True)
                         log_embed.add_field(name="Gagal", value=str(failed), inline=True)
                         log_embed.add_field(name="Pesan", value=pesan_text[:500], inline=False)
+                        log_embed.set_thumbnail(url=THUMBNAIL)
                         log_embed.set_footer(text=STORE_NAME)
                         await log_ch.send(embed=log_embed)
 

@@ -245,6 +245,7 @@ class GameFormModal(discord.ui.Modal):
             f"Tiket yang tidak aktif selama 2 jam akan otomatis ditutup."
         )
         embed.add_field(name="\u200b", value=info, inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         if admin_role:
             await channel.send(content=admin_role.mention, embed=embed)
@@ -406,6 +407,7 @@ class MLStore(commands.Cog):
                             "Segera ketik `!mlselesai` jika selesai, atau `!mlbatal` jika dibatalkan.\n\n"
                             "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                         ), inline=False)
+                        warn_embed.set_thumbnail(url=THUMBNAIL)
                         warn_embed.set_footer(text=STORE_NAME)
                         _user = guild.get_member(ticket["user_id"])
                         _mn = _user.mention if _user else ""
@@ -453,6 +455,7 @@ class MLStore(commands.Cog):
             ),
             color=0x3498DB
         )
+        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=STORE_NAME)
         if self.catalog_message_id:
             try:
@@ -523,6 +526,7 @@ class MLStore(commands.Cog):
             log_embed.add_field(name="Item", value=ticket.get("item_label", f"{ticket['dm']} Diamond"), inline=False)
             log_embed.add_field(name="Total", value=f"Rp {ticket['harga']:,}", inline=False)
             log_embed.add_field(name="Metode Pembayaran", value="QRIS", inline=False)
+            log_embed.set_thumbnail(url=THUMBNAIL)
             log_embed.set_footer(text=STORE_NAME)
             await log_ch.send(embed=log_embed)
         try:

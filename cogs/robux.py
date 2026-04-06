@@ -71,6 +71,7 @@ def build_catalog_embed(rate):
         color=0xE91E63,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
+    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Harga dapat berubah sewaktu-waktu")
     return embed
 
@@ -197,6 +198,7 @@ async def _create_robux_ticket(interaction: discord.Interaction, cart: list, rat
     embed.add_field(name="Cara Bayar", value="Ketik **1** — QRIS  |  **2** — DANA  |  **3** — BCA", inline=False)
     embed.add_field(name="Catatan", value="Setelah pembayaran dikonfirmasi, admin dan member masuk game untuk proses gift item.", inline=False)
     embed.add_field(name="Peringatan", value="Tiket yang tidak aktif selama 2 jam akan otomatis ditutup dan transaksi dianggap batal.", inline=False)
+    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
 
     await channel.send(
@@ -384,6 +386,7 @@ class CustomOrderModal(discord.ui.Modal, title="Custom Order Robux"):
         embed.add_field(name="Total Tagihan", value=f"Rp {total:,}", inline=True)
         embed.add_field(name="Cara Bayar", value="Ketik **1** — QRIS  |  **2** — DANA  |  **3** — BCA", inline=False)
         embed.add_field(name="Peringatan", value="Tiket yang tidak aktif selama 2 jam akan otomatis ditutup.", inline=False)
+        embed.set_thumbnail(url=THUMBNAIL)
         embed.set_footer(text=f"{STORE_NAME} • Rate dapat berubah sewaktu-waktu")
 
         await channel.send(
@@ -463,6 +466,7 @@ class RobuxStore(commands.Cog):
                             "Segera selesaikan pembayaran atau hubungi admin.\n\n"
                             "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                         ), inline=False)
+                        warn_embed.set_thumbnail(url=THUMBNAIL)
                         warn_embed.set_footer(text=STORE_NAME)
                         _user = guild.get_member(ticket["user_id"])
                         _mn = _user.mention if _user else ""
@@ -573,6 +577,7 @@ class RobuxStore(commands.Cog):
                             else:
                                 new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
                         if embed.thumbnail:
+                            new_embed.set_thumbnail(url=embed.thumbnail.url)
                         if embed.footer:
                             new_embed.set_footer(text=embed.footer.text)
                         await msg.edit(embed=new_embed)
@@ -825,6 +830,7 @@ class RobuxStore(commands.Cog):
             log_embed.add_field(name="Rate", value=f"Rp {ticket['rate']:,}/Robux", inline=False)
             log_embed.add_field(name="Total", value=f"Rp {ticket['total']:,}", inline=False)
             log_embed.add_field(name="Metode Pembayaran", value=ticket.get("payment_method", "-"), inline=False)
+            log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
             log_embed.set_footer(text=f"{STORE_NAME}")
             await log_ch.send(embed=log_embed)
 

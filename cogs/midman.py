@@ -135,6 +135,7 @@ class Midman(commands.Cog):
                         "Segera ketik `!acc` jika selesai, atau `!batal` jika dibatalkan.\n\n"
                         "Tiket akan otomatis ditutup dalam **1 jam lagi** (<t:" + str(int(time.time()) + 3600) + ":R>)."
                     ), inline=False)
+                    warn_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     warn_embed.set_footer(text=STORE_NAME)
                     _p1 = ticket.get("pihak1")
                     _p2 = ticket.get("pihak2")
@@ -214,6 +215,7 @@ class Midman(commands.Cog):
                         value=f"{ticket_count} tiket ✅" if ticket_count else "Tidak ada tiket aktif",
                         inline=True
                     )
+                    embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
                     embed.set_footer(text=STORE_NAME)
                     await ch.send(embed=embed)
 
@@ -265,6 +267,7 @@ class Midman(commands.Cog):
             ),
             inline=False
         )
+        embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
         await ch.send(embed=embed, view=MidmanMainView())
         await ctx.send(f"Embed dikirim ke {ch.mention}", delete_after=5)
@@ -320,6 +323,7 @@ class Midman(commands.Cog):
         log_embed.add_field(name="Pihak 1", value=f"{p1.mention}\n`{p1.id}`", inline=False)
         log_embed.add_field(name="Pihak 2", value=f"{p2.mention if p2 else '-'}\n`{p2.id if p2 else '-'}`", inline=False)
         log_embed.add_field(name="Fee", value=fee_str_log, inline=False)
+        log_embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         log_embed.set_footer(text=f"{STORE_NAME}")
         await ctx.send("Admin telah mengkonfirmasi bahwa trade selesai dan kedua pihak telah menerima item masing-masing. Tiket ditutup dalam 5 detik.")
         await asyncio.sleep(5)
@@ -384,6 +388,7 @@ class Midman(commands.Cog):
         embed.add_field(name="Dibatalkan oleh", value=ctx.author.mention, inline=True)
         embed.add_field(name="Alasan", value=alasan, inline=False)
         embed.add_field(name="", value="Tiket akan ditutup dalam 5 detik.", inline=False)
+        embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
         p1 = ticket.get("pihak1")
         p2 = ticket.get("pihak2")
@@ -515,6 +520,7 @@ class Midman(commands.Cog):
                 inline=False
             )
             embed.set_footer(text=f"{STORE_NAME} · Bot akan restart dalam 3 detik...")
+            embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
             await ctx.send(embed=embed)
 
             with open(".update_channel", "w") as f:
@@ -592,6 +598,7 @@ class Midman(commands.Cog):
         embed.add_field(name="Nominal", value=format_nominal(angka), inline=True)
         embed.add_field(name="Fee", value=format_nominal(result), inline=True)
         embed.add_field(name="Total Bayar", value=format_nominal(angka + result), inline=True)
+        embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
         embed.set_footer(text=STORE_NAME)
         await ctx.send(embed=embed, delete_after=30)
 

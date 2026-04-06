@@ -21,6 +21,7 @@ def build_embed_awal(store_name, p1_mention, item_p1, item_p2):
         ),
         inline=False
     )
+    embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
     embed.set_footer(text=store_name)
     return embed
 
@@ -46,6 +47,7 @@ def build_embed_setup(store_name, ticket, user2, fee_str):
         ),
         inline=False
     )
+    embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
     embed.set_footer(text=store_name)
     return embed
 
@@ -75,6 +77,7 @@ def build_embed_berlangsung(store_name, ticket, confirmed_by):
         ),
         inline=False
     )
+    embed.set_thumbnail(url="https://i.imgur.com/CWtUCzj.png")
     embed.set_footer(text=store_name)
     return embed
 

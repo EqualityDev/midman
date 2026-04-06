@@ -78,6 +78,7 @@ def build_info_embed(service_name: str, info: dict, color: int = 0x5865F2) -> "d
     if info.get("payment_info"):
         embed.add_field(name="💳 Cara Pembayaran", value=info["payment_info"], inline=False)
 
+    embed.set_thumbnail(url=THUMBNAIL)
     embed.set_footer(text=f"{STORE_NAME} • Klik Lanjutkan untuk membuka tiket")
     return embed
 
