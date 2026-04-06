@@ -23,11 +23,12 @@ class SelfRoleButton(discord.ui.Button):
     def __init__(self, emoji, label, role_id):
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            label=label,
+            label="\u200b",
             emoji=emoji,
             custom_id=f"selfrole_{role_id}"
         )
         self.role_id = role_id
+        self.role_label = label
 
     async def callback(self, interaction: discord.Interaction):
         role = interaction.guild.get_role(self.role_id)
@@ -37,10 +38,10 @@ class SelfRoleButton(discord.ui.Button):
 
         if role in interaction.user.roles:
             await interaction.user.remove_roles(role)
-            await interaction.response.send_message(f"Role **{role.name}** berhasil dilepas.", ephemeral=True)
+            await interaction.response.send_message(f"Role **{self.role_label}** berhasil dilepas.", ephemeral=True)
         else:
             await interaction.user.add_roles(role)
-            await interaction.response.send_message(f"Role **{role.name}** berhasil ditambahkan!", ephemeral=True)
+            await interaction.response.send_message(f"Role **{self.role_label}** berhasil ditambahkan!", ephemeral=True)
 
 class SelfRoles(commands.Cog):
     def __init__(self, bot):
