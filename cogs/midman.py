@@ -535,6 +535,31 @@ class Midman(commands.Cog):
         msg = f"**Versi:** `{version}`\n**Uptime:** {hours} jam {minutes} menit {seconds} detik"
         await ctx.send(msg)
 
+    @commands.command(name="reboot")
+    @commands.cooldown(1, 10, commands.BucketType.guild)
+    async def reboot(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        try:
+            bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            restart_cmd = (
+                f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || pkill -f 'admin.py' >/dev/null 2>&1; "
+                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
+            )
+            proc = await asyncio.create_subprocess_shell(
+                restart_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            _, stderr = await proc.communicate()
+            if proc.returncode == 0:
+                await ctx.send("✅ Admin panel direstart.", delete_after=5)
+            else:
+                await ctx.send(f"⚠️ Gagal restart admin panel: {stderr.decode().strip()}", delete_after=6)
+        except Exception as e:
+            await ctx.send(f"⚠️ Error restart admin panel: {e}", delete_after=6)
+
     @commands.command(name="ping")
     async def ping(self, ctx):
         await ctx.message.delete()
