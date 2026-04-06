@@ -77,6 +77,11 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     embed.add_field(
+        name="Rate",
+        value=f"**Rp {rate:,}/Robux**",
+        inline=False
+    )
+    embed.add_field(
         name="Cara Order",
         value=(
             "1. Klik **Order Sekarang**\n"
@@ -148,6 +153,7 @@ class NominalModal(discord.ui.Modal, title="Topup Robux via Gamepass"):
             title="📋 Konfirmasi Order Robux via Gamepass",
             color=COLOR
         )
+        embed.add_field(name="Rate", value=f"**Rp {self.rate:,}/Robux**", inline=True)
         embed.add_field(name="Robux yang Diterima", value=f"**{robux} Robux** (after tax)", inline=True)
         embed.add_field(name="Total Bayar", value=f"**Rp {total:,}**", inline=True)
         embed.add_field(
@@ -230,6 +236,7 @@ class ConfirmView(discord.ui.View):
             color=COLOR,
             timestamp=now
         )
+        embed.add_field(name="Rate", value=f"**Rp {self.rate:,}/Robux**", inline=True)
         embed.add_field(name="Member", value=member.mention, inline=True)
         embed.add_field(name="Robux Diterima", value=f"{self.robux} Robux (after tax)", inline=True)
         embed.add_field(name="Total Tagihan", value=f"**Rp {self.total:,}**", inline=True)
