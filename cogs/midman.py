@@ -1,6 +1,8 @@
 import time
 import os
 import sys
+import shutil
+import subprocess
 import discord
 from discord.ext import commands
 import asyncio
@@ -33,6 +35,36 @@ def _count_all_tickets(bot):
         if cog and hasattr(cog, attr):
             total += len(getattr(cog, attr))
     return total
+
+def _restart_admin_panel(bot_dir: str):
+    try:
+        # Kill anything on port 5000 if lsof exists
+        if shutil.which("lsof"):
+            res = subprocess.run(
+                ["lsof", "-ti", ":5000"],
+                capture_output=True,
+                text=True
+            )
+            for pid in res.stdout.split():
+                subprocess.run(["kill", "-9", pid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Kill existing admin.py
+        subprocess.run(["pkill", "-f", f"{bot_dir}/admin.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["pkill", "-f", "admin.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Start admin.py
+        admin_path = os.path.join(bot_dir, "admin.py")
+        with open(os.path.join(bot_dir, "admin.log"), "a") as log:
+            p = subprocess.Popen(
+                [sys.executable, admin_path],
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+            )
+        time.sleep(0.5)
+        return (p.poll() is None), None
+    except Exception as e:
+        return False, str(e)
 
 class Midman(commands.Cog):
     def __init__(self, bot):
@@ -446,29 +478,10 @@ class Midman(commands.Cog):
                 commit_count = 0
 
             # Restart admin panel agar perubahan admin.py ikut aktif
-            admin_restarted = False
-            admin_err = None
-            try:
-                bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                restart_cmd = (
-                    "if command -v lsof >/dev/null 2>&1; then "
-                    "lsof -ti :5000 2>/dev/null | xargs -r kill -9; "
-                    "fi; "
-                    f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
-                    "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
-                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
-                )
-                restart_proc = await asyncio.create_subprocess_shell(
-                    restart_cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                out, err = await restart_proc.communicate()
-                admin_restarted = restart_proc.returncode == 0
-                if not admin_restarted:
-                    admin_err = (err.decode() or out.decode()).strip()
-            except Exception as _ae:
-                admin_err = str(_ae)
+            admin_restarted, admin_err = await asyncio.to_thread(
+                _restart_admin_panel,
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
 
             # Embed 1 — update berhasil + changelog
             embed = discord.Embed(
@@ -548,26 +561,14 @@ class Midman(commands.Cog):
             return
         await ctx.message.delete()
         try:
-            bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            restart_cmd = (
-                "if command -v lsof >/dev/null 2>&1; then "
-                "lsof -ti :5000 2>/dev/null | xargs -r kill -9; "
-                "fi; "
-                f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
-                "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
-                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
+            ok, err = await asyncio.to_thread(
+                _restart_admin_panel,
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             )
-            proc = await asyncio.create_subprocess_shell(
-                restart_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await proc.communicate()
-            if proc.returncode == 0:
+            if ok:
                 await ctx.send("✅ Admin panel direstart.", delete_after=5)
             else:
-                err = (stderr.decode() or stdout.decode()).strip() or "gagal menjalankan admin.py"
-                await ctx.send(f"⚠️ Gagal restart admin panel: {err}", delete_after=6)
+                await ctx.send(f"⚠️ Gagal restart admin panel: {err or 'gagal menjalankan admin.py'}", delete_after=6)
         except Exception as e:
             await ctx.send(f"⚠️ Error restart admin panel: {e}", delete_after=6)
 
