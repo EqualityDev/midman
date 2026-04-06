@@ -354,8 +354,10 @@ def login():
         error = "Password salah."
     content = f"""
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;
-  background:radial-gradient(ellipse at 30% 40%,rgba(201,168,76,.06) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 80%,rgba(201,168,76,.03) 0%,transparent 50%);">
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(201,168,76,.12), transparent 60%),
+    radial-gradient(1200px 600px at 100% 10%, rgba(92,188,255,.12), transparent 55%),
+    #0b0d12;">
   <div style="width:100%;max-width:380px;">
     <div style="text-align:center;margin-bottom:2rem;">
       <img src="https://i.imgur.com/xp2F452.png" alt="Cellyn" style="width:72px;height:72px;border-radius:16px;margin-bottom:1rem;box-shadow:0 8px 32px rgba(201,168,76,.2);">
