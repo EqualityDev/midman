@@ -1,4 +1,6 @@
 import time
+import os
+import sys
 import discord
 from discord.ext import commands
 import asyncio
@@ -443,6 +445,25 @@ class Midman(commands.Cog):
                 formatted = "*Tidak ada commit baru*"
                 commit_count = 0
 
+            # Restart admin panel agar perubahan admin.py ikut aktif
+            admin_restarted = False
+            admin_err = None
+            try:
+                bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                restart_cmd = (
+                    f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || pkill -f 'admin.py' >/dev/null 2>&1; "
+                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
+                )
+                restart_proc = await asyncio.create_subprocess_shell(
+                    restart_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                _, _ = await restart_proc.communicate()
+                admin_restarted = True
+            except Exception as _ae:
+                admin_err = str(_ae)
+
             # Embed 1 — update berhasil + changelog
             embed = discord.Embed(
                 title="⬆️ Update Berhasil",
@@ -457,6 +478,11 @@ class Midman(commands.Cog):
             embed.add_field(
                 name="Commit Baru",
                 value=str(commit_count),
+                inline=True
+            )
+            embed.add_field(
+                name="Admin Panel",
+                value="✅ Restarted" if admin_restarted else f"⚠️ Gagal: {admin_err or 'unknown'}",
                 inline=True
             )
             embed.add_field(
