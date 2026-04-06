@@ -572,7 +572,6 @@ class RobuxStore(commands.Cog):
                                 new_embed.add_field(name="Total Tagihan", value=f"Rp {ticket['total']:,}", inline=True)
                             else:
                                 new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
-                        if embed.thumbnail:
                         if embed.footer:
                             new_embed.set_footer(text=embed.footer.text)
                         await msg.edit(embed=new_embed)
