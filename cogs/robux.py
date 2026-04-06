@@ -238,7 +238,14 @@ class CartView(discord.ui.View):
         if rate == 0:
             await interaction.response.edit_message(content="Rate belum diset admin!", embed=None, view=None)
             return
-        await _create_robux_ticket(interaction, cart, rate)
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("robux")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Robux Store", info, 0xE91E63)
+            await interaction.response.edit_message(embed=embed, view=RobuxInfoView(cart, rate), content=None)
+        else:
+            await _create_robux_ticket(interaction, cart, rate)
 
     @discord.ui.button(label="❌ Batalkan", style=discord.ButtonStyle.danger, custom_id="robux_cart_cancel")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -402,7 +409,46 @@ class CustomOrderButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("robux")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Robux Store", info, 0xE91E63)
+            await interaction.response.send_message(
+                embed=embed,
+                view=RobuxCustomInfoView(),
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_modal(CustomOrderModal())
+
+
+class RobuxInfoView(discord.ui.View):
+    def __init__(self, cart, rate):
+        super().__init__(timeout=120)
+        self.cart = cart
+        self.rate = rate
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="robux_info_lanjut")
+    async def lanjut(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await _create_robux_ticket(interaction, self.cart, self.rate)
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="robux_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
+
+
+class RobuxCustomInfoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=120)
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="robux_custom_info_lanjut")
+    async def lanjut(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CustomOrderModal())
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="robux_custom_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
 
 
 class RobuxStore(commands.Cog):

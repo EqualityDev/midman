@@ -307,7 +307,14 @@ class LainnyaCartView(discord.ui.View):
         if not cart:
             await interaction.response.edit_message(content="Keranjang kosong!", embed=None, view=None)
             return
-        await _create_lainnya_ticket(interaction, cart)
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("lainnya")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Lainnya", info, COLOR_LAINNYA)
+            await interaction.response.edit_message(embed=embed, view=LainnyaInfoView(cart), content=None)
+        else:
+            await _create_lainnya_ticket(interaction, cart)
 
     @discord.ui.button(label="Batalkan", style=discord.ButtonStyle.danger, custom_id="lainnya_cart_cancel")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -346,6 +353,20 @@ class ItemSelect(discord.ui.Select):
         embed = _build_lainnya_cart_embed(cart)
         view = LainnyaCartView(user_id=user_id)
         await interaction.response.edit_message(content=None, embed=embed, view=view)
+
+
+class LainnyaInfoView(discord.ui.View):
+    def __init__(self, cart):
+        super().__init__(timeout=120)
+        self.cart = cart
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="lainnya_info_lanjut")
+    async def lanjut(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await _create_lainnya_ticket(interaction, self.cart)
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="lainnya_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
 
 
 # ── COG ────────────────────────────────────────────────────────────────────────

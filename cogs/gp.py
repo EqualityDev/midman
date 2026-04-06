@@ -118,8 +118,30 @@ class CatalogView(discord.ui.View):
         if rate == 0:
             await interaction.response.send_message("Rate belum diset oleh admin. Coba lagi nanti.", ephemeral=True)
             return
-        modal = NominalModal(rate)
+        from utils.service_info import get_service_info, build_info_embed
+        info = get_service_info("gp")
+        has_info = any([info["description"], info["terms"], info["payment_info"]])
+        if has_info:
+            embed = build_info_embed("Topup Robux via Gamepass", info, COLOR)
+            await interaction.response.send_message(embed=embed, view=GPInfoView(rate), ephemeral=True)
+        else:
+            modal = NominalModal(rate)
+            await interaction.response.send_modal(modal)
+
+
+class GPInfoView(discord.ui.View):
+    def __init__(self, rate: int):
+        super().__init__(timeout=120)
+        self.rate = rate
+
+    @discord.ui.button(label="✅ Lanjutkan", style=discord.ButtonStyle.success, custom_id="gp_info_lanjut")
+    async def lanjut(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = NominalModal(self.rate)
         await interaction.response.send_modal(modal)
+
+    @discord.ui.button(label="❌ Batal", style=discord.ButtonStyle.danger, custom_id="gp_info_batal")
+    async def batal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Dibatalkan.", embed=None, view=None)
 
 
 class NominalModal(discord.ui.Modal, title="Topup Robux via Gamepass"):

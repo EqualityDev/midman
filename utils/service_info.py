@@ -88,6 +88,7 @@ SERVICE_KEYS = {
     "midman_jb":     "Midman Jual Beli",
     "vilog":         "Boost Via Login",
     "robux":         "Robux Store",
+    "gp":            "Topup Robux via Gamepass",
     "ml":            "Topup Game",
     "lainnya":       "Cloud Phone & Nitro",
     "scaset":        "SC TB / Aset Game",

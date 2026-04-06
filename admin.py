@@ -1536,7 +1536,11 @@ def service_info_save():
     terms = request.form.get("terms", "").strip()
     payment_info = request.form.get("payment_info", "").strip()
 
-    valid_keys = ["midman_trade", "midman_jb", "robux", "ml", "lainnya", "scaset"]
+    try:
+        from utils.service_info import SERVICE_KEYS
+        valid_keys = list(SERVICE_KEYS.keys())
+    except Exception:
+        valid_keys = ["midman_trade", "midman_jb", "robux", "ml", "lainnya", "scaset", "gp"]
     if service_key not in valid_keys:
         flash("Service key tidak valid.", "error")
         return redirect(url_for("index"))
@@ -1563,6 +1567,8 @@ def service_info_save():
         "ml": "page_ml",
         "lainnya": "page_lainnya",
         "scaset": "page_service_info",
+        "gp": "page_service_info",
+        "vilog": "page_service_info",
     }
     flash(f"Info layanan berhasil disimpan.", "success")
     target = redirect_map.get(service_key, "page_service_info")
@@ -1573,11 +1579,20 @@ def service_info_save():
 @login_required
 def page_service_info():
     """Halaman khusus untuk kelola info layanan yang tidak punya halaman admin tersendiri."""
+    try:
+        from utils.service_info import SERVICE_KEYS
+        widgets = "\n".join(
+            _service_info_widget(k, v) for k, v in SERVICE_KEYS.items()
+        )
+    except Exception:
+        widgets = (
+            _service_info_widget("midman_trade", "Midman Trade")
+            + _service_info_widget("midman_jb", "Midman Jual Beli")
+            + _service_info_widget("scaset", "SC TB / Aset Game")
+        )
     content = f"""
 <div class="page-header"><h2>ℹ️ Info Layanan</h2><p class="text-muted">Kelola informasi yang ditampilkan ke member sebelum membuka tiket.</p></div>
-{_service_info_widget("midman_trade", "Midman Trade")}
-{_service_info_widget("midman_jb", "Midman Jual Beli")}
-{_service_info_widget("scaset", "SC TB / Aset Game")}
+{widgets}
 """
     return render_page(content)
 
