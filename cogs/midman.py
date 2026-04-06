@@ -456,9 +456,7 @@ class Midman(commands.Cog):
                     "fi; "
                     f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
                     "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
-                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                    "sleep 0.8; "
-                    "pgrep -af 'admin.py' || true"
+                    f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
                 )
                 restart_proc = await asyncio.create_subprocess_shell(
                     restart_cmd,
@@ -466,9 +464,9 @@ class Midman(commands.Cog):
                     stderr=asyncio.subprocess.PIPE
                 )
                 out, err = await restart_proc.communicate()
-                admin_restarted = bool(out.decode().strip())
-                if not admin_restarted and err:
-                    admin_err = err.decode().strip()
+                admin_restarted = restart_proc.returncode == 0
+                if not admin_restarted:
+                    admin_err = (err.decode() or out.decode()).strip()
             except Exception as _ae:
                 admin_err = str(_ae)
 
@@ -557,9 +555,7 @@ class Midman(commands.Cog):
                 "fi; "
                 f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
                 "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
-                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                "sleep 0.8; "
-                "pgrep -af 'admin.py' || true"
+                f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 &"
             )
             proc = await asyncio.create_subprocess_shell(
                 restart_cmd,
@@ -567,10 +563,10 @@ class Midman(commands.Cog):
                 stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await proc.communicate()
-            if stdout.decode().strip():
+            if proc.returncode == 0:
                 await ctx.send("✅ Admin panel direstart.", delete_after=5)
             else:
-                err = stderr.decode().strip() or "admin.py tidak terdeteksi"
+                err = (stderr.decode() or stdout.decode()).strip() or "gagal menjalankan admin.py"
                 await ctx.send(f"⚠️ Gagal restart admin panel: {err}", delete_after=6)
         except Exception as e:
             await ctx.send(f"⚠️ Error restart admin panel: {e}", delete_after=6)
