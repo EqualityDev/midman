@@ -36,7 +36,7 @@ def save_afk(user_id: int, reason: str, original_nick: str, afk_since: str = Non
     c = conn.cursor()
     c.execute(
         "INSERT OR REPLACE INTO afk_users (user_id, reason, original_nick, afk_since) VALUES (?, ?, ?, ?)",
-        (user_id, reason, original_nick, datetime.datetime.utcnow().isoformat())
+        (user_id, reason, original_nick, afk_since)
     )
     conn.commit()
     conn.close()
@@ -62,6 +62,7 @@ class AFK(commands.Cog):
         self.bot = bot
         init_afk_table()
         self.afk_users = load_all_afk()
+        self._notify_cooldown = {}  # (channel_id, user_id) -> last_ts
         print(f"[AFK] Loaded {len(self.afk_users)} AFK user(s) dari DB.")
 
     @commands.command(name="afk")
@@ -109,7 +110,7 @@ class AFK(commands.Cog):
                 pass
 
             await message.channel.send(
-                f"Selamat datang {message.author.mention}"
+                f"Selamat datang kembali {message.author.mention}, kamu sudah tidak AFK."
             )
 
         # Cek mention ke user yang AFK
@@ -119,6 +120,14 @@ class AFK(commands.Cog):
                 if mentioned.bot:
                     continue
                 if mentioned.id in self.afk_users and mentioned.id not in notified:
+                    # Cooldown per channel+user untuk mencegah spam
+                    key = (message.channel.id, mentioned.id)
+                    now_ts = datetime.datetime.utcnow().timestamp()
+                    last_ts = self._notify_cooldown.get(key, 0)
+                    if now_ts - last_ts < 60:
+                        continue
+                    self._notify_cooldown[key] = now_ts
+
                     data = self.afk_users[mentioned.id]
                     afk_since = data.get("afk_since")
                     durasi = "baru saja"
@@ -140,7 +149,7 @@ class AFK(commands.Cog):
                         except Exception:
                             pass
                     await message.channel.send(
-                        f"**{mentioned.display_name}** is AFK: {data['reason']} - {durasi}"
+                        f"**{mentioned.display_name}** sedang AFK: {data['reason']} • {durasi}"
                     )
                     notified.add(mentioned.id)
 
