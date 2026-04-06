@@ -457,10 +457,8 @@ class Midman(commands.Cog):
                     f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
                     "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
                     f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                    "sleep 0.5; "
-                    "if command -v lsof >/dev/null 2>&1; then "
-                    "lsof -ti :5000 2>/dev/null | head -n 1; "
-                    "else ps aux | grep admin.py | grep -v grep | head -n 1; fi"
+                    "sleep 0.8; "
+                    "pgrep -af 'admin.py' || true"
                 )
                 restart_proc = await asyncio.create_subprocess_shell(
                     restart_cmd,
@@ -560,10 +558,8 @@ class Midman(commands.Cog):
                 f"pkill -f '{bot_dir}/admin.py' >/dev/null 2>&1 || true; "
                 "pkill -f 'admin.py' >/dev/null 2>&1 || true; "
                 f"nohup {sys.executable} {bot_dir}/admin.py >> {bot_dir}/admin.log 2>&1 & "
-                "sleep 0.5; "
-                "if command -v lsof >/dev/null 2>&1; then "
-                "lsof -ti :5000 2>/dev/null | head -n 1; "
-                "else ps aux | grep admin.py | grep -v grep | head -n 1; fi"
+                "sleep 0.8; "
+                "pgrep -af 'admin.py' || true"
             )
             proc = await asyncio.create_subprocess_shell(
                 restart_cmd,
