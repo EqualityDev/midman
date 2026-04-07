@@ -683,8 +683,8 @@ class Midman(commands.Cog):
             ),
             inline=False
         )
-        embed.set_footer(text=f"{STORE_NAME} • Pesan ini akan hilang dalam 10 detik")
-        await ctx.send(embed=embed, delete_after=10)
+        embed.set_footer(text=f"{STORE_NAME} • Pesan ini akan hilang dalam 60 detik")
+        await ctx.send(embed=embed, delete_after=60)
 
 async def setup(bot):
     await bot.add_cog(Midman(bot))
