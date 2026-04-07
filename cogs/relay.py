@@ -4,14 +4,20 @@ import discord
 from discord.ext import commands
 import aiohttp
 
+def _env_bool(name: str, default: str = "1") -> bool:
+    val = os.getenv(name, default).strip().lower()
+    return val in ("1", "true", "yes", "y", "on")
+
+
+RELAY_ENABLED = _env_bool("RELAY_ENABLED", "1")
 RELAY_SOURCE_CHANNEL_ID = int(os.getenv("RELAY_SOURCE_CHANNEL_ID", "0"))
 RELAY_WEBHOOK_URL = os.getenv("RELAY_WEBHOOK_URL", "")
-RELAY_INCLUDE_BOT = os.getenv("RELAY_INCLUDE_BOT", "1") == "1"
-RELAY_ALLOW_MENTIONS = os.getenv("RELAY_ALLOW_MENTIONS", "0") == "1"
+RELAY_INCLUDE_BOT = _env_bool("RELAY_INCLUDE_BOT", "1")
+RELAY_ALLOW_MENTIONS = _env_bool("RELAY_ALLOW_MENTIONS", "0")
 
 
 def _can_run():
-    return RELAY_SOURCE_CHANNEL_ID and RELAY_WEBHOOK_URL
+    return RELAY_ENABLED and RELAY_SOURCE_CHANNEL_ID and RELAY_WEBHOOK_URL
 
 
 def _embed_dict(embed: discord.Embed):
