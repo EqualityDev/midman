@@ -75,10 +75,17 @@ class RelayCog(commands.Cog):
 
         action = action.lower().strip()
         if action in ("on", "enable"):
+            if not (RELAY_SOURCE_CHANNEL_ID and RELAY_WEBHOOK_URL):
+                return await ctx.reply("⚠️ Relay belum bisa diaktifkan. Cek `RELAY_SOURCE_CHANNEL_ID` dan `RELAY_WEBHOOK_URL` di .env.")
             _set_setting("relay_enabled", "1")
+            if self._session is None:
+                self._session = aiohttp.ClientSession()
             return await ctx.reply("✅ Relay diaktifkan.")
         if action in ("off", "disable"):
             _set_setting("relay_enabled", "0")
+            if self._session:
+                await self._session.close()
+                self._session = None
             return await ctx.reply("✅ Relay dimatikan.")
         if action in ("status", ""):
             status = "ON" if _relay_enabled() else "OFF"
