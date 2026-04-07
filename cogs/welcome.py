@@ -248,8 +248,8 @@ class WelcomeCog(commands.Cog):
             title="🚀 Server di-boost!",
             description=(
                 f"**{member.mention}** baru saja boost {STORE_NAME}!\n\n"
-                f"Terima kasih banyak atas dukungannya. Kamu luar biasa! 🙌\n"
-                f"Semoga betah dan terus bareng kita di sini. 🥳"
+                f"Terima kasih banyak atas dukungannya. Kontribusimu bikin komunitas ini makin hidup dan solid. 🙌\n"
+                f"Semoga betah dan terus bareng kita di sini. Kalau ada request/masukan, jangan ragu ya. 🥳"
             ),
             color=0xFF73FA,
         )
