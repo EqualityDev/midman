@@ -222,14 +222,12 @@ async def _create_lainnya_ticket(interaction: discord.Interaction, cart: list):
                 )
                 return
 
-    # Safe response (avoid "interaction failed" if already responded)
-    try:
-        if interaction.response.is_done():
-            await interaction.edit_original_response(content="Membuat tiket...", embed=None, view=None)
-        else:
-            await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
-    except Exception:
-        pass
+    # Always ack interaction to avoid "interaction failed"
+    if not interaction.response.is_done():
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
 
     total = sum(i["harga"] for i in cart)
     items_label = ", ".join(i["name"] for i in cart)
