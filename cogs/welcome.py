@@ -11,6 +11,7 @@ from utils.db import get_conn
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 WELCOME_GIF_PATH = "data/welcome.gif"
 BOOST_GIF_PATH = "data/boost.gif"
+BOOST_ROLE_ID = 1476362606552809683
 
 
 def _get_setting(key):
@@ -175,8 +176,23 @@ class WelcomeCog(commands.Cog):
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if not self._welcome_channel_id:
             return
+        # Boost added
         if before.premium_since is None and after.premium_since is not None:
+            try:
+                role = after.guild.get_role(BOOST_ROLE_ID)
+                if role and role not in after.roles:
+                    await after.add_roles(role, reason="Auto role: server boost")
+            except Exception as e:
+                print(f"[Welcome] Boost role add error: {e}")
             await self._send_boost(after)
+        # Boost removed
+        elif before.premium_since is not None and after.premium_since is None:
+            try:
+                role = after.guild.get_role(BOOST_ROLE_ID)
+                if role and role in after.roles:
+                    await after.remove_roles(role, reason="Auto role removed: boost ended")
+            except Exception as e:
+                print(f"[Welcome] Boost role remove error: {e}")
 
     async def _send_welcome(self, member: discord.Member, test=False, interaction=None):
         if not self._welcome_channel_id:
