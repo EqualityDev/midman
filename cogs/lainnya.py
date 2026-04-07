@@ -222,7 +222,14 @@ async def _create_lainnya_ticket(interaction: discord.Interaction, cart: list):
                 )
                 return
 
-    await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
+    # Safe response (avoid "interaction failed" if already responded)
+    try:
+        if interaction.response.is_done():
+            await interaction.edit_original_response(content="Membuat tiket...", embed=None, view=None)
+        else:
+            await interaction.response.edit_message(content="Membuat tiket...", embed=None, view=None)
+    except Exception:
+        pass
 
     total = sum(i["harga"] for i in cart)
     items_label = ", ".join(i["name"] for i in cart)
@@ -277,7 +284,10 @@ async def _create_lainnya_ticket(interaction: discord.Interaction, cart: list):
     )
     ticket["embed_message_id"] = msg.id
     save_lainnya_ticket(ticket)
-    await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
+    try:
+        await interaction.followup.send(f"Tiket order kamu dibuat di {channel.mention}!", ephemeral=True)
+    except Exception:
+        pass
 
 
 class LainnyaCartView(discord.ui.View):
