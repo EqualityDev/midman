@@ -164,10 +164,10 @@ class WelcomeCog(commands.Cog):
         else:
             durasi_str = "tidak diketahui"
         embed = discord.Embed(
-            title=f"{member.display_name} telah meninggalkan server. 🍃",
+            title=f"{member.display_name} meninggalkan server. 🍃",
             description=(
                 f"Bergabung selama **{durasi_str}** — semoga sampai jumpa lagi.\n"
-                f"Total member saat ini: **{member_count}**"
+                f"Total member sekarang: **{member_count}**"
             ),
             color=0x808080,
         )
@@ -211,10 +211,10 @@ class WelcomeCog(commands.Cog):
         guild = member.guild
         member_count = sum(1 for m in guild.members if not m.bot)
         embed = discord.Embed(
-            title=f"Selamat datang, {member.display_name}! 👋",
+            title=f"Selamat datang di {STORE_NAME}, {member.display_name}! 👋",
             description=(
-                f"Kamu adalah member ke-**{member_count}** di {STORE_NAME}.\n\n"
-                f"Senang kamu bergabung bersama kami. Jangan lupa baca server rules ya!"
+                f"Senang kamu bergabung! Kamu adalah member ke-**{member_count}**.\n\n"
+                f"Silakan baca rules dan info penting agar transaksi aman & nyaman."
             ),
             color=0x00BFFF,
         )
@@ -248,8 +248,8 @@ class WelcomeCog(commands.Cog):
             title="🚀 Server di-boost!",
             description=(
                 f"**{member.mention}** baru saja boost {STORE_NAME}!\n\n"
-                f"Terima kasih atas dukunganmu untuk komunitas ini — kontribusimu sangat berarti bagi kami. "
-                f"Semoga kamu betah dan terus bersama kami! 🥳"
+                f"Terima kasih banyak atas dukungannya. Kamu luar biasa! 🙌\n"
+                f"Semoga betah dan terus bareng kita di sini. 🥳"
             ),
             color=0xFF73FA,
         )
