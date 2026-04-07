@@ -97,9 +97,13 @@ class EmbedBuilder(commands.Cog):
                     if scheduled_time:
                         try:
                             h, m = map(int, scheduled_time.split(":"))
-                            nxt = now.replace(hour=h, minute=m, second=0, microsecond=0)
-                            if nxt <= now:
-                                nxt += datetime.timedelta(days=1)
+                            # scheduled_time disimpan sebagai WIB (UTC+7) → konversi ke UTC
+                            wib = datetime.timezone(datetime.timedelta(hours=7))
+                            now_wib = now.astimezone(wib)
+                            nxt_wib = now_wib.replace(hour=h, minute=m, second=0, microsecond=0)
+                            if nxt_wib <= now_wib:
+                                nxt_wib += datetime.timedelta(days=1)
+                            nxt = nxt_wib.astimezone(datetime.timezone.utc)
                         except Exception:
                             nxt = now + datetime.timedelta(minutes=interval)
                     else:
