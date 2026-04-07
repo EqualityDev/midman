@@ -676,6 +676,7 @@ class Midman(commands.Cog):
             name="LAINNYA",
             value=(
                 "`!selfroles` — kirim embed self roles\n"
+                "`!relay <on/off/status>` — toggle relay webhook\n"
                 "`!update` — update bot dari GitHub\n"
                 "`!info` — info bot\n"
                 "`!ping` — cek latency"
