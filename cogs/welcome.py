@@ -12,6 +12,7 @@ THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 WELCOME_GIF_PATH = "data/welcome.gif"
 BOOST_GIF_PATH = "data/boost.gif"
 BOOST_ROLE_ID = 1476362606552809683
+CUSTOMER_ROLE_ID = 1476360559048786083
 
 
 def _get_setting(key):
@@ -124,13 +125,14 @@ class WelcomeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        # Assign role Customer
-        try:
-            role = discord.utils.get(member.guild.roles, name="Customer")
-            if role:
-                await member.add_roles(role)
-        except Exception as e:
-            print(f"[Welcome] Auto role error: {e}")
+        # Assign role Customer (human only)
+        if not member.bot:
+            try:
+                role = member.guild.get_role(CUSTOMER_ROLE_ID)
+                if role and role not in member.roles:
+                    await member.add_roles(role, reason="Auto role: Customer")
+            except Exception as e:
+                print(f"[Welcome] Auto role error: {e}")
         await self._send_welcome(member)
 
     @commands.Cog.listener()
