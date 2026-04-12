@@ -128,4 +128,11 @@ def init_autopost_tables():
         )
     """)
     conn.commit()
+    
+    try:
+        conn.execute("ALTER TABLE autopost_tasks ADD COLUMN user_token TEXT DEFAULT ''")
+        conn.commit()
+    except Exception:
+        pass
+    
     conn.close()
