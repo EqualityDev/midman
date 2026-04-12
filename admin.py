@@ -1704,11 +1704,10 @@ def page_autopost():
 @login_required
 def autopost_add():
     from utils.autoposter_settings import add_autopost_task
-    from utils.config import AUTOPOSTER_TOKEN
     channel_id = request.form.get("channel_id", "").strip()
     interval_minutes = int(request.form.get("interval_minutes", 60))
     message = request.form.get("message", "").strip()
-    token = AUTOPOSTER_TOKEN or ""
+    token = os.environ.get("AUTOPOSTER_TOKEN", "")
     add_autopost_task(channel_id, message, interval_minutes, token)
     flash("AutoPost berhasil ditambahkan.", "success")
     return redirect(url_for("page_autopost"))
