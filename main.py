@@ -133,7 +133,7 @@ async def main():
 
         await bot.load_extension("cogs.jualbeli")
 
-        await bot.load_extension("cogs.ai_chat")
+
         await bot.load_extension("cogs.testimoni")
         await bot.load_extension("cogs.giveaway")
         await bot.load_extension("cogs.welcome")
@@ -141,10 +141,10 @@ async def main():
         await bot.load_extension("cogs.auto_react")
         await bot.load_extension("cogs.server_stats")
         await bot.load_extension("cogs.lainnya")
-        await bot.load_extension("cogs.scaset")
+
         await bot.load_extension("cogs.orders")
         await bot.load_extension("cogs.qr")
-        await bot.load_extension("cogs.invite_reward")
+
         await bot.load_extension("cogs.poll")
         await bot.load_extension("cogs.embed_builder")
         await bot.load_extension("cogs.gp")
