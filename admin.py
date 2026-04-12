@@ -328,6 +328,7 @@ def render_page(content, **ctx):
     {_a("Statistik", "/stats", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', "page_stats")}
     {_a("Info Layanan", "/service-info", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', "page_service_info")}
     {_a("Embed Builder", "/embeds", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>', "page_embeds")}
+    {_a("AutoPost", "/autopost", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', "page_autopost")}
   </nav>
   <div class="sidebar-footer">
     <a href="/logout" class="nav-logout">{ico_out}<span>Logout</span></a>
@@ -1595,6 +1596,139 @@ def page_service_info():
 {widgets}
 """
     return render_page(content)
+
+
+@app.route("/autopost")
+@login_required
+def page_autopost():
+    from utils.autoposter_settings import get_autopost_tasks, get_autopost_history
+    tasks = get_autopost_tasks()
+    history = get_autopost_history(limit=30)
+    
+    tasks_html = ""
+    for t in tasks:
+        status_color = "#4dbb8a" if t["is_active"] else "#e05555"
+        status_text = "Aktif" if t["is_active"] else "Mati"
+        tasks_html += f"""
+        <tr>
+            <td><strong>#{t['id']}</strong></td>
+            <td><code>{t['channel_id']}</code></td>
+            <td>{t['interval_minutes']}m</td>
+            <td>{t['message'][:60]}...</td>
+            <td><span style="color:{status_color};font-weight:600;">{status_text}</span></td>
+            <td>
+                <form method="POST" action="/autopost/toggle/{t['id']}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm">Toggle</button>
+                </form>
+                <form method="POST" action="/autopost/delete/{t['id']}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus?')">Hapus</button>
+                </form>
+            </td>
+        </tr>"""
+    
+    if not tasks_html:
+        tasks_html = "<tr><td colspan=6 class='empty'>Belum ada autopost task.</td></tr>"
+    
+    history_html = ""
+    for h in history:
+        status_icon = "✅" if h["status"] == "success" else "❌"
+        history_html += f"""
+        <tr>
+            <td>{h['id']}</td>
+            <td>#{h['task_id']}</td>
+            <td>{h['message'][:50]}...</td>
+            <td>{status_icon}</td>
+            <td>{h['created_at']}</td>
+        </tr>"""
+    
+    if not history_html:
+        history_html = "<tr><td colspan=5 class='empty'>Belum ada history.</td></tr>"
+    
+    content = f"""
+    <div class="page-header">
+        <h2>📡 AutoPost</h2>
+        <p class="text-muted">Kelola auto-post pesan ke channel Discord.</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Tambah AutoPost</div>
+        <div class="card-body">
+            <form method="POST" action="/autopost/add">
+                <div class="form-grid-2">
+                    <div>
+                        <label>Channel ID</label>
+                        <input type="text" name="channel_id" placeholder="123456789012345678" required>
+                    </div>
+                    <div>
+                        <label>Interval (menit)</label>
+                        <input type="number" name="interval_minutes" value="60" min="1" required>
+                    </div>
+                </div>
+                <div>
+                    <label>Pesan</label>
+                    <textarea name="message" rows="3" placeholder="Pesan yang akan di-post..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Tambah</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Daftar AutoPost</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Channel ID</th><th>Interval</th><th>Pesan</th><th>Status</th><th>Aksi</th></tr>
+                </thead>
+                <tbody>{tasks_html}</tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">History (30 terakhir)</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Task</th><th>Pesan</th><th>Status</th><th>Waktu</th></tr>
+                </thead>
+                <tbody>{history_html}</tbody>
+            </table>
+        </div>
+    </div>
+    """
+    return render_page(content)
+
+
+@app.route("/autopost/add", methods=["POST"])
+@login_required
+def autopost_add():
+    from utils.autoposter_settings import add_autopost_task
+    from utils.config import AUTOPOSTER_TOKEN
+    channel_id = request.form.get("channel_id", "").strip()
+    interval_minutes = int(request.form.get("interval_minutes", 60))
+    message = request.form.get("message", "").strip()
+    token = AUTOPOSTER_TOKEN or ""
+    add_autopost_task(channel_id, message, interval_minutes, token)
+    flash("AutoPost berhasil ditambahkan.", "success")
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/toggle/<int:tid>", methods=["POST"])
+@login_required
+def autopost_toggle(tid):
+    from utils.autoposter_settings import toggle_autopost_task
+    toggle_autopost_task(tid)
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/delete/<int:tid>", methods=["POST"])
+@login_required
+def autopost_delete(tid):
+    from utils.autoposter_settings import delete_autopost_task
+    delete_autopost_task(tid)
+    flash("AutoPost dihapus.", "success")
+    return redirect(url_for("page_autopost"))
 
 
 if __name__ == "__main__":
