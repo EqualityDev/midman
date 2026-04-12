@@ -347,23 +347,8 @@ class Midman(commands.Cog):
                 closed_at=closed_at,
                 durasi_detik=durasi
             )
-        except Exception as e:
-            print(f"[LOG] Gagal log transaksi midman: {e}")
-        # Assign Royal Customer
-        try:
-            royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")
-            if royal_role:
-                for m in [ticket.get("pihak1"), ticket.get("pihak2")]:
-                    if not m:
-                        continue
-                    member = ctx.guild.get_member(m.id)
-                    if member and royal_role not in member.roles:
-                        try:
-                            await member.add_roles(royal_role)
-                        except Exception as e:
-                            print(f"[ROLE] Gagal assign Royal Customer ke {m.id}: {e}")
-        except Exception as e:
-            print(f"[ROLE] Gagal assign Royal Customer: {e}")
+        except Exception:
+            pass
         del self.active_tickets[ctx.channel.id]
         save_tickets(self.active_tickets)
         await ctx.channel.delete()
@@ -424,8 +409,8 @@ class Midman(commands.Cog):
         try:
             from utils.backup import do_backup
             await do_backup(self.bot, BACKUP_CHANNEL_ID)
-        except Exception as _be:
-            print(f"[UPDATE] Backup sebelum update gagal: {_be}")
+        except Exception:
+            pass
 
         # Simpan commit hash sebelum pull
         hash_proc = await asyncio.create_subprocess_shell(
@@ -437,7 +422,7 @@ class Midman(commands.Cog):
         old_hash = hash_out.decode().strip()
 
         proc = await asyncio.create_subprocess_shell(
-            "git stash && git pull origin main",
+            "git fetch origin && git reset --hard origin/main",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
