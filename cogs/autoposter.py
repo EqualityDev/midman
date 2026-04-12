@@ -17,7 +17,6 @@ class AutoPosterCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         init_autopost_tables()
-        print("Cog AutoPoster siap.")
         self.autopost_loop.start()
 
     def cog_unload(self):
@@ -61,11 +60,8 @@ class AutoPosterCog(commands.Cog):
                     json=payload,
                     headers=headers
                 ) as resp:
-                    text = await resp.text()
-                    print(f"[AUTOPOST] Status: {resp.status}, Response: {text[:200]}")
                     return resp.status in (200, 201)
-        except Exception as e:
-            print(f"[AUTOPOST] Error: {e}")
+        except Exception:
             return False
 
     @commands.group(name="autopost", invoke_without_command=True)
