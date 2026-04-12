@@ -1656,8 +1656,8 @@ def page_autopost():
             <form method="POST" action="/autopost/add">
                 <div class="form-grid-2">
                     <div>
-                        <label>Channel ID</label>
-                        <input type="text" name="channel_id" placeholder="123456789012345678" required>
+                        <label>Channel ID (pisahkan dengan koma untuk multiple)</label>
+                        <input type="text" name="channel_id" placeholder="123456,789012,345678" required>
                     </div>
                     <div>
                         <label>Interval (menit)</label>

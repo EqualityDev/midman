@@ -30,18 +30,30 @@ class AutoPosterCog(commands.Cog):
             if not task.get("is_active"):
                 continue
 
-            channel_id = int(task["channel_id"])
-            channel = self.bot.get_channel(channel_id)
-            if not channel:
+            channel_ids = [c.strip() for c in task["channel_id"].split(",")]
+            channels = []
+            for cid in channel_ids:
+                try:
+                    ch = self.bot.get_channel(int(cid))
+                    if ch:
+                        channels.append(ch)
+                except ValueError:
+                    pass
+            
+            if not channels:
                 continue
 
             new_counter = task.get("loop_counter", 0) + LOOP_INTERVAL
             threshold = task["interval_minutes"] * 60
 
             if new_counter >= threshold:
-                success = await self._post_message(channel, task["message"], task.get("user_token", ""))
-                log_autopost_history(task["id"], task["message"], "success" if success else "failed")
-                if success:
+                all_success = True
+                for channel in channels:
+                    success = await self._post_message(channel, task["message"], task.get("user_token", ""))
+                    if not success:
+                        all_success = False
+                log_autopost_history(task["id"], task["message"], "success" if all_success else "failed")
+                if all_success:
                     update_autopost_last_post(task["id"])
                 else:
                     update_autopost_counter(task["id"], 0)
