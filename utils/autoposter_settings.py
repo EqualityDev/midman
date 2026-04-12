@@ -23,41 +23,23 @@ def _get_columns(conn, table_name):
 def _migrate_autopost_tables():
     conn = get_conn()
     
-    if not _table_exists(conn, "autopost_tasks"):
-        conn.execute("""
-            CREATE TABLE autopost_tasks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                channel_id TEXT NOT NULL,
-                message TEXT NOT NULL,
-                interval_minutes INTEGER NOT NULL,
-                user_token TEXT NOT NULL DEFAULT '',
-                loop_counter INTEGER DEFAULT 0,
-                last_post TEXT,
-                is_active INTEGER DEFAULT 1,
-                created_at TEXT NOT NULL
-            )
-        """)
-        conn.commit()
-        conn.close()
-        return
+    conn.execute("DROP TABLE IF EXISTS autopost_tasks")
+    conn.commit()
     
-    cols = _get_columns(conn, "autopost_tasks")
-    
-    migrations = {
-        "user_token": "ALTER TABLE autopost_tasks ADD COLUMN user_token TEXT NOT NULL DEFAULT ''",
-        "loop_counter": "ALTER TABLE autopost_tasks ADD COLUMN loop_counter INTEGER DEFAULT 0",
-        "last_post": "ALTER TABLE autopost_tasks ADD COLUMN last_post TEXT",
-        "is_active": "ALTER TABLE autopost_tasks ADD COLUMN is_active INTEGER DEFAULT 1",
-    }
-    
-    for col, sql in migrations.items():
-        if col not in cols:
-            try:
-                conn.execute(sql)
-                conn.commit()
-            except Exception:
-                pass
-    
+    conn.execute("""
+        CREATE TABLE autopost_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id TEXT NOT NULL,
+            message TEXT NOT NULL,
+            interval_minutes INTEGER NOT NULL,
+            user_token TEXT NOT NULL DEFAULT '',
+            loop_counter INTEGER DEFAULT 0,
+            last_post TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.commit()
     conn.close()
 
 def init_autopost_tables():
