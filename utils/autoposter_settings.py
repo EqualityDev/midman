@@ -23,7 +23,33 @@ def _get_columns(conn, table_name):
 def _migrate_autopost_tables():
     conn = get_conn()
     
-    conn.execute("DROP TABLE IF EXISTS autopost_tasks")
+    if not _table_exists(conn, "autopost_tasks"):
+        conn.execute("""
+            CREATE TABLE autopost_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_id TEXT NOT NULL,
+                message TEXT NOT NULL,
+                interval_minutes INTEGER NOT NULL,
+                user_token TEXT NOT NULL DEFAULT '',
+                loop_counter INTEGER DEFAULT 0,
+                last_post TEXT,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+        conn.close()
+        return
+    
+    cols = _get_columns(conn, "autopost_tasks")
+    required_cols = {"channel_id", "message", "interval_minutes", "user_token", "loop_counter", "last_post", "is_active", "created_at"}
+    
+    if required_cols.issubset(cols):
+        conn.close()
+        return
+    
+    rows = conn.execute("SELECT * FROM autopost_tasks").fetchall()
+    conn.execute("DROP TABLE autopost_tasks")
     conn.commit()
     
     conn.execute("""
@@ -39,6 +65,14 @@ def _migrate_autopost_tables():
             created_at TEXT NOT NULL
         )
     """)
+    conn.commit()
+    
+    for row in rows:
+        from datetime import datetime
+        conn.execute(
+            "INSERT INTO autopost_tasks (channel_id, message, interval_minutes, user_token, loop_counter, last_post, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (row["channel_id"], row["message"], row["interval_minutes"], row.get("user_token", ""), row.get("loop_counter", 0), row.get("last_post"), row.get("is_active", 1), datetime.now().isoformat())
+        )
     conn.commit()
     conn.close()
 
