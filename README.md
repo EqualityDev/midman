@@ -1,6 +1,6 @@
 # Midman Bot — Cellyn Store Community
 
-Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, robux store, topup Mobile Legends & Free Fire (termasuk Weekly Diamond Pass), Cloud Phone, Discord Nitro, SC/Aset Game, AI customer service, selfroles, giveaway, welcome, dan admin panel berbasis web.
+Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade, middleman jual beli, robux store, topup Mobile Legends & Free Fire, Cloud Phone, Discord Nitro, selfroles, giveaway, welcome, dan admin panel berbasis web.
 
 ---
 
@@ -11,14 +11,13 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
 - **ML & FF Topup** — topup diamond Mobile Legends, Free Fire, dan Weekly Diamond Pass (WDP)
 - **Cloud Phone & Discord Nitro** — order Redfinger cloud phone dan Discord Nitro via tiket
-- **SC TB / Aset Game** — jual beli item game, aset, dan kebutuhan quest/misi; admin input item + harga dinamis per tiket
 - **Giveaway** — slash command giveaway dengan timer, auto-end, reroll, dan persistent setelah restart
 - **Welcome** — welcome/leave/boost notif dengan GIF, auto-assign role Customer saat member join
 - **Broadcast** — kirim pengumuman ke channel dengan modal preview, cooldown per admin
 - **Auto React** — auto react emoji ke pesan di channel tertentu atau semua pesan admin
 - **Server Stats** — voice channel nama otomatis update jumlah member
-- **AI Customer Service** — bot AI menjawab pertanyaan member 24/7 via Groq API (rotasi hingga 5 API key)
-- **Selfroles** — self-assignable roles via Discord
+- **Selfroles** — self-assignable roles via Discord button
+- **AutoPost** — auto-post pesan ke channel Discord via user token, support multiple channel, interval persisten
 - **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Lainnya dan statistik transaksi via browser
 - **Statistik Transaksi** — dashboard grafik 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
 - **Royal Customer** — auto-assign role setelah transaksi sukses di semua layanan
@@ -33,7 +32,7 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - Python 3.12+
 - Termux (Android) atau Linux
 - Akun Discord + Bot Token
-- Akun Groq (gratis) untuk fitur AI CS
+- User token Discord untuk AutoPost (opsional)
 
 ---
 
@@ -97,16 +96,11 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `ROBUX_CATALOG_CHANNEL_ID` | ID channel catalog robux |
 | `ML_CATALOG_CHANNEL_ID` | ID channel catalog ML/FF |
 | `SELFROLES_CHANNEL_ID` | ID channel selfroles |
-| `AI_CHANNEL_ID` | ID channel AI customer service |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
 | `TESTIMONI_CHANNEL_ID` | ID channel testimoni |
-| `CELLYN_TEAM_ROLE_ID` | ID role Cellyn Team (untuk nickname enforcer) |
-| `GROQ_API_KEY_1` | API key Groq utama untuk fitur AI CS |
-| `GROQ_API_KEY_2` | API key Groq cadangan ke-2 (opsional) |
-| `GROQ_API_KEY_3` | API key Groq cadangan ke-3 (opsional) |
-| `GROQ_API_KEY_4` | API key Groq cadangan ke-4 (opsional) |
-| `GROQ_API_KEY_5` | API key Groq cadangan ke-5 (opsional) |
+| `VILOG_CHANNEL_ID` | ID channel log untuk Vilog |
+| `AUTOPOSTER_TOKEN` | User token Discord untuk AutoPost (opsional) |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
@@ -128,12 +122,14 @@ Akses: buka URL yang dikirim bot di channel error log → login dengan `ADMIN_PA
 - **ML** — tambah, edit, hapus produk Mobile Legends + Weekly Diamond Pass (WDP)
 - **FF** — tambah, edit, hapus produk Free Fire
 - **Robux** — tambah, edit, nonaktifkan/aktifkan, hapus item + tambah kategori baru
+- **GP Store** — atur rate Garena Point
 - **Lainnya** — tambah, edit, nonaktifkan/aktifkan, hapus produk Cloud Phone & Discord Nitro + tambah kategori baru
+- **QRIS** — atur rekening QRIS
 - **Statistik** — grafik transaksi 7 hari dan 30 hari, produk terlaris, jam tersibuk per layanan
+- **AutoPost** — atur auto-post pesan ke channel Discord
+- **Info Layanan** — kelola info layanan yang ditampilkan sebelum buka tiket
 
 Perubahan produk via web langsung berlaku ke bot tanpa restart.
-
----
 
 ---
 
@@ -176,14 +172,13 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 | `!done` | Tutup tiket sukses |
 | `!cancel [alasan]` | Batalkan tiket |
 
-### SC TB / Aset Game
+### AutoPost
 | Command | Fungsi |
 |---|---|
-| `!aset` | Kirim embed katalog SC/Aset Game |
-| `!additem <nama> <qty> <harga>` | Tambah item ke tiket (admin) |
-| `!delitem <nomor>` | Hapus item dari tiket (admin) |
-| `!done` | Tutup tiket sukses |
-| `!cancel [alasan]` | Batalkan tiket |
+| `!autopost add [#channel] [interval_menit] [pesan]` | Tambah autopost task |
+| `!autopost list` | Lihat daftar task |
+| `!autopost toggle [id]` | Toggle on/off |
+| `!autopost delete [id]` | Hapus task |
 
 ### Giveaway
 | Command | Fungsi |
@@ -255,14 +250,6 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 4. Bayar sesuai nominal, kirim bukti transfer
 5. Admin proses, ketik `!done` untuk tutup tiket
 
-### SC TB / Aset Game
-1. Member klik tombol di channel lainnya
-2. Tiket terbuka, member ketik **1/2/3** untuk pilih metode bayar
-3. Member beritahu admin item yang dibutuhkan
-4. Admin input item: `!additem <nama> <qty> <harga>`
-5. Embed tiket otomatis update dengan daftar item + subtotal
-6. Admin ketik `!done` setelah item terkirim
-
 ---
 
 ## Struktur File
@@ -271,6 +258,7 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 midman/
 ├── main.py               # Entry point bot + notifikasi URL tunnel
 ├── admin.py              # Flask admin panel (port 5000)
+├── admin_embed.py        # Blueprint untuk embed builder
 ├── seed.py               # Seed data produk default ke DB
 ├── start.sh              # Auto-start semua service
 ├── requirements.txt
@@ -282,24 +270,30 @@ midman/
 │   ├── transcript.py     # Generate HTML transcript
 │   ├── fee.py            # Kalkulator fee midman
 │   ├── tickets.py        # CRUD tiket midman trade
-│   └── robux_db.py       # CRUD tiket robux + bot_state
+│   ├── robux_db.py       # CRUD tiket robux + bot_state
+│   ├── autoposter_settings.py  # CRUD autopost tasks
+│   └── gp_db.py          # CRUD GP store
 └── cogs/
     ├── midman.py         # Midman trade
     ├── jualbeli.py       # Midman jual beli
     ├── robux.py          # Robux store
     ├── ml.py             # Topup ML, FF & WDP
     ├── lainnya.py        # Cloud Phone & Discord Nitro
-    ├── scaset.py         # SC TB / Aset Game
-    ├── orders.py         # Shared !done & !cancel untuk lainnya + scaset
-    ├── giveaway.py       # Giveaway slash commands
-    ├── welcome.py        # Welcome/leave/boost notif + auto role Customer
-    ├── broadcast.py      # Broadcast pengumuman dengan cooldown
-    ├── auto_react.py     # Auto react emoji per channel
-    ├── server_stats.py   # Voice channel stats member count
-    ├── ai_chat.py        # AI customer service (Groq, rotasi 5 key)
-    ├── selfroles.py      # Self-assignable roles
-    ├── testimoni.py      # Auto-reply channel testimoni
-    └── nickname_enforcer.py  # Auto-enforce suffix nama
+    ├── orders.py         # Shared !done & !cancel
+    ├── giveaway.py        # Giveaway slash commands
+    ├── welcome.py         # Welcome/leave/boost notif + auto role Customer
+    ├── broadcast.py       # Broadcast pengumuman dengan cooldown
+    ├── auto_react.py      # Auto react emoji per channel
+    ├── server_stats.py    # Voice channel stats member count
+    ├── selfroles.py       # Self-assignable roles
+    ├── testimoni.py       # Auto-reply channel testimoni
+    ├── qr.py              # QRIS management
+    ├── gp.py              # Garena Point store
+    ├── poll.py            # Poll command
+    ├── embed_builder.py   # Custom embed builder
+    ├── afk.py             # AFK system
+    ├── relay.py           # Relay webhook forwarder
+    └── views.py           # Shared Discord UI views
 ```
 
 ---
@@ -321,7 +315,6 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `robux_tickets` — tiket robux
 - `ml_tickets` — tiket ML & FF
 - `lainnya_tickets` — tiket Cloud Phone & Nitro
-- `scaset_tickets` — tiket SC/Aset Game
 - `transaction_log` — log semua transaksi sukses (untuk statistik)
 - `robux_rate` — rate Robux saat ini
 
@@ -329,30 +322,8 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `giveaways` — giveaway aktif
 - `auto_react` — channel auto react
 - `bot_state` — state bot (embed message ID catalog, welcome settings, broadcast cooldown, dll)
-
----
-
-## Cara Tambah Layanan Baru
-
-1. Buat `cogs/namalayanan.py` — ikuti pola cog yang sudah ada (tiket, modal, auto-close, warning, persistent view, log, transcript, Royal Customer)
-2. Tambah tabel di `utils/db.py`
-3. Tambah data produk di `seed.py` (jika ada)
-4. Tambah halaman di `admin.py` (jika ada produk yang perlu dikelola)
-5. Daftarkan di `main.py` — `await bot.load_extension("cogs.namalayanan")`
-6. Tambah prefix di `!cmd` di `cogs/midman.py`
-7. Update system prompt AI di `cogs/ai_chat.py`
-8. Update `README.md`
-
----
-
-## Cara Mendapatkan Groq API Key
-
-1. Daftar di https://console.groq.com
-2. Buat API key baru
-3. Isi di `.env` → `GROQ_API_KEY_1=your_key_here`
-
-Limit gratis: 30 request/menit, 14.400 request/hari, 500.000 token/hari.
-Untuk menghindari rate limit, daftarkan hingga 5 akun Groq dan isi semua `GROQ_API_KEY_1` sampai `GROQ_API_KEY_5`.
+- `autopost_tasks` — task autopost (channel, message, interval, user_token, loop_counter)
+- `autopost_history` — history posting autopost
 
 ---
 
@@ -363,3 +334,5 @@ HP (dev) → GitHub → Production via !update di Discord
 ```
 
 Semua perubahan kode dilakukan di HP, push ke GitHub, lalu `!update` di Discord untuk deploy ke production.
+
+**Catatan:** Folder `data/` (GIF welcome/boost) dan `midman.db` tidak di-track Git. Backup secara berkala.
