@@ -147,7 +147,6 @@ async def main():
 
         await bot.load_extension("cogs.poll")
         await bot.load_extension("cogs.embed_builder")
-        await bot.load_extension("cogs.autoposter")
         await bot.load_extension("cogs.gp")
         await bot.load_extension("cogs.afk")
         await bot.load_extension("cogs.relay")
