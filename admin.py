@@ -1617,6 +1617,7 @@ def page_autopost():
             <td>{t['message'][:60]}...</td>
             <td><span style="color:{status_color};font-weight:600;">{status_text}</span></td>
             <td>
+                <a href="/autopost/edit/{t['id']}" class="btn btn-sm">Edit</a>
                 <form method="POST" action="/autopost/toggle/{t['id']}" style="display:inline;">
                     <button type="submit" class="btn btn-sm">Toggle</button>
                 </form>
@@ -1727,6 +1728,60 @@ def autopost_delete(tid):
     from utils.autoposter_settings import delete_autopost_task
     delete_autopost_task(tid)
     flash("AutoPost dihapus.", "success")
+    return redirect(url_for("page_autopost"))
+
+
+@app.route("/autopost/edit/<int:tid>", methods=["GET"])
+@login_required
+def autopost_edit(tid):
+    from utils.autoposter_settings import get_autopost_task
+    task = get_autopost_task(tid)
+    if not task:
+        flash("Task tidak ditemukan.", "error")
+        return redirect(url_for("page_autopost"))
+    
+    content = f"""
+    <div class="page-header">
+        <h2>✏️ Edit AutoPost #{tid}</h2>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="/autopost/edit/{tid}">
+                <div class="form-grid-2">
+                    <div>
+                        <label>Channel ID (pisahkan dengan koma untuk multiple)</label>
+                        <input type="text" name="channel_id" value="{task['channel_id']}" required>
+                    </div>
+                    <div>
+                        <label>Interval (menit)</label>
+                        <input type="number" name="interval_minutes" value="{task['interval_minutes']}" min="1" required>
+                    </div>
+                </div>
+                <div>
+                    <label>Pesan</label>
+                    <textarea name="message" rows="5" required>{task['message']}</textarea>
+                </div>
+                <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <a href="/autopost" class="btn">Batal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    """
+    return render_page(content)
+
+
+@app.route("/autopost/edit/<int:tid>", methods=["POST"])
+@login_required
+def autopost_edit_save(tid):
+    from utils.autoposter_settings import update_autopost_task
+    channel_id = request.form.get("channel_id", "").strip()
+    interval_minutes = int(request.form.get("interval_minutes", 60))
+    message = request.form.get("message", "").strip()
+    update_autopost_task(tid, message=message, interval_minutes=interval_minutes)
+    flash("AutoPost berhasil diupdate.", "success")
     return redirect(url_for("page_autopost"))
 
 
