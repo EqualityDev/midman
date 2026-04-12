@@ -76,8 +76,6 @@ class MidmanTradeModal(discord.ui.Modal, title="Buka Tiket Midman Trade"):
 
 class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
     pihak2_id = discord.ui.TextInput(label="ID Pihak 2", placeholder="Paste user ID pihak 2")
-    fee_input = discord.ui.TextInput(label="Fee (Rp)", placeholder="contoh: 2500")
-    link_server = discord.ui.TextInput(label="Link Private Server", placeholder="https://roblox.com/...")
 
     async def on_submit(self, interaction):
         cog = interaction.client.cogs.get("Midman")
@@ -88,16 +86,11 @@ class AdminSetupModal(discord.ui.Modal, title="Setup Data Trade"):
         except Exception:
             await interaction.response.send_message("User tidak ditemukan. Pastikan ID benar. Tekan Setup Trade lagi.", ephemeral=True)
             return
-        fee_raw = self.fee_input.value.replace(".", "").replace(",", "").replace("k", "000").replace("K", "000")
-        try:
-            fee_int = int(fee_raw)
-        except ValueError:
-            await interaction.response.send_message("Format fee salah. Tekan Setup Trade lagi.", ephemeral=True)
-            return
+        fee_int = 2500
         fee_str = format_nominal(fee_int)
         ticket["pihak2"] = user2
         ticket["fee_final"] = fee_int
-        ticket["link_server"] = self.link_server.value or "-"
+        ticket["link_server"] = "-"
         save_tickets(cog.active_tickets)
         await interaction.channel.set_permissions(user2, view_channel=True, send_messages=True)
         try:
