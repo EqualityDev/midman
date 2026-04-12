@@ -58,8 +58,11 @@ class AutoPosterCog(commands.Cog):
                 json=payload,
                 headers=headers
             ) as resp:
+                text = await resp.text()
+                print(f"[AUTOPOST] Status: {resp.status}, Response: {text[:200]}")
                 return resp.status in (200, 201)
-        except Exception:
+        except Exception as e:
+            print(f"[AUTOPOST] Error: {e}")
             return False
 
     @commands.group(name="autopost", invoke_without_command=True)
