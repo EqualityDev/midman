@@ -135,4 +135,22 @@ def init_autopost_tables():
     except Exception:
         pass
     
+    try:
+        conn.execute("ALTER TABLE autopost_tasks ADD COLUMN loop_counter INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+    
+    try:
+        conn.execute("ALTER TABLE autopost_tasks ADD COLUMN last_post TEXT")
+        conn.commit()
+    except Exception:
+        pass
+    
+    try:
+        conn.execute("ALTER TABLE autopost_tasks ADD COLUMN is_active INTEGER DEFAULT 1")
+        conn.commit()
+    except Exception:
+        pass
+    
     conn.close()
