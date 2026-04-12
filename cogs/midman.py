@@ -25,9 +25,7 @@ def _count_all_tickets(bot):
         'Midman': 'active_tickets',
         'MLStore': 'active_tickets',
         'RobuxStore': 'active_tickets',
-        'Vilog': 'active_vilog',
         'LainnyaStore': 'active_tickets',
-        'ScasetStore': 'active_tickets',
         'JualBeli': 'active_tickets',
     }
     for cog_name, attr in cog_attrs.items():
