@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp
 import discord
 from discord.ext import commands, tasks
 from utils.autoposter_settings import (
@@ -54,14 +55,15 @@ class AutoPosterCog(commands.Cog):
                 "Content-Type": "application/json"
             }
             payload = {"content": message}
-            async with self.bot.session.post(
-                f"https://discord.com/api/v9/channels/{channel.id}/messages",
-                json=payload,
-                headers=headers
-            ) as resp:
-                text = await resp.text()
-                print(f"[AUTOPOST] Status: {resp.status}, Response: {text[:200]}")
-                return resp.status in (200, 201)
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"https://discord.com/api/v9/channels/{channel.id}/messages",
+                    json=payload,
+                    headers=headers
+                ) as resp:
+                    text = await resp.text()
+                    print(f"[AUTOPOST] Status: {resp.status}, Response: {text[:200]}")
+                    return resp.status in (200, 201)
         except Exception as e:
             print(f"[AUTOPOST] Error: {e}")
             return False
