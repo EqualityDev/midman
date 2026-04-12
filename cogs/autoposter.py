@@ -17,6 +17,7 @@ class AutoPosterCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         init_autopost_tables()
+        print("Cog AutoPoster siap.")
         self.autopost_loop.start()
 
     def cog_unload(self):
