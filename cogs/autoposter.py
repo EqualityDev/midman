@@ -30,27 +30,32 @@ class AutoPosterCog(commands.Cog):
             if not task.get("is_active"):
                 continue
 
-            channel_ids = [c.strip() for c in task["channel_id"].split(",")]
+            channel_ids = [c.strip() for c in task["channel_id"].split(",") if c.strip()]
             channels = []
             for cid in channel_ids:
                 try:
                     ch = self.bot.get_channel(int(cid))
                     if ch:
                         channels.append(ch)
-                except ValueError:
+                except (ValueError, TypeError):
                     pass
             
             if not channels:
+                print(f"[AUTOPOST] Task #{task['id']}: no valid channels found")
                 continue
 
             new_counter = task.get("loop_counter", 0) + LOOP_INTERVAL
             threshold = task["interval_minutes"] * 60
 
             if new_counter >= threshold:
+                print(f"[AUTOPOST] Task #{task['id']}: posting to {len(channels)} channels")
                 all_success = True
                 for channel in channels:
                     success = await self._post_message(channel, task["message"], task.get("user_token", ""))
-                    if not success:
+                    if success:
+                        print(f"[AUTOPOST] Task #{task['id']}: posted to #{channel.id}")
+                    else:
+                        print(f"[AUTOPOST] Task #{task['id']}: FAILED to post to #{channel.id}")
                         all_success = False
                 log_autopost_history(task["id"], task["message"], "success" if all_success else "failed")
                 if all_success:
