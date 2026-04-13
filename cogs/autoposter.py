@@ -31,35 +31,14 @@ class AutoPosterCog(commands.Cog):
                 continue
 
             channel_ids = [c.strip() for c in task["channel_id"].split(",") if c.strip()]
-            print(f"[AUTOPOST] Task #{task['id']}: raw channel_ids={channel_ids}")
-            channels = []
-            for cid in channel_ids:
-                try:
-                    ch = self.bot.get_channel(int(cid))
-                    if ch:
-                        channels.append(ch)
-                        print(f"[AUTOPOST] Task #{task['id']}: found channel #{ch.id} ({ch.name})")
-                    else:
-                        print(f"[AUTOPOST] Task #{task['id']}: bot.get_channel({cid}) returned None")
-                except (ValueError, TypeError) as e:
-                    print(f"[AUTOPOST] Task #{task['id']}: error parsing {cid}: {e}")
-            
-            if not channels:
-                print(f"[AUTOPOST] Task #{task['id']}: no valid channels found")
-                continue
-
             new_counter = task.get("loop_counter", 0) + LOOP_INTERVAL
             threshold = task["interval_minutes"] * 60
 
             if new_counter >= threshold:
-                print(f"[AUTOPOST] Task #{task['id']}: posting to {len(channels)} channels")
                 all_success = True
-                for channel in channels:
-                    success = await self._post_message(channel, task["message"], task.get("user_token", ""))
-                    if success:
-                        print(f"[AUTOPOST] Task #{task['id']}: posted to #{channel.id}")
-                    else:
-                        print(f"[AUTOPOST] Task #{task['id']}: FAILED to post to #{channel.id}")
+                for cid in channel_ids:
+                    success = await self._post_to_channel(cid, task["message"], task.get("user_token", ""))
+                    if not success:
                         all_success = False
                 log_autopost_history(task["id"], task["message"], "success" if all_success else "failed")
                 if all_success:
@@ -69,7 +48,7 @@ class AutoPosterCog(commands.Cog):
             else:
                 update_autopost_counter(task["id"], new_counter)
 
-    async def _post_message(self, channel, message, user_token):
+    async def _post_to_channel(self, channel_id: str, message: str, user_token: str):
         try:
             headers = {
                 "Authorization": user_token,
@@ -78,84 +57,13 @@ class AutoPosterCog(commands.Cog):
             payload = {"content": message}
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"https://discord.com/api/v9/channels/{channel.id}/messages",
+                    f"https://discord.com/api/v9/channels/{channel_id}/messages",
                     json=payload,
                     headers=headers
                 ) as resp:
                     return resp.status in (200, 201)
         except Exception:
             return False
-
-    @commands.group(name="autopost", invoke_without_command=True)
-    async def autopost(self, ctx):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        await ctx.send_help(self.autopost)
-        await asyncio.sleep(30)
-        try:
-            await ctx.message.delete()
-        except Exception:
-            pass
-
-    @autopost.command(name="add")
-    async def autopost_add(self, ctx, channel: discord.TextChannel, interval: int, *, message: str):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        from utils.autoposter_settings import add_autopost_task
-        from utils.config import AUTOPOSTER_TOKEN
-        token = AUTOPOSTER_TOKEN or ""
-        task_id = add_autopost_task(str(channel.id), message, interval, token)
-        embed = discord.Embed(
-            title="AutoPost Ditambahkan",
-            color=0x00FF00
-        )
-        embed.add_field(name="ID", value=task_id, inline=True)
-        embed.add_field(name="Channel", value=channel.mention, inline=True)
-        embed.add_field(name="Interval", value=f"{interval} menit", inline=True)
-        embed.add_field(name="Message", value=message[:100], inline=False)
-        await ctx.send(embed=embed, delete_after=30)
-        await ctx.message.delete()
-
-    @autopost.command(name="list")
-    async def autopost_list(self, ctx):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        tasks = get_autopost_tasks()
-        if not tasks:
-            await ctx.send("Tidak ada autopost task.", delete_after=10)
-            await ctx.message.delete()
-            return
-        embed = discord.Embed(
-            title="AutoPost Tasks",
-            color=0x5865F2
-        )
-        for t in tasks[:10]:
-            status = "🟢" if t.get("is_active") else "🔴"
-            embed.add_field(
-                name=f"{status} #{t['id']}",
-                value=f"Channel: <#{t['channel_id']}>\nInterval: {t['interval_minutes']}m\nPesan: {t['message'][:50]}...",
-                inline=False
-            )
-        await ctx.send(embed=embed, delete_after=30)
-        await ctx.message.delete()
-
-    @autopost.command(name="toggle")
-    async def autopost_toggle(self, ctx, task_id: int):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        from utils.autoposter_settings import toggle_autopost_task
-        toggle_autopost_task(task_id)
-        await ctx.message.delete()
-        await ctx.send(f"AutoPost #{task_id} toggled.", delete_after=10)
-
-    @autopost.command(name="delete")
-    async def autopost_delete(self, ctx, task_id: int):
-        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
-            return
-        from utils.autoposter_settings import delete_autopost_task
-        delete_autopost_task(task_id)
-        await ctx.send(f"AutoPost #{task_id} dihapus.", delete_after=10)
-        await ctx.message.delete()
 
 async def setup(bot):
     await bot.add_cog(AutoPosterCog(bot))
