@@ -31,14 +31,18 @@ class AutoPosterCog(commands.Cog):
                 continue
 
             channel_ids = [c.strip() for c in task["channel_id"].split(",") if c.strip()]
+            print(f"[AUTOPOST] Task #{task['id']}: raw channel_ids={channel_ids}")
             channels = []
             for cid in channel_ids:
                 try:
                     ch = self.bot.get_channel(int(cid))
                     if ch:
                         channels.append(ch)
-                except (ValueError, TypeError):
-                    pass
+                        print(f"[AUTOPOST] Task #{task['id']}: found channel #{ch.id} ({ch.name})")
+                    else:
+                        print(f"[AUTOPOST] Task #{task['id']}: bot.get_channel({cid}) returned None")
+                except (ValueError, TypeError) as e:
+                    print(f"[AUTOPOST] Task #{task['id']}: error parsing {cid}: {e}")
             
             if not channels:
                 print(f"[AUTOPOST] Task #{task['id']}: no valid channels found")
