@@ -48,6 +48,10 @@ class AutoPosterCog(commands.Cog):
             else:
                 update_autopost_counter(task["id"], new_counter)
 
+    async def before_autopost_loop(self):
+        await self.bot.wait_until_ready()
+        print("[AUTOPOST] Loop ready, waiting for next tick...")
+
     async def _post_to_channel(self, channel_id: str, message: str, user_token: str):
         try:
             headers = {
