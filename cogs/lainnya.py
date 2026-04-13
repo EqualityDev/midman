@@ -191,7 +191,143 @@ class CatalogView(discord.ui.View):
         categories = list(dict.fromkeys(p["category"] for p in products))
         for cat in categories:
             self.add_item(CategoryButton(cat))
+        self.add_item(CustomOrderButton())
         return self
+
+
+class CustomOrderButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="📝 Custom Order",
+            style=discord.ButtonStyle.success,
+            custom_id="lainnya_custom_order"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(CustomOrderModal())
+
+
+class CustomOrderModal(discord.ui.Modal, title="Custom Order"):
+    item_name = discord.ui.TextInput(
+        label="Nama Item / Deskripsi",
+        placeholder="contoh: Jasa topup 500 diamond ML",
+        style=discord.TextStyle.short,
+        required=True
+    )
+    quantity = discord.ui.TextInput(
+        label="Jumlah / Qty",
+        placeholder="contoh: 1 atau 500",
+        style=discord.TextStyle.short,
+        required=True
+    )
+    budget = discord.ui.TextInput(
+        label="Budget / Offer (Rp)",
+        placeholder="contoh: 10000 atau 50000",
+        style=discord.TextStyle.short,
+        required=True
+    )
+    notes = discord.ui.TextInput(
+        label="Catatan (opsional)",
+        placeholder="Tambahan info kalau ada",
+        style=discord.TextStyle.paragraph,
+        required=False
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        member = interaction.user
+        cog = interaction.client.cogs.get("LainnyaStore")
+
+        for ch_id, t in cog.active_tickets.items():
+            if t["user_id"] == member.id:
+                existing = guild.get_channel(ch_id)
+                if existing:
+                    await interaction.response.send_message(
+                        f"Kamu masih punya tiket aktif di {existing.mention}!",
+                        ephemeral=True
+                    )
+                    return
+
+        try:
+            budget_int = int(self.budget.value.replace(".", "").replace(",", ""))
+        except ValueError:
+            await interaction.response.send_message("Budget harus angka.", ephemeral=True)
+            return
+
+        try:
+            qty_int = int(self.quantity.value)
+        except ValueError:
+            await interaction.response.send_message("Quantity harus angka.", ephemeral=True)
+            return
+
+        if not interaction.response.is_done():
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except Exception:
+                pass
+
+        cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
+        admin_role = guild.get_role(ADMIN_ROLE_ID)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+        channel = await guild.create_text_channel(
+            name=f"custom-{member.name}",
+            category=cat_channel,
+            overwrites=overwrites
+        )
+
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        ticket = {
+            "channel_id": channel.id,
+            "user_id": member.id,
+            "item_id": None,
+            "item_name": f"{self.item_name.value} (Qty: {qty_int})",
+            "category": "Custom Order",
+            "harga": budget_int,
+            "payment_method": None,
+            "admin_id": None,
+            "embed_message_id": None,
+            "opened_at": now,
+            "last_activity": now,
+            "warned": 0,
+            "warn_message_id": None,
+        }
+        cog.active_tickets[channel.id] = ticket
+        save_lainnya_ticket(ticket)
+
+        notes_text = f"\n**Catatan:** {self.notes.value}" if self.notes.value else ""
+        embed = discord.Embed(
+            title=f"CUSTOM ORDER — {STORE_NAME}",
+            color=0x00FF00,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        embed.add_field(name="Member", value=member.mention, inline=True)
+        embed.add_field(name="Item", value=self.item_name.value, inline=True)
+        embed.add_field(name="Quantity", value=str(qty_int), inline=True)
+        embed.add_field(name="Budget", value=f"Rp {budget_int:,}", inline=True)
+        if self.notes.value:
+            embed.add_field(name="Catatan", value=self.notes.value, inline=False)
+        embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi member...*", inline=False)
+        embed.add_field(name="Status", value="Admin akan mengkonfirmasi ketersediaan & metode pembayaran.", inline=False)
+        embed.set_footer(text=STORE_NAME)
+
+        admin_mention = admin_role.mention if admin_role else ""
+        msg = await channel.send(
+            content=f"{member.mention} {admin_mention}\nCustom order baru! Segera konfirmasi.",
+            embed=embed
+        )
+        ticket["embed_message_id"] = msg.id
+        save_lainnya_ticket(ticket)
+        await interaction.followup.send(
+            f"Custom order kamu dibuat di {channel.mention}!\nBudget: Rp {budget_int:,}",
+            ephemeral=True
+        )
 
 
 def _build_lainnya_cart_embed(cart_items: list) -> discord.Embed:
