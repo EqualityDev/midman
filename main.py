@@ -151,6 +151,7 @@ async def main():
         await bot.load_extension("cogs.gp")
         await bot.load_extension("cogs.afk")
         await bot.load_extension("cogs.relay")
+        await bot.load_extension("cogs.store_status")
 
         await bot.start(TOKEN)
 
