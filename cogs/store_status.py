@@ -1,5 +1,9 @@
 import datetime
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None  # type: ignore[assignment]
 
 from discord.ext import commands, tasks
 
@@ -10,7 +14,17 @@ STATUS_VOICE_CHANNEL_ID = 1476382504838500362
 OPEN_NAME = "🟢 STATUS : OPEN"
 CLOSE_NAME = "🔴 STATUS : CLOSE"
 
-WIB = ZoneInfo("Asia/Jakarta")
+def _get_wib_tzinfo() -> datetime.tzinfo:
+    # Termux/Python builds may not ship IANA tzdata. WIB has no DST, so UTC+7 is safe.
+    if ZoneInfo is not None:
+        try:
+            return ZoneInfo("Asia/Jakarta")  # type: ignore[misc]
+        except Exception:
+            pass
+    return datetime.timezone(datetime.timedelta(hours=7), name="WIB")
+
+
+WIB = _get_wib_tzinfo()
 
 
 def _is_open(now_wib: datetime.datetime) -> bool:
