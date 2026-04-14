@@ -54,7 +54,7 @@ class ServerStatsCog(commands.Cog):
             if not channel:
                 return
             member_count = sum(1 for m in channel.guild.members if not m.bot)
-            new_name = f"🌕 Members: {member_count}"
+            new_name = f"🌐 Members: {member_count}"
             if channel.name != new_name:
                 await channel.edit(name=new_name)
         except Exception as e:
@@ -76,7 +76,7 @@ class ServerStatsCog(commands.Cog):
             if not channel:
                 return
             member_count = sum(1 for m in guild.members if not m.bot)
-            new_name = f"🌕 Members: {member_count}"
+            new_name = f"🌐 Members: {member_count}"
             if channel.name != new_name:
                 await channel.edit(name=new_name)
         except Exception as e:
@@ -91,7 +91,7 @@ class ServerStatsCog(commands.Cog):
         self._stats_channel_id = channel.id
         _set_setting("stats_channel_id", str(channel.id))
         member_count = sum(1 for m in interaction.guild.members if not m.bot)
-        await channel.edit(name=f"🌕 Members: {member_count}")
+        await channel.edit(name=f"🌐 Members: {member_count}")
         await interaction.response.send_message(
             f"✅ Stats channel diset ke {channel.mention}\nSekarang menampilkan **{member_count} members**.",
             ephemeral=True
