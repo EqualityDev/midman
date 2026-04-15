@@ -655,17 +655,6 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="SC TB / ASET GAME",
-            value=(
-                "`!aset` — kirim katalog SC/Aset Game\n"
-                "`!additem <nama> <qty> <harga>` — tambah item ke tiket\n"
-                "`!delitem <nomor>` — hapus item dari tiket\n"
-                "`!done` — tutup tiket sukses\n"
-                "`!cancel [alasan]` — batalkan tiket"
-            ),
-            inline=False
-        )
-        embed.add_field(
             name="LAINNYA",
             value=(
                 "`!selfroles` — kirim embed self roles\n"
