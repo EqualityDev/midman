@@ -615,6 +615,8 @@ class Midman(commands.Cog):
                 "`!stock` — lihat stock robux\n"
                 "`!stockset <robux>` — set stock tersedia\n"
                 "`!stockadd <robux>` — tambah stock tersedia\n"
+                "`!stockoutadd <robux>` — tambah robux keluar (total)\n"
+                "`!stockoutship <robux>` — robux keluar + kurangi stock\n"
                 "`!gift` — konfirmasi gift item selesai\n"
                 "`!tolak [alasan]` — batalkan tiket robux"
             ),

@@ -6,7 +6,14 @@ from discord.ext import commands, tasks
 from utils.config import ADMIN_ROLE_ID, ROBUX_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, GUILD_ID
 from utils.db import get_conn
 from utils.robux_db import load_robux_tickets, save_robux_ticket, delete_robux_ticket
-from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing, set_available as set_robux_stock_available, add_available as add_robux_stock_available
+from utils.robux_stock import (
+    get_available as get_robux_stock_available,
+    get_out_total as get_robux_out_total,
+    add_out_total as add_robux_out_total,
+    record_outgoing as record_robux_outgoing,
+    set_available as set_robux_stock_available,
+    add_available as add_robux_stock_available,
+)
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -949,6 +956,63 @@ class RobuxStore(commands.Cog):
             return
         new_value = add_robux_stock_available(int(amount))
         await ctx.send(f"✅ Stock tersedia sekarang: **{new_value:,} Robux**", delete_after=10)
+        try:
+            await self.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception:
+            pass
+
+    @commands.command(name="stockoutadd")
+    async def stockoutadd_cmd(self, ctx, amount: int = None):
+        """
+        Tambah Robux keluar (total) tanpa mengubah stock tersedia.
+        Berguna untuk transaksi di luar bot yang tetap ingin dihitung di statistik.
+        """
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        if amount is None or amount <= 0:
+            await ctx.send("Format: `!stockoutadd <jumlah_robux>`", delete_after=10)
+            return
+        new_out = add_robux_out_total(int(amount))
+        await ctx.send(f"✅ Robux keluar (total) sekarang: **{new_out:,} Robux**", delete_after=10)
+        try:
+            await self.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception:
+            pass
+
+    @commands.command(name="stockoutship")
+    async def stockoutship_cmd(self, ctx, amount: int = None):
+        """
+        Catat Robux keluar dan kurangi stock tersedia (out_total += amount, available -= amount).
+        Berguna untuk koreksi manual yang memang mengurangi inventory.
+        """
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        if amount is None or amount <= 0:
+            await ctx.send("Format: `!stockoutship <jumlah_robux>`", delete_after=10)
+            return
+        record_robux_outgoing(int(amount))
+        available = get_robux_stock_available()
+        out_total = get_robux_out_total()
+        await ctx.send(
+            f"✅ Stock update\n"
+            f"Stock tersedia: **{available:,} Robux**\n"
+            f"Robux keluar (total): **{out_total:,} Robux**",
+            delete_after=15
+        )
         try:
             await self.refresh_catalog()
             gp_cog = self.bot.cogs.get("GPStore")
