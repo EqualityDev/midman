@@ -24,7 +24,6 @@ from utils.config import (
 from utils.db import get_conn
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
 
-THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 COLOR = 0xF1C40F
 
 MIN_ROBUX = 500
@@ -79,7 +78,6 @@ def _sanitize_channel_name(name: str) -> str:
 
 
 def build_catalog_embed(rate: int) -> discord.Embed:
-    rate_str = _format_rp(rate) + "/Robux" if rate > 0 else "Belum diset"
     price_lines = []
     if rate > 0:
         for rbx in range(MIN_ROBUX, MAX_ROBUX + 1, STEP_ROBUX):
@@ -89,30 +87,24 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         title=f"TOPUP ROBUX VIA LOGIN (VILOG) — {STORE_NAME}",
         description=(
             "Topup Robux via login akun Roblox.\n"
-            f"Order tersedia dalam kelipatan **{STEP_ROBUX} Robux** (min {MIN_ROBUX}, max {MAX_ROBUX}).\n\n"
-            "Klik tombol **Order** di bawah untuk mulai."
+            f"Order tersedia dalam kelipatan **{STEP_ROBUX} Robux**"
         ),
         color=COLOR,
         timestamp=datetime.datetime.now(datetime.timezone.utc),
     )
-    embed.add_field(name="Rate", value=f"**{rate_str}**", inline=False)
-    if rate > 0:
-        embed.add_field(
-            name=f"Daftar Harga (500–{MAX_ROBUX})",
-            value=price_table,
-            inline=False,
-        )
+    embed.add_field(name="Daftar harga", value=price_table, inline=False)
     embed.add_field(
         name="Catatan",
         value=(
-            "• Jangan share password di luar tiket.\n"
-            "• Admin akan proses setelah pembayaran dikonfirmasi.\n"
-            "• Rate bisa berubah sewaktu-waktu."
+            "- Premium hanya bisa 1x per bulan\n"
+            "- Proses 15–30 menit (maks. 3 jam tergantung antrian)\n"
+            "- Wajib menyertakan kode backup terbaru (min. 3)\n"
+            "- Pastikan email & password benar agar proses lancar\n"
+            "- Akun roblox wajib memiliki email aktif"
         ),
         inline=False,
     )
-    embed.set_thumbnail(url=THUMBNAIL)
-    embed.set_footer(text=f"{STORE_NAME} • Support kelipatan 500")
+    embed.set_footer(text=f"{STORE_NAME} • Support kelipatan {STEP_ROBUX} (max {MAX_ROBUX})")
     return embed
 
 
