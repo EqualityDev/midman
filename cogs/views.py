@@ -2,6 +2,7 @@ import discord
 import datetime
 from utils.fee import format_nominal
 from utils.tickets import save_tickets
+from utils.store_hours import is_store_open
 
 def build_embed_awal(store_name, p1_mention, item_p1, item_p2):
     embed = discord.Embed(
@@ -78,8 +79,12 @@ def build_embed_berlangsung(store_name, ticket, confirmed_by):
     return embed
 
 class MidmanMainView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, store_open: bool | None = None):
         super().__init__(timeout=None)
+        store_open = is_store_open() if store_open is None else store_open
+        if not store_open:
+            for child in self.children:
+                child.disabled = True
 
     @discord.ui.button(label="⚔️ Midman Trade", style=discord.ButtonStyle.primary, custom_id="open_midman_trade")
     async def open_ticket(self, interaction, button):

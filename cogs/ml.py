@@ -7,6 +7,7 @@ from utils.config import ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEG
 from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
 from utils.db import get_conn
+from utils.store_hours import is_store_open
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -344,9 +345,13 @@ class GameSelect(discord.ui.Select):
 
 
 class MLBuyView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, store_open: bool | None = None):
         super().__init__(timeout=None)
         self.add_item(GameSelect())
+        store_open = is_store_open() if store_open is None else store_open
+        if not store_open:
+            for child in self.children:
+                child.disabled = True
 
 
 # ─── Cog ─────────────────────────────────────────────────────────────────────
@@ -457,7 +462,7 @@ class MLStore(commands.Cog):
         if self.catalog_message_id:
             try:
                 msg = await ch.fetch_message(self.catalog_message_id)
-                await msg.edit(embed=embed, view=MLBuyView())
+                await msg.edit(embed=embed, view=MLBuyView(store_open=is_store_open()))
                 await ctx.send(f"Catalog ML diperbarui di {ch.mention}", delete_after=5)
                 return
             except Exception:
@@ -468,9 +473,46 @@ class MLStore(commands.Cog):
                     await msg.delete()
                 except Exception:
                     pass
-        sent = await ch.send(embed=embed, view=MLBuyView())
+        sent = await ch.send(embed=embed, view=MLBuyView(store_open=is_store_open()))
         self.catalog_message_id = sent.id
         await ctx.send(f"Catalog ML dikirim ke {ch.mention}", delete_after=5)
+
+    async def refresh_catalog(self):
+        """Refresh view catalog ML (enable/disable tombol) based on store open/close."""
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return
+        from utils.config import ML_CATALOG_CHANNEL_ID
+        ch = guild.get_channel(ML_CATALOG_CHANNEL_ID)
+        if not ch:
+            return
+        if not self.catalog_message_id:
+            # Try to find the last bot message in the catalog channel.
+            async for msg in ch.history(limit=20):
+                if msg.author == guild.me and msg.embeds:
+                    self.catalog_message_id = msg.id
+                    break
+        if not self.catalog_message_id:
+            return
+        try:
+            msg = await ch.fetch_message(self.catalog_message_id)
+        except Exception:
+            return
+        games = _load_games()
+        game_list = "\n".join(f"• **{g['name']}**" for g in games) or "Belum ada game aktif."
+        embed = discord.Embed(
+            title="TOPUP DIAMOND GAME",
+            description=(
+                f"Sekarang tersedia di **{STORE_NAME}**\n"
+                f"Topup diamond dengan harga terjangkau, proses cepat, amanah dan transparan!\n\n"
+                f"**Game tersedia:**\n{game_list}\n\n"
+                f"Pilih game di dropdown di bawah untuk melihat produk dan melakukan pemesanan.\n\n"
+                f"Metode Pembayaran: **QRIS**"
+            ),
+            color=0x3498DB
+        )
+        embed.set_footer(text=STORE_NAME)
+        await msg.edit(embed=embed, view=MLBuyView(store_open=is_store_open()))
 
     @commands.command(name="mlselesai")
     async def mlselesai(self, ctx):

@@ -18,6 +18,7 @@ from utils.gp_db import (
     get_gp_rate, set_gp_rate
 )
 from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing
+from utils.store_hours import is_store_open
 
 GP_CATALOG_CHANNEL_ID = 1478917118715236603
 MIN_ROBUX = 300
@@ -114,8 +115,12 @@ def build_catalog_embed(rate: int) -> discord.Embed:
 
 
 class CatalogView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, store_open: bool | None = None):
         super().__init__(timeout=None)
+        store_open = is_store_open() if store_open is None else store_open
+        if not store_open:
+            for child in self.children:
+                child.disabled = True
 
     @discord.ui.button(label="Order", style=discord.ButtonStyle.primary, custom_id="gp_order", emoji="🎫")
     async def order(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -375,7 +380,7 @@ class GPStore(commands.Cog):
         if self.catalog_message_id:
             try:
                 msg = await ch.fetch_message(self.catalog_message_id)
-                await msg.edit(embed=embed, view=CatalogView())
+                await msg.edit(embed=embed, view=CatalogView(store_open=is_store_open()))
                 return
             except Exception:
                 pass
@@ -385,7 +390,7 @@ class GPStore(commands.Cog):
                     await msg.delete()
                 except Exception:
                     pass
-        sent = await ch.send(embed=embed, view=CatalogView())
+        sent = await ch.send(embed=embed, view=CatalogView(store_open=is_store_open()))
         self.catalog_message_id = sent.id
 
     @commands.Cog.listener()

@@ -24,6 +24,7 @@ from utils.config import (
 from utils.db import get_conn
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
 from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing
+from utils.store_hours import is_store_open
 
 COLOR = 0xF1C40F
 
@@ -218,9 +219,13 @@ class VilogOrderModal(discord.ui.Modal, title="Order Robux Via Login (Vilog)"):
 
 
 class VilogCatalogView(discord.ui.View):
-    def __init__(self, cog: "Vilog"):
+    def __init__(self, cog: "Vilog", store_open: bool | None = None):
         super().__init__(timeout=None)
         self.cog = cog
+        store_open = is_store_open() if store_open is None else store_open
+        if not store_open:
+            for child in self.children:
+                child.disabled = True
 
     @discord.ui.button(label="Order", style=discord.ButtonStyle.primary, custom_id="vilog_order", emoji="🎫")
     async def order(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -257,7 +262,7 @@ class Vilog(commands.Cog):
             return
         rate = get_vilog_rate()
         embed = build_catalog_embed(rate)
-        view = VilogCatalogView(self)
+        view = VilogCatalogView(self, store_open=is_store_open())
         if self.catalog_message_id:
             try:
                 msg = await ch.fetch_message(self.catalog_message_id)

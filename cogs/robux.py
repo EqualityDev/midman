@@ -14,6 +14,7 @@ from utils.robux_stock import (
     set_available as set_robux_stock_available,
     add_available as add_robux_stock_available,
 )
+from utils.store_hours import is_store_open
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -87,13 +88,17 @@ def build_catalog_embed(rate):
     return embed
 
 class CategoryView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, store_open: bool | None = None):
         super().__init__(timeout=None)
         categories = load_categories()
         for cat in categories:
             color = CATEGORY_COLORS.get(cat, DEFAULT_COLOR)
             self.add_item(CategoryButton(cat, color))
         self.add_item(CustomOrderButton())
+        store_open = is_store_open() if store_open is None else store_open
+        if not store_open:
+            for child in self.children:
+                child.disabled = True
 
 class CategoryButton(discord.ui.Button):
     def __init__(self, category, color):
@@ -552,7 +557,7 @@ class RobuxStore(commands.Cog):
         if self.catalog_message_id:
             try:
                 msg = await ch.fetch_message(self.catalog_message_id)
-                await msg.edit(embed=embed, view=CategoryView())
+                await msg.edit(embed=embed, view=CategoryView(store_open=is_store_open()))
                 return
             except Exception:
                 pass
@@ -562,7 +567,7 @@ class RobuxStore(commands.Cog):
                     await msg.delete()
                 except Exception:
                     pass
-        sent = await ch.send(embed=embed, view=CategoryView())
+        sent = await ch.send(embed=embed, view=CategoryView(store_open=is_store_open()))
         self.catalog_message_id = sent.id
 
     async def refresh_active_tickets(self, guild, rate):

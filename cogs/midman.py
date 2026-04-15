@@ -17,6 +17,25 @@ from utils.config import (
 from cogs.views import MidmanMainView, AdminSetupView, TradeFinishView
 from utils.backup import do_backup, do_restore
 from discord.ext import tasks
+from utils.db import get_conn
+from utils.store_hours import is_store_open
+
+
+def _get_setting(key: str) -> str | None:
+    conn = get_conn()
+    row = conn.execute("SELECT value FROM bot_state WHERE key=?", (key,)).fetchone()
+    conn.close()
+    return row["value"] if row else None
+
+
+def _set_setting(key: str, value: str):
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO bot_state (key, value) VALUES (?,?)",
+        (key, value),
+    )
+    conn.commit()
+    conn.close()
 
 
 def _count_all_tickets(bot):
@@ -264,8 +283,38 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.set_footer(text=STORE_NAME)
-        await ch.send(embed=embed, view=MidmanMainView())
+        msg = await ch.send(embed=embed, view=MidmanMainView(store_open=is_store_open()))
+        _set_setting("midman_catalog_message_id", str(msg.id))
         await ctx.send(f"Embed dikirim ke {ch.mention}", delete_after=5)
+
+    async def refresh_open_embed(self):
+        """Enable/disable midman catalog buttons based on store open/close."""
+        guild = self.bot.get_guild(GUILD_ID)
+        if not guild:
+            return
+        ch = guild.get_channel(MIDMAN_CHANNEL_ID)
+        if not ch:
+            return
+        msg_id_raw = _get_setting("midman_catalog_message_id") or ""
+        msg = None
+        if msg_id_raw.isdigit():
+            try:
+                msg = await ch.fetch_message(int(msg_id_raw))
+            except Exception:
+                msg = None
+        if not msg:
+            async for m in ch.history(limit=25):
+                if m.author == guild.me and m.embeds:
+                    title = (m.embeds[0].title or "").upper()
+                    if "MIDMAN" in title:
+                        msg = m
+                        break
+        if not msg:
+            return
+        try:
+            await msg.edit(view=MidmanMainView(store_open=is_store_open()))
+        except Exception:
+            pass
 
     @commands.command(name="acc")
     async def acc(self, ctx):

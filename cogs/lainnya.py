@@ -8,6 +8,7 @@ from utils.config import (
     TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID, GUILD_ID
 )
 from utils.db import get_conn
+from utils.store_hours import is_store_open
 from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
 
@@ -183,8 +184,9 @@ class CategoryButton(discord.ui.Button):
 
 
 class CatalogView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, store_open: bool | None = None):
         super().__init__(timeout=None)
+        self._store_open = is_store_open() if store_open is None else store_open
 
     def rebuild(self, products):
         self.clear_items()
@@ -192,6 +194,9 @@ class CatalogView(discord.ui.View):
         for cat in categories:
             self.add_item(CategoryButton(cat))
         self.add_item(CustomOrderButton())
+        if not self._store_open:
+            for child in self.children:
+                child.disabled = True
         return self
 
 
@@ -527,7 +532,7 @@ class LainnyaStore(commands.Cog):
         if not ch:
             return
         embed = build_catalog_embed(products)
-        view = CatalogView().rebuild(products)
+        view = CatalogView(store_open=is_store_open()).rebuild(products)
         if self.catalog_message_id:
             try:
                 msg = await ch.fetch_message(self.catalog_message_id)
