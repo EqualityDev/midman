@@ -274,7 +274,7 @@ class ConfirmView(discord.ui.View):
             name="Langkah Selanjutnya",
             value=(
                 "1. **Bayar tagihan** ke admin (QRIS/DANA/BCA)\n"
-                "2. Klik tombol **Sudah Bayar** setelah transfer\n"
+                "2. Kirim bukti pembayaran di tiket ini\n"
                 "3. Setelah admin konfirmasi, buat gamepass dengan harga **{} Robux**\n"
                 "4. Kirim link gamepass di sini\n"
                 "5. Tunggu Robux masuk 3-7 hari 🎉"
@@ -288,18 +288,10 @@ class ConfirmView(discord.ui.View):
         )
         embed.set_footer(text=f"{STORE_NAME} • Jangan hapus gamepass sebelum Robux masuk")
 
-        paid_view = discord.ui.View(timeout=None)
-        paid_view.add_item(discord.ui.Button(
-            label="Sudah Bayar",
-            style=discord.ButtonStyle.success,
-            custom_id=f"gp_paid_{channel.id}"
-        ))
-
         ping = admin_role.mention if admin_role else ""
         await channel.send(
             content=f"Halo {member.mention}! Tiket topup Robux via gamepass telah dibuat. {ping}",
-            embed=embed,
-            view=paid_view
+            embed=embed
         )
         await interaction.followup.send(f"Tiket dibuat! {channel.mention}", ephemeral=True)
 
@@ -398,64 +390,21 @@ class GPStore(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
-        custom_id = interaction.data.get("custom_id", "")
+        custom_id = ""
+        try:
+            custom_id = (interaction.data or {}).get("custom_id", "")
+        except Exception:
+            custom_id = ""
 
-        # ── SUDAH BAYAR button ────────────────────────────────
-        if custom_id.startswith("gp_paid_"):
-            channel_id = int(custom_id.replace("gp_paid_", ""))
-            if channel_id not in self.active_tickets:
-                await interaction.response.send_message("Tiket tidak ditemukan!", ephemeral=True)
-                return
-            ticket = self.active_tickets[channel_id]
-            if interaction.user.id != ticket["user_id"]:
-                await interaction.response.send_message("Bukan tiket kamu!", ephemeral=True)
-                return
-            if ticket.get("paid"):
-                await interaction.response.send_message("Pembayaran sudah diproses.", ephemeral=True)
-                return
-
-            await interaction.response.defer()
-
-            admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-            verify_view = discord.ui.View(timeout=None)
-            verify_view.add_item(discord.ui.Button(
-                label="Verifikasi Pembayaran",
-                style=discord.ButtonStyle.success,
-                custom_id=f"gp_verify_{channel_id}"
-            ))
-            ping = admin_role.mention if admin_role else ""
-            await interaction.channel.send(
-                content=f"{ping} **{interaction.user.display_name}** mengklaim sudah bayar!\n"
-                        f"Topup: **{ticket['robux']} Robux** | Total: **Rp {ticket['total']:,}**",
-                view=verify_view
-            )
-            await interaction.followup.send(
-                "Pembayaran kamu sedang diverifikasi oleh admin. Estimasi 1-5 menit.",
-                ephemeral=True
-            )
-
-        # ── VERIFIKASI button ─────────────────────────────────
-        elif custom_id.startswith("gp_verify_"):
-            channel_id = int(custom_id.replace("gp_verify_", ""))
-            if channel_id not in self.active_tickets:
-                await interaction.response.send_message("Tiket tidak ditemukan!", ephemeral=True)
-                return
-            admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-            if admin_role not in interaction.user.roles:
-                await interaction.response.send_message("Admin only!", ephemeral=True)
-                return
-
-            ticket = self.active_tickets[channel_id]
-            ticket["paid"] = True
-            ticket["admin_id"] = interaction.user.id
-            ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            save_gp_ticket(ticket)
-
-            await interaction.response.send_message(
-                f"✅ Pembayaran dikonfirmasi oleh {interaction.user.mention}.\n\n"
-                f"**{interaction.guild.get_member(ticket['user_id']).mention if interaction.guild.get_member(ticket['user_id']) else 'Member'}**, "
-                f"silakan buat gamepass dengan harga **{ticket['gp_price']} Robux** lalu kirim link-nya di sini."
-            )
+        # Backward-compat: old tickets might still have SUDAH BAYAR / VERIFIKASI buttons.
+        if custom_id.startswith("gp_paid_") or custom_id.startswith("gp_verify_"):
+            try:
+                await interaction.response.send_message(
+                    "Fitur tombol pembayaran sudah dinonaktifkan. Kirim bukti pembayaran di chat, admin akan konfirmasi manual.",
+                    ephemeral=True,
+                )
+            except Exception:
+                pass
 
     @commands.command(name="gpdone")
     async def gpdone_cmd(self, ctx):
@@ -468,9 +417,6 @@ class GPStore(commands.Cog):
             await ctx.send("Channel ini bukan tiket GP aktif.", delete_after=5)
             return
         ticket = self.active_tickets[channel_id]
-        if not ticket.get("paid"):
-            await ctx.send("Pembayaran belum dikonfirmasi!", delete_after=5)
-            return
         if not ticket.get("gp_link"):
             await ctx.send("Link gamepass belum dikirim oleh member!", delete_after=5)
             return
@@ -564,9 +510,6 @@ class GPStore(commands.Cog):
         ticket = self.active_tickets[channel_id]
         if ctx.author.id != ticket["user_id"]:
             return
-        if not ticket.get("paid"):
-            await ctx.send("Bayar dulu sebelum kirim link gamepass!", delete_after=5)
-            return
         if not link:
             await ctx.send("Format: `!gplink <url gamepass>`", delete_after=5)
             return
@@ -633,7 +576,7 @@ class GPStore(commands.Cog):
         ticket["last_activity"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         save_gp_ticket(ticket)
 
-        if ticket.get("paid") and not ticket.get("gp_link"):
+        if not ticket.get("gp_link"):
             content = message.content.strip()
             if content.startswith("http") and "roblox.com" in content:
                 ticket["gp_link"] = content

@@ -581,7 +581,7 @@ class RobuxStore(commands.Cog):
                             f"Item: **{ticket['item_name']}**\n"
                             f"Rate: **Rp {rate:,}/Robux**\n"
                             f"Total: **Rp {ticket['total']:,}**\n\n"
-                            f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+                            f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                         )
                     elif method == "DANA":
                         desc = (
@@ -590,7 +590,7 @@ class RobuxStore(commands.Cog):
                             f"Item: **{ticket['item_name']}**\n"
                             f"Rate: **Rp {rate:,}/Robux**\n"
                             f"Total: **Rp {ticket['total']:,}**\n\n"
-                            f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+                            f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                         )
                     elif method == "BCA":
                         desc = (
@@ -599,7 +599,7 @@ class RobuxStore(commands.Cog):
                             f"Item: **{ticket['item_name']}**\n"
                             f"Rate: **Rp {rate:,}/Robux**\n"
                             f"Total: **Rp {ticket['total']:,}**\n\n"
-                            f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+                            f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                         )
                     new_embed = discord.Embed(title=f"{method} PAYMENT", description=desc, color=0xE91E63)
                     new_embed.set_footer(text=f"{STORE_NAME} • Pastikan nominal sesuai")
@@ -703,7 +703,7 @@ class RobuxStore(commands.Cog):
                     f"Item: **{ticket['item_name']}**\n"
                     f"Rate: **Rp {rate:,}/Robux**\n"
                     f"Total: **Rp {total:,}**\n\n"
-                    f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+                    f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                 ),
                 color=0xE91E63,
             )
@@ -722,7 +722,7 @@ class RobuxStore(commands.Cog):
                     f"Item: **{ticket['item_name']}**\n"
                     f"Rate: **Rp {rate:,}/Robux**\n"
                     f"Total: **Rp {total:,}**\n\n"
-                    f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+	                    f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                 ),
                 color=0xE91E63,
             )
@@ -739,7 +739,7 @@ class RobuxStore(commands.Cog):
                     f"Item: **{ticket['item_name']}**\n"
                     f"Rate: **Rp {rate:,}/Robux**\n"
                     f"Total: **Rp {total:,}**\n\n"
-                    f"Setelah transfer, kirim bukti pembayaran lalu klik tombol PAID."
+	                    f"Setelah transfer, kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
                 ),
                 color=0xE91E63,
             )
@@ -747,80 +747,30 @@ class RobuxStore(commands.Cog):
             payment_embed_msg = await message.channel.send(embed=embed)
             ticket["payment_embed_msg_id"] = payment_embed_msg.id
 
-        paid_view = discord.ui.View(timeout=None)
-        paid_view.add_item(discord.ui.Button(
-            label="PAID",
-            style=discord.ButtonStyle.success,
-            custom_id=f"robux_paid_{channel_id}"
-        ))
-        payment_msg = await message.channel.send(
-            content="Sudah transfer? Kirim bukti pembayaran lalu klik tombol di bawah:",
-            view=paid_view
+        await message.channel.send(
+            content="Sudah transfer? Kirim bukti pembayaran di sini. Admin akan konfirmasi manual."
         )
         ticket["payment_embed_method"] = method
-        ticket["payment_msg_id"] = payment_msg.id
+        ticket["payment_msg_id"] = None
         save_robux_ticket(ticket)
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
-        custom_id = interaction.data.get("custom_id", "")
+        custom_id = ""
+        try:
+            custom_id = (interaction.data or {}).get("custom_id", "")
+        except Exception:
+            custom_id = ""
 
-        # ─── PAID button ─────────────────────────────────────────
-        if custom_id.startswith("robux_paid_"):
-            channel_id = int(custom_id.replace("robux_paid_", ""))
-            if channel_id not in self.active_tickets:
-                await interaction.response.send_message("Tiket tidak ditemukan!", ephemeral=True)
-                return
-
-            ticket = self.active_tickets[channel_id]
-            if interaction.user.id != ticket["user_id"]:
-                await interaction.response.send_message("Bukan tiket kamu!", ephemeral=True)
-                return
-            if ticket.get("paid"):
-                await interaction.response.send_message("Pembayaran sudah diproses.", ephemeral=True)
-                return
-
-            await interaction.response.defer()
-
-            admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-            verify_view = discord.ui.View(timeout=None)
-            verify_view.add_item(discord.ui.Button(
-                label="Verifikasi Pembayaran",
-                style=discord.ButtonStyle.success,
-                custom_id=f"robux_verify_{channel_id}"
-            ))
-            ping = admin_role.mention if admin_role else ""
-            await interaction.channel.send(
-                content=f"{ping} **{interaction.user.display_name}** mengklaim sudah bayar!\n"
-                        f"Item: **{ticket['item_name']}** | Total: **Rp {ticket['total']:,}** | Metode: **{ticket.get('payment_method', '-')}**",
-                view=verify_view
-            )
-            await interaction.followup.send(
-                "Pembayaran kamu sedang diverifikasi oleh admin. Estimasi 1-5 menit.",
-                ephemeral=True
-            )
-
-        # ─── VERIFY button ────────────────────────────────────────
-        elif custom_id.startswith("robux_verify_"):
-            channel_id = int(custom_id.replace("robux_verify_", ""))
-            if channel_id not in self.active_tickets:
-                await interaction.response.send_message("Tiket tidak ditemukan!", ephemeral=True)
-                return
-
-            admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-            if admin_role not in interaction.user.roles:
-                await interaction.response.send_message("Admin only!", ephemeral=True)
-                return
-
-            ticket = self.active_tickets[channel_id]
-            ticket["paid"] = True
-            ticket["admin_id"] = interaction.user.id
-            save_robux_ticket(ticket)
-
-            await interaction.response.send_message(
-                f"Pembayaran dikonfirmasi oleh {interaction.user.mention}.\n"
-                f"Silakan masuk game dan proses gift item ke member."
-            )
+        # Backward-compat: old tickets might still have PAID/VERIFY buttons.
+        if custom_id.startswith("robux_paid_") or custom_id.startswith("robux_verify_"):
+            try:
+                await interaction.response.send_message(
+                    "Fitur tombol pembayaran sudah dinonaktifkan. Kirim bukti pembayaran di chat, admin akan konfirmasi manual.",
+                    ephemeral=True,
+                )
+            except Exception:
+                pass
 
     @commands.command(name="gift")
     async def gift_cmd(self, ctx):
@@ -832,9 +782,6 @@ class RobuxStore(commands.Cog):
             await ctx.send("Channel ini bukan tiket robux aktif.", delete_after=5)
             return
         ticket = self.active_tickets[channel_id]
-        if not ticket.get("paid"):
-            await ctx.send("Pembayaran belum dikonfirmasi!", delete_after=5)
-            return
 
         member = ctx.guild.get_member(ticket["user_id"])
         now = datetime.datetime.now(datetime.timezone.utc)
