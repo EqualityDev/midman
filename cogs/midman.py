@@ -618,6 +618,16 @@ class Midman(commands.Cog):
             inline=False
         )
         embed.add_field(
+            name="ROBUX VIA LOGIN (VILOG)",
+            value=(
+                "`!vilogcatalog` — kirim/refresh embed Vilog\n"
+                "`!ratevilog <angka>` — set rate Vilog\n"
+                "`!vilogdone` — konfirmasi Vilog selesai\n"
+                "`!vilogbatal [alasan]` — batalkan tiket Vilog"
+            ),
+            inline=False
+        )
+        embed.add_field(
             name="TOPUP MOBILE LEGENDS",
             value=(
                 "`!mlcatalog` — kirim embed catalog ML\n"
