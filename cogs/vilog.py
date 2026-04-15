@@ -29,6 +29,7 @@ COLOR = 0xF1C40F
 
 MIN_ROBUX = 500
 STEP_ROBUX = 500
+MAX_ROBUX = 10_000
 
 
 def _get_setting(key: str) -> str | None:
@@ -79,11 +80,16 @@ def _sanitize_channel_name(name: str) -> str:
 
 def build_catalog_embed(rate: int) -> discord.Embed:
     rate_str = _format_rp(rate) + "/Robux" if rate > 0 else "Belum diset"
+    price_lines = []
+    if rate > 0:
+        for rbx in range(MIN_ROBUX, MAX_ROBUX + 1, STEP_ROBUX):
+            price_lines.append(f"{rbx:>5} = {_format_rp(_calc_total(rbx, rate))}")
+    price_table = "```" + "\n".join(price_lines) + "```" if price_lines else "-"
     embed = discord.Embed(
         title=f"TOPUP ROBUX VIA LOGIN (VILOG) — {STORE_NAME}",
         description=(
             "Topup Robux via login akun Roblox.\n"
-            "Order tersedia dalam kelipatan **500 Robux**.\n\n"
+            f"Order tersedia dalam kelipatan **{STEP_ROBUX} Robux** (min {MIN_ROBUX}, max {MAX_ROBUX}).\n\n"
             "Klik tombol **Order** di bawah untuk mulai."
         ),
         color=COLOR,
@@ -92,12 +98,8 @@ def build_catalog_embed(rate: int) -> discord.Embed:
     embed.add_field(name="Rate", value=f"**{rate_str}**", inline=False)
     if rate > 0:
         embed.add_field(
-            name="Contoh Harga",
-            value=(
-                f"• 500 Robux = **{_format_rp(_calc_total(500, rate))}**\n"
-                f"• 1000 Robux = **{_format_rp(_calc_total(1000, rate))}**\n"
-                f"• 1500 Robux = **{_format_rp(_calc_total(1500, rate))}**"
-            ),
+            name=f"Daftar Harga (500–{MAX_ROBUX})",
+            value=price_table,
             inline=False,
         )
     embed.add_field(
@@ -117,15 +119,15 @@ def build_catalog_embed(rate: int) -> discord.Embed:
 class VilogOrderModal(discord.ui.Modal, title="Order Robux Via Login (Vilog)"):
     robux = discord.ui.TextInput(
         label="Jumlah Robux",
-        placeholder="Contoh: 500 / 1000 / 1500",
+        placeholder=f"Contoh: {MIN_ROBUX} / {MIN_ROBUX + STEP_ROBUX} / 1000",
         required=True,
         max_length=10,
     )
-    username = discord.ui.TextInput(
-        label="Username Roblox",
-        placeholder="Username akun Roblox kamu",
+    email = discord.ui.TextInput(
+        label="Email",
+        placeholder="Email akun Roblox kamu",
         required=True,
-        max_length=64,
+        max_length=128,
     )
     password = discord.ui.TextInput(
         label="Password Roblox",
@@ -133,6 +135,19 @@ class VilogOrderModal(discord.ui.Modal, title="Order Robux Via Login (Vilog)"):
         required=True,
         max_length=128,
         style=discord.TextStyle.short,
+    )
+    backup_codes = discord.ui.TextInput(
+        label="Kode Backup (min 3)",
+        placeholder="Tempel minimal 3 kode backup, pisahkan pakai enter",
+        required=True,
+        max_length=600,
+        style=discord.TextStyle.paragraph,
+    )
+    premium = discord.ui.TextInput(
+        label="Premium (yes/no) (opsional)",
+        placeholder="yes atau no (boleh kosong)",
+        required=False,
+        max_length=8,
     )
 
     def __init__(self, cog: "Vilog"):
@@ -163,13 +178,44 @@ class VilogOrderModal(discord.ui.Modal, title="Order Robux Via Login (Vilog)"):
                 ephemeral=True,
             )
             return
+        if robux > MAX_ROBUX:
+            await interaction.response.send_message(
+                f"Maksimal order adalah {MAX_ROBUX} Robux.",
+                ephemeral=True,
+            )
+            return
+
+        codes_raw = str(self.backup_codes.value).strip()
+        codes = [c.strip() for c in re.split(r"[\n,]+", codes_raw) if c.strip()]
+        if len(codes) < 3:
+            await interaction.response.send_message(
+                "Kode backup minimal 3. Pisahkan dengan enter atau koma.",
+                ephemeral=True,
+            )
+            return
+
+        premium_raw = str(self.premium.value).strip().lower()
+        premium = False
+        if premium_raw:
+            if premium_raw in {"yes", "y", "true", "1"}:
+                premium = True
+            elif premium_raw in {"no", "n", "false", "0"}:
+                premium = False
+            else:
+                await interaction.response.send_message(
+                    "Field premium harus `yes` atau `no` (atau kosong).",
+                    ephemeral=True,
+                )
+                return
 
         await interaction.response.defer(ephemeral=True, thinking=True)
         await self.cog.create_ticket(
             interaction=interaction,
             robux=robux,
-            username=str(self.username.value).strip(),
+            email=str(self.email.value).strip(),
             password=str(self.password.value).strip(),
+            backup_codes=codes,
+            premium=premium,
             rate=rate,
         )
 
@@ -233,8 +279,10 @@ class Vilog(commands.Cog):
         self,
         interaction: discord.Interaction,
         robux: int,
-        username: str,
+        email: str,
         password: str,
+        backup_codes: list[str],
+        premium: bool,
         rate: int,
     ):
         guild = self.bot.get_guild(GUILD_ID)
@@ -273,8 +321,11 @@ class Vilog(commands.Cog):
         ticket = {
             "channel_id": channel.id,
             "user_id": interaction.user.id,
-            "username_roblox": username,
+            "username_roblox": email,  # legacy column
+            "email": email,
             "password": password,
+            "backup_codes": "\n".join(backup_codes),
+            "premium": premium,
             "boost": {"nama": "Vilog", "robux": robux},
             "metode": "vilog",
             "nominal": total,
@@ -294,8 +345,13 @@ class Vilog(commands.Cog):
         info_embed.add_field(name="Robux", value=f"**{robux} Robux**", inline=True)
         info_embed.add_field(name="Rate", value=f"**{_format_rp(rate)}/Robux**", inline=True)
         info_embed.add_field(name="Total Tagihan", value=f"**{_format_rp(total)}**", inline=False)
-        info_embed.add_field(name="Username", value=f"`{username}`", inline=True)
+        info_embed.add_field(name="Email", value=f"`{email}`", inline=True)
         info_embed.add_field(name="Password", value=f"||`{password}`||", inline=True)
+        codes_preview = "\n".join(f"||`{c}`||" for c in backup_codes[:10])
+        if len(backup_codes) > 10:
+            codes_preview += f"\n(+{len(backup_codes) - 10} kode lagi)"
+        info_embed.add_field(name="Kode Backup", value=codes_preview, inline=False)
+        info_embed.add_field(name="Premium", value="Yes" if premium else "No", inline=True)
         info_embed.add_field(
             name="Langkah Selanjutnya",
             value=(

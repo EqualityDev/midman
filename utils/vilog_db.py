@@ -12,8 +12,11 @@ def load_vilog_tickets():
         tickets[row['channel_id']] = {
             'channel_id': row['channel_id'],
             'user_id': row['user_id'],
-            'username_roblox': row['username_roblox'],
+            # Backward compat: older rows might store email in username_roblox
+            'email': row['email'] or row['username_roblox'],
             'password': row['password'],
+            'backup_codes': row['backup_codes'] or '',
+            'premium': bool(row['premium']) if row['premium'] is not None else False,
             'boost': {'nama': row['boost_nama'], 'robux': row['boost_robux']},
             'metode': row['metode'],
             'nominal': row['nominal'],
@@ -28,13 +31,16 @@ def save_vilog_ticket(ticket):
     c = conn.cursor()
     c.execute('''
         INSERT OR REPLACE INTO vilog_tickets
-        (channel_id, user_id, username_roblox, password, boost_nama, boost_robux, metode, nominal, admin_id, opened_at, warned)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (channel_id, user_id, username_roblox, password, email, backup_codes, premium, boost_nama, boost_robux, metode, nominal, admin_id, opened_at, warned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         ticket['channel_id'],
         ticket['user_id'],
-        ticket['username_roblox'],
-        ticket['password'],
+        ticket.get('username_roblox'),
+        ticket.get('password'),
+        ticket.get('email'),
+        ticket.get('backup_codes'),
+        1 if ticket.get('premium') else 0,
         ticket['boost']['nama'],
         ticket['boost']['robux'],
         ticket['metode'],

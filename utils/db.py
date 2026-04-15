@@ -54,6 +54,9 @@ def init_db():
             user_id         INTEGER,
             username_roblox TEXT,
             password        TEXT,
+            email           TEXT,
+            backup_codes    TEXT,
+            premium         INTEGER DEFAULT 0,
             boost_nama      TEXT,
             boost_robux     INTEGER,
             metode          TEXT,
@@ -66,9 +69,12 @@ def init_db():
         )
     ''')
     for col, defval in [
-        ('warned', 'INTEGER DEFAULT 0'),
-        ('warn_message_id', 'INTEGER'),
-        ('last_activity', 'TEXT'),
+        ("email", "TEXT"),
+        ("backup_codes", "TEXT"),
+        ("premium", "INTEGER DEFAULT 0"),
+        ("warned", "INTEGER DEFAULT 0"),
+        ("warn_message_id", "INTEGER"),
+        ("last_activity", "TEXT"),
     ]:
         try:
             c.execute(f'ALTER TABLE vilog_tickets ADD COLUMN {col} {defval}')
