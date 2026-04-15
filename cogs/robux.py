@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 from utils.config import ADMIN_ROLE_ID, ROBUX_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME, TICKET_CATEGORY_ID, GUILD_ID
 from utils.db import get_conn
 from utils.robux_db import load_robux_tickets, save_robux_ticket, delete_robux_ticket
+from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing, set_available as set_robux_stock_available, add_available as add_robux_stock_available
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
@@ -58,6 +59,8 @@ def harga(robux, rate):
 
 def build_catalog_embed(rate):
     rate_str = f"Rp {rate:,}/Robux" if rate > 0 else "Belum diset"
+    stock_available = get_robux_stock_available()
+    stock_out_total = get_robux_out_total()
     categories = load_categories()
     cat_list = "\n".join(f"• **{cat}**" for cat in categories) if categories else "Belum ada produk aktif."
     embed = discord.Embed(
@@ -71,6 +74,8 @@ def build_catalog_embed(rate):
         color=0xE91E63,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
+    embed.add_field(name="Stock Tersedia", value=f"**{stock_available:,} Robux**", inline=True)
+    embed.add_field(name="Robux Keluar (Total)", value=f"**{stock_out_total:,} Robux**", inline=True)
     embed.set_footer(text=f"{STORE_NAME} • Harga dapat berubah sewaktu-waktu")
     return embed
 
@@ -891,6 +896,19 @@ class RobuxStore(commands.Cog):
             )
         except Exception as e:
             print(f"[LOG] Gagal log transaksi robux: {e}")
+
+        # Stock Robux (global across Robux-related services)
+        try:
+            record_robux_outgoing(int(ticket.get("robux", 0) or 0))
+            await self.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception as e:
+            print(f"[Stock] Gagal update stock robux: {e}")
         # Assign Royal Customer
         try:
             royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")
@@ -938,6 +956,62 @@ class RobuxStore(commands.Cog):
         await ctx.message.delete()
         await self.refresh_catalog()
         await ctx.send("Catalog dikirim!", delete_after=5)
+
+    @commands.command(name="stock")
+    async def stock_cmd(self, ctx):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        available = get_robux_stock_available()
+        out_total = get_robux_out_total()
+        await ctx.send(
+            f"📦 Stock Robux\n"
+            f"Stock tersedia: **{available:,} Robux**\n"
+            f"Robux keluar (total): **{out_total:,} Robux**",
+            delete_after=20
+        )
+
+    @commands.command(name="stockset")
+    async def stockset_cmd(self, ctx, amount: int = None):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        if amount is None or amount < 0:
+            await ctx.send("Format: `!stockset <jumlah_robux>`", delete_after=10)
+            return
+        set_robux_stock_available(int(amount))
+        await ctx.send(f"✅ Stock tersedia diset ke **{int(amount):,} Robux**", delete_after=10)
+        try:
+            await self.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception:
+            pass
+
+    @commands.command(name="stockadd")
+    async def stockadd_cmd(self, ctx, amount: int = None):
+        if not any(r.id == ADMIN_ROLE_ID for r in ctx.author.roles):
+            return
+        await ctx.message.delete()
+        if amount is None:
+            await ctx.send("Format: `!stockadd <jumlah_robux>`", delete_after=10)
+            return
+        new_value = add_robux_stock_available(int(amount))
+        await ctx.send(f"✅ Stock tersedia sekarang: **{new_value:,} Robux**", delete_after=10)
+        try:
+            await self.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception:
+            pass
 
 async def setup(bot):
     await bot.add_cog(RobuxStore(bot))

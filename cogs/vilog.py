@@ -23,6 +23,7 @@ from utils.config import (
 )
 from utils.db import get_conn
 from utils.vilog_db import load_vilog_tickets, save_vilog_ticket, delete_vilog_ticket
+from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing
 
 COLOR = 0xF1C40F
 
@@ -83,6 +84,8 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         for rbx in range(MIN_ROBUX, MAX_ROBUX + 1, STEP_ROBUX):
             price_lines.append(f"{rbx:>5} = {_format_rp(_calc_total(rbx, rate))}")
     price_table = "```" + "\n".join(price_lines) + "```" if price_lines else "-"
+    stock_available = get_robux_stock_available()
+    stock_out_total = get_robux_out_total()
     embed = discord.Embed(
         title=f"TOPUP ROBUX VIA LOGIN (VILOG) — {STORE_NAME}",
         description=(
@@ -93,6 +96,8 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         timestamp=datetime.datetime.now(datetime.timezone.utc),
     )
     embed.add_field(name="Daftar harga", value=price_table, inline=False)
+    embed.add_field(name="Stock Tersedia", value=f"**{stock_available:,} Robux**", inline=True)
+    embed.add_field(name="Robux Keluar (Total)", value=f"**{stock_out_total:,} Robux**", inline=True)
     embed.add_field(
         name="Catatan",
         value=(
@@ -452,6 +457,19 @@ class Vilog(commands.Cog):
             )
         except Exception as e:
             print(f"[Vilog] Log transaksi error: {e}")
+
+        # Stock Robux (global)
+        try:
+            record_robux_outgoing(int(ticket.get("boost", {}).get("robux", 0) or 0))
+            await self.refresh_embed(ctx.guild)
+            robux_cog = self.bot.cogs.get("RobuxStore")
+            if robux_cog and hasattr(robux_cog, "refresh_catalog"):
+                await robux_cog.refresh_catalog()
+            gp_cog = self.bot.cogs.get("GPStore")
+            if gp_cog and hasattr(gp_cog, "refresh_catalog"):
+                await gp_cog.refresh_catalog()
+        except Exception as e:
+            print(f"[Stock] Gagal update stock robux (Vilog): {e}")
 
         try:
             royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")

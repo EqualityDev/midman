@@ -17,6 +17,7 @@ from utils.gp_db import (
     load_gp_tickets, save_gp_ticket, delete_gp_ticket,
     get_gp_rate, set_gp_rate
 )
+from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing
 
 GP_CATALOG_CHANNEL_ID = 1478917118715236603
 MIN_ROBUX = 300
@@ -65,6 +66,8 @@ def calc_gp_price(robux: int) -> int:
 
 
 def build_catalog_embed(rate: int) -> discord.Embed:
+    stock_available = get_robux_stock_available()
+    stock_out_total = get_robux_out_total()
     embed = discord.Embed(
         title=f"TOPUP ROBUX VIA GAMEPASS — {STORE_NAME}",
         description=(
@@ -81,6 +84,8 @@ def build_catalog_embed(rate: int) -> discord.Embed:
         value=f"**Rp {rate:,}/Robux**",
         inline=False
     )
+    embed.add_field(name="Stock Tersedia", value=f"**{stock_available:,} Robux**", inline=True)
+    embed.add_field(name="Robux Keluar (Total)", value=f"**{stock_out_total:,} Robux**", inline=True)
     embed.add_field(
         name="Cara Order",
         value=(
@@ -519,6 +524,19 @@ class GPStore(commands.Cog):
             )
         except Exception as e:
             print(f"[GP] Gagal log transaksi: {e}")
+
+        # Stock Robux (global)
+        try:
+            record_robux_outgoing(int(ticket.get("robux", 0) or 0))
+            await self.refresh_catalog()
+            robux_cog = self.bot.cogs.get("RobuxStore")
+            if robux_cog and hasattr(robux_cog, "refresh_catalog"):
+                await robux_cog.refresh_catalog()
+            vilog_cog = self.bot.cogs.get("Vilog")
+            if vilog_cog and hasattr(vilog_cog, "refresh_embed"):
+                await vilog_cog.refresh_embed(ctx.guild)
+        except Exception as e:
+            print(f"[Stock] Gagal update stock robux (GP): {e}")
 
         try:
             royal_role = discord.utils.get(ctx.guild.roles, name="Royal Customer")

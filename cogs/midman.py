@@ -612,6 +612,9 @@ class Midman(commands.Cog):
             value=(
                 "`!catalog` — kirim embed catalog robux\n"
                 "`!rate <angka>` — set rate Robux\n"
+                "`!stock` — lihat stock robux\n"
+                "`!stockset <robux>` — set stock tersedia\n"
+                "`!stockadd <robux>` — tambah stock tersedia\n"
                 "`!gift` — konfirmasi gift item selesai\n"
                 "`!tolak [alasan]` — batalkan tiket robux"
             ),
