@@ -9,6 +9,8 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Midman Trade** — tiket perantara tukar item antar dua pihak
 - **Midman Jual Beli** — tiket perantara jual beli, admin tahan uang pembeli sampai item konfirmasi oke
 - **Robux Store** — katalog item Roblox per kategori dengan rate dinamis
+- **Robux Via Login (Vilog)** — topup Robux via login akun Roblox (kelipatan 500)
+- **Stock Robux** — tampilkan stock tersedia + total robux keluar di catalog (auto update saat transaksi selesai)
 - **ML & FF Topup** — topup diamond Mobile Legends, Free Fire, dan Weekly Diamond Pass (WDP)
 - **Cloud Phone & Discord Nitro** — order Redfinger cloud phone dan Discord Nitro via tiket
 - **Giveaway** — slash command giveaway dengan timer, auto-end, reroll, dan persistent setelah restart
@@ -16,6 +18,7 @@ Bot Discord untuk operasional toko digital. Menangani transaksi middleman trade,
 - **Broadcast** — kirim pengumuman ke channel dengan modal preview, cooldown per admin
 - **Auto React** — auto react emoji ke pesan di channel tertentu atau semua pesan admin
 - **Server Stats** — voice channel nama otomatis update jumlah member
+- **Status Toko (Open/Close)** — voice status otomatis + tombol catalog padam saat toko tutup
 - **Selfroles** — self-assignable roles via Discord button
 - **AutoPost** — auto-post pesan ke channel Discord via user token, support multiple channel, interval persisten
 - **Admin Panel Web** — kelola produk ML/FF/WDP/Robux/Lainnya dan statistik transaksi via browser
@@ -99,8 +102,11 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
 | `TESTIMONI_CHANNEL_ID` | ID channel testimoni |
-| `VILOG_CHANNEL_ID` | ID channel log untuk Vilog |
+| `VILOG_CHANNEL_ID` | ID channel log untuk Vilog (opsional) |
+| `VILOG_CATALOG_CHANNEL_ID` | ID channel layanan/catalog Vilog |
 | `AUTOPOSTER_TOKEN` | User token Discord untuk AutoPost (opsional) |
+| `RELAY_SOURCE_CHANNEL_ID` | Source channel relay (opsional) |
+| `RELAY_WEBHOOK_URL` | Webhook URL relay (opsional) |
 
 ### Opsional (Admin Panel)
 | Variable | Default | Keterangan |
@@ -155,8 +161,30 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 |---|---|
 | `!catalog` | Kirim embed catalog robux |
 | `!rate [angka]` | Set rate Robux |
+| `!stock` | Lihat stock robux (tersedia + total keluar) |
+| `!stockset [robux]` | Set stock robux tersedia |
+| `!stockadd [robux]` | Tambah stock robux tersedia |
+| `!stockoutadd [robux]` | Tambah robux keluar (total) tanpa mengurangi stock |
+| `!stockoutship [robux]` | Robux keluar + kurangi stock (koreksi manual) |
 | `!gift` | Konfirmasi gift item selesai |
 | `!tolak [alasan]` | Batalkan tiket robux |
+
+### Robux Via Login (Vilog)
+| Command | Fungsi |
+|---|---|
+| `!vilogcatalog` | Kirim/refresh embed layanan Vilog |
+| `!ratevilog [angka]` | Set rate Vilog |
+| `!vilogdone` | Konfirmasi Vilog selesai |
+| `!vilogbatal [alasan]` | Batalkan tiket Vilog |
+
+### GP Topup (Gamepass)
+| Command | Fungsi |
+|---|---|
+| `!gpcatalog` | Kirim embed catalog GP Topup |
+| `!gprate [angka]` | Set rate GP |
+| `!gplink [url]` | Kirim link gamepass (opsional) |
+| `!gpdone` | Konfirmasi gamepass sudah dibeli (selesai) |
+| `!gpbatal [alasan]` | Batalkan tiket GP |
 
 ### ML & FF Topup
 | Command | Fungsi |
@@ -234,8 +262,15 @@ Perubahan produk via web langsung berlaku ke bot tanpa restart.
 1. Member klik kategori di channel catalog robux
 2. Pilih item dari dropdown
 3. Transfer sesuai nominal + kirim bukti bayar
-4. Admin verifikasi, gift item via Roblox
+4. Admin cek bukti bayar (manual), gift item via Roblox
 5. Admin ketik `!gift` untuk tutup tiket
+
+### Robux Via Login (Vilog)
+1. Member klik **Order** di channel catalog Vilog
+2. Isi form (jumlah robux kelipatan 500, email, password, kode backup, premium)
+3. Bayar sesuai instruksi admin + kirim bukti bayar
+4. Admin proses topup via login
+5. Admin ketik `!vilogdone` untuk tutup tiket
 
 ### ML & FF Topup
 1. Member pilih diamond / WDP di channel catalog ML
@@ -271,12 +306,16 @@ midman/
 │   ├── fee.py            # Kalkulator fee midman
 │   ├── tickets.py        # CRUD tiket midman trade
 │   ├── robux_db.py       # CRUD tiket robux + bot_state
+│   ├── robux_stock.py    # Stock robux (tersedia + total keluar)
+│   ├── store_hours.py    # Jam operasional (WIB) open/close
 │   ├── autoposter_settings.py  # CRUD autopost tasks
-│   └── gp_db.py          # CRUD GP store
+│   └── gp_db.py          # CRUD GP (gamepass) topup
 └── cogs/
     ├── midman.py         # Midman trade
     ├── jualbeli.py       # Midman jual beli
     ├── robux.py          # Robux store
+    ├── vilog.py          # Robux via login (Vilog)
+    ├── store_status.py   # Voice status open/close + refresh catalog
     ├── ml.py             # Topup ML, FF & WDP
     ├── lainnya.py        # Cloud Phone & Discord Nitro
     ├── orders.py         # Shared !done & !cancel
@@ -288,7 +327,7 @@ midman/
     ├── selfroles.py       # Self-assignable roles
     ├── testimoni.py       # Auto-reply channel testimoni
     ├── qr.py              # QRIS management
-    ├── gp.py              # Garena Point store
+    ├── gp.py              # Topup Robux via Gamepass
     ├── poll.py            # Poll command
     ├── embed_builder.py   # Custom embed builder
     ├── afk.py             # AFK system
@@ -313,6 +352,8 @@ SQLite (`midman.db`) tidak di-push ke GitHub. Di-generate otomatis saat `bash st
 - `tickets` — midman trade
 - `jb_tickets` — midman jual beli
 - `robux_tickets` — tiket robux
+- `gp_tickets` — tiket topup Robux via gamepass
+- `vilog_tickets` — tiket topup Robux via login (Vilog)
 - `ml_tickets` — tiket ML & FF
 - `lainnya_tickets` — tiket Cloud Phone & Nitro
 - `transaction_log` — log semua transaksi sukses (untuk statistik)
