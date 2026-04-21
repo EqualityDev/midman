@@ -11,6 +11,7 @@ ROLES = [
     {"emoji": "🍀",                                 "label": "INFO PT PT",             "role_id": 1478607256437260388},
     {"emoji": "🎉",                                 "label": "Giveaway",          "role_id": 1479146345620181043},
     {"emoji": "<:RobloxVerifiedBadge:1479498873641762837>", "label": "Roblox", "role_id": 1479455170520682530},
+    {"emoji": "<:pubg:1479458873641762838>",        "label": "PUBG",             "role_id": 1479458873641762838},
 ]
 
 class SelfRolesView(discord.ui.View):
@@ -75,9 +76,10 @@ class SelfRoles(commands.Cog):
                 "<:ml1:1478904312779247870> **Mobile Legends** — Main Mobile Legends\n"
                 "🍀 **INFO PT PT** — PT PT PING!\n"
                 "🎉 **Giveaway** — Notifikasi Giveaway\n"
-                "<:RobloxVerifiedBadge:1479498873641762837> **Roblox** — Role Roblox Player"
+                "<:RobloxVerifiedBadge:1479498873641762837> **Roblox** — Role Roblox Player\n"
+                "<:pubg:1479458873641762838> **PUBG** — Role PUBG Player"
             ),
-            color=0x9B59B6
+            color=0x00FF00
         )
         embed.set_footer(text=STORE_NAME)
         await ch.send(embed=embed, view=SelfRolesView())
