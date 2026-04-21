@@ -141,7 +141,7 @@ def _set_catalog_msg_id(msg_id):
 # ── CATALOG EMBED & VIEW ───────────────────────────────────────────────────────
 def build_catalog_embed(products):
     categories = list(dict.fromkeys(p["category"] for p in products))
-    cat_list = "\n".join(f"📦 {cat}" for cat in categories)
+    cat_list = "\n".join(f"{CATEGORY_EMOJIS.get(cat, '📦')} {cat}" for cat in categories)
     
     embed = discord.Embed(
         title=f"🛒 LAYANAN — {STORE_NAME}",
@@ -196,6 +196,15 @@ class CatalogView(discord.ui.View):
         return self
 
 
+CATEGORY_EMOJIS = {
+    "CLOUD PHONE": "📱",
+    "DISCORD NITRO": "🎮",
+    "NETFLIX": "🎬",
+    "SPOTIFY": "🎵",
+    "CAPCUT": "✂️",
+    "SOSMED": "📢",
+}
+
 class CategorySelect(discord.ui.Select):
     def __init__(self, products):
         by_category = {}
@@ -204,10 +213,12 @@ class CategorySelect(discord.ui.Select):
                 by_category[p["category"]] = []
             by_category[p["category"]].append(p)
         
-        options = [
-            discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat)
-            for cat, items in by_category.items()
-        ]
+        options = []
+        for cat, items in by_category.items():
+            emoji = CATEGORY_EMOJIS.get(cat, "📦")
+            options.append(
+                discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat, emoji=emoji)
+            )
         
         super().__init__(
             placeholder="Pilih kategori...",
