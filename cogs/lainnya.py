@@ -190,7 +190,7 @@ class CatalogView(discord.ui.View):
 
     def rebuild(self, products):
         self.clear_items()
-        self.add_item(LayananSelect(products))
+        self.add_item(CategorySelect(products))
         self.add_item(CustomOrderButton())
         if not self._store_open:
             for child in self.children:
@@ -198,53 +198,67 @@ class CatalogView(discord.ui.View):
         return self
 
 
-class LayananSelect(discord.ui.Select):
+class CategorySelect(discord.ui.Select):
     def __init__(self, products):
-        options = []
         by_category = {}
         for p in products:
             if p["category"] not in by_category:
                 by_category[p["category"]] = []
             by_category[p["category"]].append(p)
         
-        for cat, items in by_category.items():
-            options.append(
-                discord.SelectOption(
-                    label=f"📦 {cat}",
-                    description=f"{len(items)} produk",
-                    value=f"cat_{cat}"
-                )
-            )
-            for p in items:
-                options.append(
-                    discord.SelectOption(
-                        label=p["name"],
-                        description=f"Rp {p['harga']:,}",
-                        value=str(p["id"]),
-                        emoji="🎁"
-                    )
-                )
+        options = [
+            discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat)
+            for cat, items in by_category.items()
+        ]
         
         super().__init__(
-            placeholder="Pilih layanan...",
+            placeholder="Pilih kategori...",
             min_values=1,
             max_values=1,
             options=options,
-            custom_id="lainnya_layanan"
+            custom_id="lainnya_category"
         )
-        self.products = {str(p["id"]): p for p in products}
+        self.products = products
 
     async def callback(self, interaction: discord.Interaction):
-        selected = self.values[0]
-        if selected.startswith("cat_"):
-            cat = selected[4:]
-            await interaction.response.send_message(
-                f"Kategori **{cat}** dipilih. Silakan pilih produk di bawah:",
-                ephemeral=True
-            )
+        selected_cat = self.values[0]
+        items = [p for p in self.products if p["category"] == selected_cat]
+        
+        if not items:
+            await interaction.response.send_message("Tidak ada produk.", ephemeral=True)
             return
         
-        product = self.products.get(selected)
+        product_options = [
+            discord.SelectOption(label=p["name"], description=f"Rp {p['harga']:,}", value=str(p["id"]))
+            for p in items
+        ]
+        
+        view = discord.ui.View()
+        view.add_item(ProdukSelect(product_options, selected_cat))
+        await interaction.response.send_message(
+            f"📦 **{selected_cat}** — Pilih produk:",
+            view=view,
+            ephemeral=True
+        )
+
+
+class ProdukSelect(discord.ui.Select):
+    def __init__(self, options, category):
+        super().__init__(
+            placeholder="Pilih produk...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id=f"lainnya_produk_{category}"
+        )
+        self.category = category
+        self.options = options
+
+    async def callback(self, interaction: discord.Interaction):
+        products = load_lainnya_products()
+        product_id = int(self.values[0])
+        product = next((p for p in products if p["id"] == product_id), None)
+        
         if not product:
             await interaction.response.send_message("Produk tidak ditemukan.", ephemeral=True)
             return
@@ -266,11 +280,7 @@ class LayananSelect(discord.ui.Select):
                     )
                     return
         
-        if not interaction.response.is_done():
-            try:
-                await interaction.response.defer(ephemeral=True)
-            except Exception:
-                pass
+        await interaction.response.defer(ephemeral=True)
         
         cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
         admin_role = guild.get_role(ADMIN_ROLE_ID)
