@@ -140,22 +140,20 @@ def _set_catalog_msg_id(msg_id):
 
 # ── CATALOG EMBED & VIEW ───────────────────────────────────────────────────────
 def build_catalog_embed(products):
+    categories = list(dict.fromkeys(p["category"] for p in products))
+    cat_list = "\n".join(f"📦 {cat}" for cat in categories)
+    
     embed = discord.Embed(
-        title=f"CELLYN STORE — {STORE_NAME}",
+        title=f"🛒 LAYANAN — {STORE_NAME}",
         description=(
-            "Tersedia layanan APP PREMIUM, Discord Nitro, dan lainnya.\n"
-            "Klik tombol kategori di bawah untuk melihat produk."
+            "Pilih kategori untuk melihat produk.\n"
+            f"Atau klik custom order untuk pesanan khusus.\n\n"
+            f"**Kategori tersedia:**\n{cat_list}\n\n"
+            "💳 Pembayaran: QRIS • DANA • Bank Transfer"
         ),
         color=COLOR_LAINNYA,
     )
-    categories = {}
-    for p in products:
-        categories.setdefault(p["category"], []).append(p)
-    for cat, items in categories.items():
-        value = "\n".join(f"• {p['name']} — **Rp {p['harga']:,}**" for p in items)
-        embed.add_field(name=cat, value=value, inline=False)
-    embed.add_field(name="Pembayaran", value="QRIS • DANA • Bank Transfer", inline=False)
-    embed.set_footer(text=f"{STORE_NAME} • Klik tombol untuk order")
+    embed.set_footer(text=f"{STORE_NAME}")
     return embed
 
 
