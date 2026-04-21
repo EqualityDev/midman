@@ -15,6 +15,7 @@ from utils.transcript import generate as generate_transcript
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 CATALOG_CHANNEL_ID = 1476349829113315489
 COLOR_LAINNYA = 0x5865F2
+DEFAULT_CAT_EMOJI = "<:symbolcheck:1480599052109217892>"
 
 
 # ── DATABASE ───────────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ def _set_catalog_msg_id(msg_id):
 # ── CATALOG EMBED & VIEW ───────────────────────────────────────────────────────
 def build_catalog_embed(products):
     categories = list(dict.fromkeys(p["category"] for p in products))
-    cat_list = "\n".join(f"{CATEGORY_EMOJIS.get(cat, '📦')} {cat}" for cat in categories)
+    cat_list = "\n".join(f"{CATEGORY_EMOJIS.get(cat, DEFAULT_CAT_EMOJI)} {cat}" for cat in categories)
     
     embed = discord.Embed(
         title=f"🛒 LAYANAN — {STORE_NAME}",
@@ -198,11 +199,13 @@ class CatalogView(discord.ui.View):
 
 CATEGORY_EMOJIS = {
     "CLOUD PHONE": "📱",
-    "DISCORD NITRO": "🎮",
+    "DISCORD NITRO": "<:hellcore_tickk:137946852237757656>",
     "NETFLIX": "🎬",
     "SPOTIFY": "🎵",
     "CAPCUT": "✂️",
+    "YOUTUBE": "<:hellcore_tickk:137946852237757656>",
     "SOSMED": "📢",
+    "TIKTOK": "📢",
 }
 
 class CategorySelect(discord.ui.Select):
@@ -215,7 +218,7 @@ class CategorySelect(discord.ui.Select):
         
         options = []
         for cat, items in by_category.items():
-            emoji = CATEGORY_EMOJIS.get(cat, "📦")
+            emoji = CATEGORY_EMOJIS.get(cat, DEFAULT_CAT_EMOJI)
             options.append(
                 discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat, emoji=emoji)
             )
