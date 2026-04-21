@@ -183,13 +183,14 @@ class CategoryButton(discord.ui.Button):
 
 
 class CatalogView(discord.ui.View):
-    def __init__(self, store_open: bool | None = None):
+    def __init__(self, store_open: bool | None = None, guild=None):
         super().__init__(timeout=None)
         self._store_open = is_store_open() if store_open is None else store_open
+        self._guild = guild
 
     def rebuild(self, products):
         self.clear_items()
-        self.add_item(CategorySelect(products))
+        self.add_item(CategorySelect(products, self._guild))
         self.add_item(CustomOrderButton())
         if not self._store_open:
             for child in self.children:
@@ -209,7 +210,7 @@ CATEGORY_EMOJIS = {
 }
 
 class CategorySelect(discord.ui.Select):
-    def __init__(self, products):
+    def __init__(self, products, guild=None):
         by_category = {}
         for p in products:
             if p["category"] not in by_category:
