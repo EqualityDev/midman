@@ -218,9 +218,8 @@ class CategorySelect(discord.ui.Select):
         
         options = []
         for cat, items in by_category.items():
-            emoji = CATEGORY_EMOJIS.get(cat, DEFAULT_CAT_EMOJI)
             options.append(
-                discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat, emoji=emoji)
+                discord.SelectOption(label=cat, description=f"{len(items)} produk", value=cat)
             )
         
         super().__init__(
