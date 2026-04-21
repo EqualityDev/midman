@@ -190,14 +190,145 @@ class CatalogView(discord.ui.View):
 
     def rebuild(self, products):
         self.clear_items()
-        categories = list(dict.fromkeys(p["category"] for p in products))
-        for cat in categories:
-            self.add_item(CategoryButton(cat))
+        self.add_item(LayananSelect(products))
         self.add_item(CustomOrderButton())
         if not self._store_open:
             for child in self.children:
                 child.disabled = True
         return self
+
+
+class LayananSelect(discord.ui.Select):
+    def __init__(self, products):
+        options = []
+        by_category = {}
+        for p in products:
+            if p["category"] not in by_category:
+                by_category[p["category"]] = []
+            by_category[p["category"]].append(p)
+        
+        for cat, items in by_category.items():
+            options.append(
+                discord.SelectOption(
+                    label=f"📦 {cat}",
+                    description=f"{len(items)} produk",
+                    value=f"cat_{cat}"
+                )
+            )
+            for p in items:
+                options.append(
+                    discord.SelectOption(
+                        label=p["name"],
+                        description=f"Rp {p['harga']:,}",
+                        value=str(p["id"]),
+                        emoji="🎁"
+                    )
+                )
+        
+        super().__init__(
+            placeholder="Pilih layanan...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="lainnya_layanan"
+        )
+        self.products = {str(p["id"]): p for p in products}
+
+    async def callback(self, interaction: discord.Interaction):
+        selected = self.values[0]
+        if selected.startswith("cat_"):
+            cat = selected[4:]
+            await interaction.response.send_message(
+                f"Kategori **{cat}** dipilih. Silakan pilih produk di bawah:",
+                ephemeral=True
+            )
+            return
+        
+        product = self.products.get(selected)
+        if not product:
+            await interaction.response.send_message("Produk tidak ditemukan.", ephemeral=True)
+            return
+        
+        cog = interaction.client.cogs.get("LainnyaStore")
+        if not cog:
+            return
+        
+        member = interaction.user
+        guild = interaction.guild
+        
+        for ch_id, t in cog.active_tickets.items():
+            if t["user_id"] == member.id:
+                existing = guild.get_channel(ch_id)
+                if existing:
+                    await interaction.response.send_message(
+                        f"Kamu masih punya tiket aktif di {existing.mention}!",
+                        ephemeral=True
+                    )
+                    return
+        
+        if not interaction.response.is_done():
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except Exception:
+                pass
+        
+        cat_channel = guild.get_channel(TICKET_CATEGORY_ID)
+        admin_role = guild.get_role(ADMIN_ROLE_ID)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+        channel = await guild.create_text_channel(
+            name=f"order-{member.name}",
+            category=cat_channel,
+            overwrites=overwrites
+        )
+
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        ticket = {
+            "channel_id": channel.id,
+            "user_id": member.id,
+            "item_id": product["id"],
+            "item_name": product["name"],
+            "category": product["category"],
+            "harga": product["harga"],
+            "payment_method": None,
+            "admin_id": None,
+            "embed_message_id": None,
+            "opened_at": now,
+            "last_activity": now,
+            "warned": 0,
+            "warn_message_id": None,
+        }
+        cog.active_tickets[channel.id] = ticket
+        save_lainnya_ticket(ticket)
+
+        embed = discord.Embed(
+            title=f"ORDER {product['category']} — {STORE_NAME}",
+            color=COLOR_LAINNYA,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        embed.add_field(name="Member", value=member.mention, inline=True)
+        embed.add_field(name="Item", value=product["name"], inline=True)
+        embed.add_field(name="Harga", value=f"Rp {product['harga']:,}", inline=True)
+        embed.add_field(name="Metode Bayar", value="*Menunggu konfirmasi...*", inline=False)
+        embed.set_footer(text=STORE_NAME)
+
+        admin_mention = admin_role.mention if admin_role else ""
+        msg = await channel.send(
+            content=f"{member.mention} {admin_mention}\nPesanan baru!",
+            embed=embed
+        )
+        ticket["embed_message_id"] = msg.id
+        save_lainnya_ticket(ticket)
+        await interaction.followup.send(
+            f"Pesanan dibuat di {channel.mention}!\n{product['name']} - Rp {product['harga']:,}",
+            ephemeral=True
+        )
 
 
 class CustomOrderButton(discord.ui.Button):
