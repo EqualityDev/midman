@@ -15,7 +15,7 @@ from utils.transcript import generate as generate_transcript
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 CATALOG_CHANNEL_ID = 1476349829113315489
 COLOR_LAINNYA = 0x5865F2
-DEFAULT_CAT_EMOJI = "✅"
+DEFAULT_CAT_EMOJI = "•"
 
 
 # ── DATABASE ───────────────────────────────────────────────────────────────────
@@ -198,14 +198,14 @@ class CatalogView(discord.ui.View):
 
 
 CATEGORY_EMOJIS = {
-    "CLOUD PHONE": "📱",
-    "DISCORD NITRO": "🎮",
-    "NETFLIX": "🎬",
-    "SPOTIFY": "🎵",
-    "CAPCUT": "✂️",
-    "YOUTUBE": "▶️",
-    "SOSMED": "📢",
-    "TIKTOK": "📱",
+    "CLOUD PHONE": "•",
+    "DISCORD NITRO": "•",
+    "NETFLIX": "•",
+    "SPOTIFY": "•",
+    "CAPCUT": "•",
+    "YOUTUBE": "•",
+    "SOSMED": "•",
+    "TIKTOK": "•",
 }
 
 class CategorySelect(discord.ui.Select):
