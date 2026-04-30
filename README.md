@@ -90,6 +90,15 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `GUILD_ID` | ID server Discord |
 | `STORE_NAME` | Nama store (tampil di embed) |
 | `ADMIN_ROLE_ID` | ID role admin |
+| `BOOST_ROLE_ID` | ID role booster |
+| `CUSTOMER_ROLE_ID` | ID role customer (auto-assign saat join) |
+| `SELFROLE_FISH_IT_ROLE_ID` | ID role selfrole Fish It |
+| `SELFROLE_VD_ROLE_ID` | ID role selfrole Violens District |
+| `SELFROLE_ML_ROLE_ID` | ID role selfrole Mobile Legends |
+| `SELFROLE_INFO_PT_PT_ROLE_ID` | ID role selfrole INFO PT PT |
+| `SELFROLE_GIVEAWAY_ROLE_ID` | ID role selfrole Giveaway |
+| `SELFROLE_ROBLOX_ROLE_ID` | ID role selfrole Roblox |
+| `SELFROLE_PUBG_ROLE_ID` | ID role selfrole PUBG |
 | `TICKET_CATEGORY_ID` | ID kategori channel tiket |
 | `LOG_CHANNEL_ID` | ID channel log transaksi |
 | `TRANSCRIPT_CHANNEL_ID` | ID channel transcript tiket |
@@ -97,13 +106,16 @@ Salin `.env.example` ke `.env` dan isi semua variabel:
 | `ERROR_LOG_CHANNEL_ID` | ID channel log error + notifikasi admin panel |
 | `MIDMAN_CHANNEL_ID` | ID channel midman |
 | `ROBUX_CATALOG_CHANNEL_ID` | ID channel catalog robux |
+| `GP_CATALOG_CHANNEL_ID` | ID channel catalog GP Topup |
 | `ML_CATALOG_CHANNEL_ID` | ID channel catalog ML/FF |
+| `LAINNYA_CATALOG_CHANNEL_ID` | ID channel catalog Cloud Phone & Nitro |
+| `VILOG_CATALOG_CHANNEL_ID` | ID channel layanan/catalog Vilog |
 | `SELFROLES_CHANNEL_ID` | ID channel selfroles |
+| `STORE_STATUS_VOICE_CHANNEL_ID` | ID voice channel status Open/Close |
 | `DANA_NUMBER` | Nomor DANA |
 | `BCA_NUMBER` | Nomor BCA |
 | `TESTIMONI_CHANNEL_ID` | ID channel testimoni |
 | `VILOG_CHANNEL_ID` | ID channel log untuk Vilog (opsional) |
-| `VILOG_CATALOG_CHANNEL_ID` | ID channel layanan/catalog Vilog |
 | `AUTOPOSTER_TOKEN` | User token Discord untuk AutoPost (opsional) |
 | `RELAY_SOURCE_CHANNEL_ID` | Source channel relay (opsional) |
 | `RELAY_WEBHOOK_URL` | Webhook URL relay (opsional) |
