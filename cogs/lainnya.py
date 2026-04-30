@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands, tasks
 from utils.config import (
     ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME,
-    TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID, GUILD_ID
+    TICKET_CATEGORY_ID, TRANSCRIPT_CHANNEL_ID, GUILD_ID, LAINNYA_CATALOG_CHANNEL_ID
 )
 from utils.db import get_conn
 from utils.store_hours import is_store_open
@@ -13,7 +13,6 @@ from utils.counter import next_ticket_number
 from utils.transcript import generate as generate_transcript
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
-CATALOG_CHANNEL_ID = 1476349829113315489
 COLOR_LAINNYA = 0x5865F2
 DEFAULT_CAT_EMOJI = "•"
 
@@ -681,7 +680,7 @@ class LainnyaStore(commands.Cog):
         guild = self.bot.get_guild(GUILD_ID)
         if not guild:
             return
-        ch = guild.get_channel(CATALOG_CHANNEL_ID)
+        ch = guild.get_channel(LAINNYA_CATALOG_CHANNEL_ID)
         if not ch:
             return
         embed = build_catalog_embed(products)

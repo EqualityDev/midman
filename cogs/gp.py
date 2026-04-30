@@ -9,7 +9,7 @@ import datetime
 import discord
 from discord.ext import commands, tasks
 from utils.config import (
-    ADMIN_ROLE_ID, LOG_CHANNEL_ID, STORE_NAME,
+    ADMIN_ROLE_ID, GP_CATALOG_CHANNEL_ID, LOG_CHANNEL_ID, STORE_NAME,
     TICKET_CATEGORY_ID, GUILD_ID, TRANSCRIPT_CHANNEL_ID
 )
 from utils.db import get_conn
@@ -19,8 +19,6 @@ from utils.gp_db import (
 )
 from utils.robux_stock import get_available as get_robux_stock_available, get_out_total as get_robux_out_total, record_outgoing as record_robux_outgoing
 from utils.store_hours import is_store_open
-
-GP_CATALOG_CHANNEL_ID = 1478917118715236603
 MIN_ROBUX = 300
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 COLOR = 0x9B59B6
