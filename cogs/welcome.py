@@ -5,14 +5,12 @@ import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
-from utils.config import ADMIN_ROLE_ID, STORE_NAME
+from utils.config import ADMIN_ROLE_ID, BOOST_ROLE_ID, CUSTOMER_ROLE_ID, STORE_NAME
 from utils.db import get_conn
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 WELCOME_GIF_PATH = "data/welcome.gif"
 BOOST_GIF_PATH = "data/boost.gif"
-BOOST_ROLE_ID = 1476362606552809683
-CUSTOMER_ROLE_ID = 1476360559048786083
 
 
 def _get_setting(key):

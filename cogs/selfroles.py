@@ -1,17 +1,22 @@
 import discord
 from discord.ext import commands
-from utils.config import ADMIN_ROLE_ID, SELFROLES_CHANNEL_ID, STORE_NAME
+from utils.config import (
+    ADMIN_ROLE_ID, SELFROLES_CHANNEL_ID, STORE_NAME,
+    SELFROLE_FISH_IT_ROLE_ID, SELFROLE_VD_ROLE_ID, SELFROLE_ML_ROLE_ID,
+    SELFROLE_INFO_PT_PT_ROLE_ID, SELFROLE_GIVEAWAY_ROLE_ID,
+    SELFROLE_ROBLOX_ROLE_ID, SELFROLE_PUBG_ROLE_ID,
+)
 
 THUMBNAIL = "https://i.imgur.com/CWtUCzj.png"
 
 ROLES = [
-    {"emoji": "<a:fish_dance:1478904201202634855>", "label": "Fish It",          "role_id": 1478902226616582144},
-    {"emoji": "<:vd:1478903981895057579>",          "label": "Violens District",  "role_id": 1478902150586302495},
-    {"emoji": "<:ml1:1478904312779247870>",         "label": "Mobile Legends",    "role_id": 1478902297147867317},
-    {"emoji": "🍀",                                 "label": "INFO PT PT",             "role_id": 1478607256437260388},
-    {"emoji": "🎉",                                 "label": "Giveaway",          "role_id": 1479146345620181043},
-    {"emoji": "<:RobloxVerifiedBadge:1479498873641762837>", "label": "Roblox", "role_id": 1479455170520682530},
-    {"emoji": "<:pubg:1479458873641762838>",        "label": "PUBG",             "role_id": 1479458873641762838},
+    {"emoji": "<a:fish_dance:1478904201202634855>", "label": "Fish It",          "role_id": SELFROLE_FISH_IT_ROLE_ID},
+    {"emoji": "<:vd:1478903981895057579>",          "label": "Violens District",  "role_id": SELFROLE_VD_ROLE_ID},
+    {"emoji": "<:ml1:1478904312779247870>",         "label": "Mobile Legends",    "role_id": SELFROLE_ML_ROLE_ID},
+    {"emoji": "🍀",                                 "label": "INFO PT PT",             "role_id": SELFROLE_INFO_PT_PT_ROLE_ID},
+    {"emoji": "🎉",                                 "label": "Giveaway",          "role_id": SELFROLE_GIVEAWAY_ROLE_ID},
+    {"emoji": "<:RobloxVerifiedBadge:1479498873641762837>", "label": "Roblox", "role_id": SELFROLE_ROBLOX_ROLE_ID},
+    {"emoji": "<:pubg:1479458873641762838>",        "label": "PUBG",             "role_id": SELFROLE_PUBG_ROLE_ID},
 ]
 
 class SelfRolesView(discord.ui.View):
